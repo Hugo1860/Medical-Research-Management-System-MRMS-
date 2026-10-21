@@ -66,11 +66,9 @@ public sealed class AuditMiddleware
 
     private async Task WriteAuditAsync(HttpContext context, long elapsedMs, Exception failure)
     {
-        var user = keycloak.Enabled
-            ? context.Items.TryGetValue(KeycloakUserMiddleware.CurrentUserItemKey, out var itemUser)
-                ? itemUser as CurrentUser
-                : null
-            : context.Session.Get<CurrentUser>("user");
+        var user = (context.Items.TryGetValue(KeycloakUserMiddleware.CurrentUserItemKey, out var itemUser)
+            ? itemUser as CurrentUser
+            : null) ?? context.Session.Get<CurrentUser>("user");
         if (user == null) return;
 
         try

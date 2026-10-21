@@ -110,10 +110,8 @@ namespace ScientificResearch.Infrastucture
                 var httpContext = ServiceProvider.GetService<IHttpContextAccessor>()?.HttpContext;
                 object itemUser = null;
                 var hasKeycloakUser = httpContext?.Items.TryGetValue(KeycloakUserMiddleware.CurrentUserItemKey, out itemUser) == true;
-                var keycloakEnabled = ServiceProvider.GetService<KeycloakOptions>()?.Enabled == true;
-                var user = keycloakEnabled
-                    ? (hasKeycloakUser ? itemUser as CurrentUser : null)
-                    : (hasKeycloakUser ? itemUser as CurrentUser : Session.Get<CurrentUser>("user"));
+                var user = (hasKeycloakUser ? itemUser as CurrentUser : null)
+                    ?? Session.Get<CurrentUser>("user");
                 if (user == null)
                 {
                     throw new UnauthorizedAccessException("请先登录");

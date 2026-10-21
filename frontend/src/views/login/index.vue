@@ -6,118 +6,223 @@
           <el-icon :size="32" color="#409eff"><Management /></el-icon>
         </div>
         <h1 class="system-title">科研信息管理系统</h1>
-        <p class="system-sub">Scientific Research Information Management System</p>
+        <p class="system-sub">Medical Research Management System (MRMS)</p>
       </div>
 
-      <!-- Keycloak 统一身份登录模式 -->
-      <div v-if="oidcConfig?.enabled" class="oidc-login-section">
-        <el-alert
-          title="系统已开启 Keycloak 统一身份认证"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 20px;"
-        >
-          <template #default>
-            <span>统一认证服务：{{ oidcConfig.authority }}</span>
+      <!-- 统一人员管理 / 本地账号登录 双轨选项卡 -->
+      <el-tabs v-model="activeTab" class="login-tabs" stretch>
+        <!-- Tab 1: 统一人员管理 (Keycloak OIDC SSO) -->
+        <el-tab-pane name="oidc">
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Connection /></el-icon>
+              <span>统一人员管理</span>
+            </span>
           </template>
-        </el-alert>
 
-        <el-button
-          type="primary"
-          size="large"
-          class="submit-btn"
-          :loading="oidcLoading"
-          @click="startOidcLogin"
-        >
-          使用 Keycloak 统一身份登录
-        </el-button>
+          <div class="oidc-panel">
+            <div class="sso-banner">
+              <div class="sso-icon">
+                <el-icon :size="28" color="#409eff"><Avatar /></el-icon>
+              </div>
+              <div class="sso-text">
+                <div class="sso-title">院内统一人员与身份认证平台</div>
+                <div class="sso-desc">基于 Keycloak / OIDC 权威单点登录</div>
+              </div>
+            </div>
 
-        <el-divider>
-          <span style="font-size: 12px; color: #909399;">或使用应急维护通道</span>
-        </el-divider>
+            <div v-if="oidcConfig?.enabled" class="sso-status-card">
+              <div class="status-row">
+                <span class="status-badge connected"></span>
+                <span class="status-title">认证中心已就绪</span>
+              </div>
+              <div class="status-endpoint">
+                <span>权威节点：</span>
+                <code>{{ oidcAuthorityClean }}</code>
+              </div>
+              <div class="status-meta">
+                <span>已同步人事档案，权限与科室角色自动打通</span>
+              </div>
+            </div>
 
-        <div style="text-align: center;">
-          <el-button link type="info" size="small" @click="showLocalLogin = !showLocalLogin">
-            {{ showLocalLogin ? '收起本地密码登录' : '展开本地密码登录 (离线/应急)' }}
-          </el-button>
-        </div>
-      </div>
+            <div v-else class="sso-status-card offline">
+              <div class="status-row">
+                <span class="status-badge standby"></span>
+                <span class="status-title">统一认证配置中</span>
+              </div>
+              <div class="status-meta">
+                <span>服务端统一人员配置正在接入，您可使用本地账号先行登录验证</span>
+              </div>
+            </div>
 
-      <!-- 本地账号密码登录模式 -->
-      <div v-if="!oidcConfig?.enabled || showLocalLogin" class="local-login-section">
-        <el-form
-          ref="loginFormRef"
-          :model="loginForm"
-          :rules="loginRules"
-          label-position="top"
-          size="large"
-          @submit.prevent="handleLocalLogin"
-        >
-          <el-form-item label="人员工号" prop="工号">
-            <el-input
-              v-model="loginForm.工号"
-              placeholder="请输入工号"
-              :prefix-icon="User"
-              clearable
-            />
-          </el-form-item>
+            <el-button
+              type="primary"
+              size="large"
+              class="submit-btn oidc-btn"
+              :loading="oidcLoading"
+              :disabled="!oidcConfig?.enabled"
+              @click="startOidcLogin"
+            >
+              <el-icon style="margin-right: 6px;"><Key /></el-icon>
+              {{ oidcConfig?.enabled ? '进入统一人员管理认证登录' : '统一认证中心连线中...' }}
+            </el-button>
 
-          <el-form-item label="登录密码" prop="密码">
-            <el-input
-              v-model="loginForm.密码"
-              type="password"
-              placeholder="请输入密码"
-              :prefix-icon="Lock"
-              show-password
-              @keyup.enter="handleLocalLogin"
-            />
-          </el-form-item>
+            <!-- 统一认证测试预置人员提示 -->
+            <div class="quick-accounts">
+              <div class="quick-title">统一人员库已就绪账号：</div>
+              <div class="account-chips">
+                <el-tag size="small" type="success" effect="plain">111 (李世伟 · 临床专病)</el-tag>
+                <el-tag size="small" type="primary" effect="plain">222 (胡英豪 · 科室主任)</el-tag>
+                <el-tag size="small" type="info" effect="plain">111aa (李四 · 助理研究员)</el-tag>
+              </div>
+            </div>
 
-          <el-form-item label="目标数据库标识" prop="DbKey">
-            <el-input
-              v-model="loginForm.DbKey"
-              placeholder="ScientificResearch_Model"
-              :prefix-icon="Coin"
-              disabled
-            />
-          </el-form-item>
+            <div class="tab-switch-hint">
+              <span>需使用独立管理员或离线调试？</span>
+              <el-button link type="primary" size="small" @click="activeTab = 'local'">
+                切换至本地账号登录
+              </el-button>
+            </div>
+          </div>
+        </el-tab-pane>
 
-          <el-button
-            type="primary"
-            size="large"
-            class="submit-btn"
-            :loading="loading"
-            @click="handleLocalLogin"
-          >
-            登 录
-          </el-button>
-        </el-form>
-      </div>
+        <!-- Tab 2: 本地账号登录 (工号 + 密码) -->
+        <el-tab-pane name="local">
+          <template #label>
+            <span class="tab-label">
+              <el-icon><User /></el-icon>
+              <span>本地账号登录</span>
+            </span>
+          </template>
+
+          <div class="local-panel">
+            <el-form
+              ref="loginFormRef"
+              :model="loginForm"
+              :rules="loginRules"
+              label-position="top"
+              size="large"
+              @submit.prevent="handleLocalLogin"
+            >
+              <el-form-item label="人员工号" prop="工号">
+                <el-input
+                  v-model="loginForm.工号"
+                  placeholder="请输入工号"
+                  :prefix-icon="User"
+                  clearable
+                />
+              </el-form-item>
+
+              <el-form-item label="登录密码" prop="密码">
+                <el-input
+                  v-model="loginForm.密码"
+                  type="password"
+                  placeholder="请输入密码"
+                  :prefix-icon="Lock"
+                  show-password
+                  @keyup.enter="handleLocalLogin"
+                />
+              </el-form-item>
+
+              <!-- 快捷预填常用测试人员 -->
+              <div class="quick-preset-bar">
+                <span class="preset-label">快捷填入：</span>
+                <el-button
+                  link
+                  type="primary"
+                  size="small"
+                  @click="fillAccount('0', '123')"
+                >
+                  管理员(0)
+                </el-button>
+                <el-divider direction="vertical" />
+                <el-button
+                  link
+                  type="primary"
+                  size="small"
+                  @click="fillAccount('111', '123abc')"
+                >
+                  科研人(111)
+                </el-button>
+                <el-divider direction="vertical" />
+                <el-button
+                  link
+                  type="primary"
+                  size="small"
+                  @click="fillAccount('222', '2222222222')"
+                >
+                  科主任(222)
+                </el-button>
+                <el-divider direction="vertical" />
+                <el-button
+                  link
+                  type="primary"
+                  size="small"
+                  @click="fillAccount('1', '123')"
+                >
+                  专家(1)
+                </el-button>
+              </div>
+
+              <el-form-item label="目标数据库标识" prop="DbKey" style="margin-top: 8px;">
+                <el-input
+                  v-model="loginForm.DbKey"
+                  placeholder="ScientificResearch_Model"
+                  :prefix-icon="Coin"
+                  disabled
+                />
+              </el-form-item>
+
+              <el-button
+                type="primary"
+                size="large"
+                class="submit-btn"
+                :loading="loading"
+                @click="handleLocalLogin"
+              >
+                登 录
+              </el-button>
+            </el-form>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
 
       <div class="login-footer">
-        <span>© 2026 科研信息管理平台 · .NET 10 + PostgreSQL 18</span>
+        <span>© 2026 科研信息管理平台 · 统一人员接入规范 · .NET 10 + PostgreSQL 18</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getOidcConfig, type OidcConfigResponse } from '@/api/auth'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Coin, Management } from '@element-plus/icons-vue'
+import {
+  User,
+  Lock,
+  Coin,
+  Management,
+  Connection,
+  Avatar,
+  Key
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
+const activeTab = ref<'oidc' | 'local'>('oidc')
 const loading = ref(false)
 const oidcLoading = ref(false)
-const showLocalLogin = ref(false)
 const oidcConfig = ref<OidcConfigResponse | null>(null)
+
+const oidcAuthorityClean = computed(() => {
+  if (!oidcConfig.value?.authority) return ''
+  return oidcConfig.value.authority.replace(/\/+$/, '')
+})
 
 const loginForm = reactive({
   工号: '0',
@@ -128,6 +233,12 @@ const loginForm = reactive({
 const loginRules = {
   工号: [{ required: true, message: '请输入工号', trigger: 'blur' }],
   密码: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
+
+function fillAccount(工号: string, 密码: string) {
+  loginForm.工号 = 工号
+  loginForm.密码 = 密码
+  ElMessage.info(`已填入工号 ${工号}`)
 }
 
 // Base64URL 辅助工具
@@ -148,9 +259,12 @@ async function sha256(value: string): Promise<string> {
   return base64Url(new Uint8Array(buffer))
 }
 
-// 发起 Keycloak OIDC PKCE 认证
+// 发起 Keycloak OIDC PKCE 统一身份认证
 async function startOidcLogin() {
-  if (!oidcConfig.value) return
+  if (!oidcConfig.value?.enabled) {
+    ElMessage.warning('统一人员认证中心暂未启用，请使用本地账号登录')
+    return
+  }
   oidcLoading.value = true
 
   try {
@@ -173,14 +287,14 @@ async function startOidcLogin() {
     params.set('state', state)
     params.set('code_challenge', challenge)
     params.set('code_challenge_method', 'S256')
-    // After an explicit logout require a fresh Keycloak credential instead of reusing SSO.
+    // Explicit logout require fresh login prompt
     if (sessionStorage.getItem('keycloakForceLogin') === '1') {
       params.set('prompt', 'login')
     }
 
     window.location.assign(`${metadata.authorization_endpoint}?${params.toString()}`)
   } catch (err: any) {
-    ElMessage.error(err.message || '连接 Keycloak 认证中心失败')
+    ElMessage.error(err.message || '连接统一人员认证中心失败')
     oidcLoading.value = false
   }
 }
@@ -199,7 +313,7 @@ async function handleOidcCallback() {
   sessionStorage.removeItem('keycloakPkceVerifier')
 
   if (!state || state !== expectedState || !verifier) {
-    ElMessage.error('Keycloak 登录校验状态无效')
+    ElMessage.error('统一人员认证校验状态无效，请重新登录')
     return
   }
 
@@ -223,7 +337,7 @@ async function handleOidcCallback() {
     })
     const tokenBody = await tokenRes.json()
     if (!tokenRes.ok || !tokenBody.access_token) {
-      throw new Error(tokenBody.error_description || '获取身份令牌失败')
+      throw new Error(tokenBody.error_description || '获取统一人员身份令牌失败')
     }
 
     userStore.setToken(tokenBody.access_token)
@@ -232,10 +346,10 @@ async function handleOidcCallback() {
     }
     sessionStorage.removeItem('keycloakForceLogin')
     await userStore.fetchUserInfo()
-    ElMessage.success('统一身份登录成功！')
+    ElMessage.success('统一人员认证登录成功！')
     router.replace('/dashboard')
   } catch (err: any) {
-    ElMessage.error(err.message || 'Keycloak 身份校验失败')
+    ElMessage.error(err.message || '统一人员身份校验失败')
   } finally {
     oidcLoading.value = false
   }
@@ -258,6 +372,11 @@ async function handleLocalLogin() {
 onMounted(async () => {
   try {
     oidcConfig.value = await getOidcConfig()
+    if (oidcConfig.value?.enabled) {
+      activeTab.value = 'oidc'
+    } else {
+      activeTab.value = 'local'
+    }
     // 检查是否有 OIDC 回调参数
     if (route.query.code) {
       await handleOidcCallback()
@@ -281,59 +400,229 @@ onMounted(async () => {
 
   .login-box {
     width: 100%;
-    max-width: 440px;
+    max-width: 460px;
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-    padding: 36px;
+    border-radius: 14px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.12);
+    padding: 32px 36px 28px;
 
     .login-header {
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 20px;
 
       .logo-circle {
-        width: 56px;
-        height: 56px;
+        width: 52px;
+        height: 52px;
         background: #eff6ff;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
 
       .system-title {
-        font-size: 22px;
+        font-size: 21px;
         font-weight: 700;
         color: #0f172a;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
       }
 
       .system-sub {
-        font-size: 12px;
+        font-size: 11px;
         color: #64748b;
         letter-spacing: 0.5px;
+      }
+    }
+
+    .login-tabs {
+      margin-bottom: 12px;
+
+      :deep(.el-tabs__item) {
+        font-size: 15px;
+        font-weight: 500;
+        padding: 0 16px;
+      }
+
+      .tab-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+    }
+
+    .oidc-panel {
+      padding: 8px 0 4px;
+
+      .sso-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+
+        .sso-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .sso-text {
+          .sso-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #166534;
+            line-height: 1.4;
+          }
+
+          .sso-desc {
+            font-size: 12px;
+            color: #15803d;
+            margin-top: 2px;
+          }
+        }
+      }
+
+      .sso-status-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+
+        .status-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 6px;
+
+          .status-badge {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+
+            &.connected {
+              background: #22c55e;
+              box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+            }
+
+            &.standby {
+              background: #eab308;
+            }
+          }
+
+          .status-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+          }
+        }
+
+        .status-endpoint {
+          font-size: 12px;
+          color: #64748b;
+          margin-bottom: 4px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+
+          code {
+            background: #e2e8f0;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, monospace;
+            color: #0f172a;
+          }
+        }
+
+        .status-meta {
+          font-size: 11px;
+          color: #94a3b8;
+          line-height: 1.4;
+        }
+
+        &.offline {
+          background: #fffbeb;
+          border-color: #fde68a;
+        }
+      }
+
+      .oidc-btn {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border: none;
+
+        &:hover {
+          opacity: 0.95;
+        }
+      }
+
+      .quick-accounts {
+        margin-top: 16px;
+        padding: 10px 12px;
+        background: #f1f5f9;
+        border-radius: 6px;
+
+        .quick-title {
+          font-size: 12px;
+          color: #475569;
+          font-weight: 500;
+          margin-bottom: 6px;
+        }
+
+        .account-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+      }
+
+      .tab-switch-hint {
+        text-align: center;
+        margin-top: 16px;
+        font-size: 12px;
+        color: #64748b;
+
+        .el-button {
+          margin-left: 4px;
+        }
+      }
+    }
+
+    .local-panel {
+      padding: 6px 0 0;
+
+      .quick-preset-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 6px;
+
+        .preset-label {
+          margin-right: 4px;
+        }
       }
     }
 
     .submit-btn {
       width: 100%;
       height: 44px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 500;
       border-radius: 6px;
       margin-top: 10px;
     }
 
-    .local-login-section {
-      margin-top: 16px;
-    }
-
     .login-footer {
       text-align: center;
-      margin-top: 32px;
-      font-size: 12px;
+      margin-top: 24px;
+      font-size: 11px;
       color: #94a3b8;
+      line-height: 1.5;
     }
   }
 }

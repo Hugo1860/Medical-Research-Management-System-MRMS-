@@ -62,11 +62,11 @@ namespace ScientificResearch.Controllers
         [HttpPost]
         async public Task<object> Login([FromBody]LoginInfo model)
         {
-            if (config.GetValue<bool>("Keycloak:Enabled"))
+            if (config.GetValue<bool>("Keycloak:StrictBearerOnly", false))
             {
                 return new BadRequestObjectResult(new
                 {
-                    error = "系统已启用 Keycloak，请先完成 Keycloak 登录，再调用 GET /Access/Me"
+                    error = "系统已启用严格 Keycloak 模式，请先完成 Keycloak 登录，再调用 GET /Access/Me"
                 });
             }
 

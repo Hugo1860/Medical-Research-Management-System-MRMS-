@@ -12,6 +12,7 @@ function generateRequestId(): string {
 const service = axios.create({
   baseURL: '/',
   timeout: 30000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -23,9 +24,9 @@ service.interceptors.request.use(
     // 自动附加 X-Request-ID
     config.headers['X-Request-ID'] = generateRequestId()
 
-    // 自动附加 Keycloak Bearer Token
+    // 自动附加 Keycloak Bearer Token（本地 Session 登录时不附加伪 Token）
     const token = sessionStorage.getItem('keycloakAccessToken') || localStorage.getItem('token')
-    if (token) {
+    if (token && token !== 'session-auth-token') {
       config.headers['Authorization'] = `Bearer ${token}`
     }
 

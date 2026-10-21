@@ -260,10 +260,8 @@ SELECT EXISTS (
             get
             {
                 var hasKeycloakUser = HttpContext.Items.TryGetValue(KeycloakUserMiddleware.CurrentUserItemKey, out var itemUser);
-                var keycloakEnabled = HttpContext.RequestServices.GetService<KeycloakOptions>()?.Enabled == true;
-                var user = keycloakEnabled
-                    ? (hasKeycloakUser ? itemUser as CurrentUser : null)
-                    : (hasKeycloakUser ? itemUser as CurrentUser : HttpContext.Session.Get<CurrentUser>("user"));
+                var user = (hasKeycloakUser ? itemUser as CurrentUser : null)
+                    ?? HttpContext.Session.Get<CurrentUser>("user");
                 if (user == null)
                 {
                     throw new UnauthorizedAccessException("请先登录");

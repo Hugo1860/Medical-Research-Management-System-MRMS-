@@ -22,10 +22,8 @@ namespace ScientificResearch.Infrastucture
             }
 
             var hasKeycloakUser = context.HttpContext.Items.TryGetValue(KeycloakUserMiddleware.CurrentUserItemKey, out var itemUser);
-            var keycloakEnabled = context.HttpContext.RequestServices.GetService<KeycloakOptions>()?.Enabled == true;
-            var user = keycloakEnabled
-                ? (hasKeycloakUser ? itemUser as CurrentUser : null)
-                : (hasKeycloakUser ? itemUser as CurrentUser : context.HttpContext.Session.Get<CurrentUser>("user"));
+            var user = (hasKeycloakUser ? itemUser as CurrentUser : null)
+                ?? context.HttpContext.Session.Get<CurrentUser>("user");
             if (user == null)
             {
                 context.Result = new UnauthorizedObjectResult(new { error = "未登录或登录已过期" });
