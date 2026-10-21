@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>纵向项目申报</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css">
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/科研办公/科研办公/纵向项目申报.js"></script>
+    <style>
+        .application-page { padding: 18px 24px 36px; }
+        .application-page .form-control { margin-bottom: 8px; }
+        .check-table td, .check-table th { vertical-align: middle; }
+        .check-pass { color: #3c763d; }
+        .check-fail { color: #a94442; }
+        .review-output { white-space: pre-wrap; background: #f7f9fb; border: 1px solid #e6ebf0; padding: 12px; min-height: 80px; }
+    </style>
+</head>
+<body onload="IFrameResize()">
+<div class="page-common application-page">
+    <div class="clearfix">
+        <h4 class="title pull-left">纵向项目申报</h4>
+        <a class="btn btn-default btn-sm pull-right" href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-application">返回申报列表</a>
+    </div>
+    <div id="message" class="alert" style="display:none"></div>
+    <div class="panel panel-default">
+        <div class="panel-heading">申报基本资料</div>
+        <div class="panel-body">
+            <form id="application-form">
+                <div class="row">
+                    <div class="col-md-6"><label>申报类别</label><select name="分类" class="form-control"><option value="1">科研项目</option><option value="2">重点学科</option><option value="3">人才培养</option></select></div>
+                    <div class="col-md-6"><label>项目名称</label><input name="项目名称" class="form-control" maxlength="100" required></div>
+                    <div class="col-md-3"><label>申报年度</label><input name="申报年度" type="number" class="form-control" min="2000" required></div>
+                    <div class="col-md-3"><label>申请经费</label><input name="申请经费" type="number" class="form-control" min="0" step="0.01" required></div>
+                    <div class="col-md-3"><label>计划开始日期</label><input name="计划开始日期" type="date" class="form-control" required></div>
+                    <div class="col-md-3"><label>计划完成日期</label><input name="计划完成日期" type="date" class="form-control" required></div>
+                    <div class="col-md-4"><label>项目类型</label><input name="项目类型" class="form-control" maxlength="100"></div>
+                    <div class="col-md-4"><label>项目级别</label><input name="项目级别" class="form-control" maxlength="100"></div>
+                    <div class="col-md-4"><label>项目来源单位</label><input name="项目来源单位" class="form-control" maxlength="200"></div>
+                    <div class="col-md-6"><label>项目摘要</label><textarea name="项目摘要" class="form-control" rows="3" maxlength="4000" required></textarea></div>
+                    <div class="col-md-6"><label>项目申报书路径</label><input name="项目申报书路径" class="form-control" maxlength="1000" placeholder="先填写已上传文件路径" required></div>
+                    <div class="col-md-4"><label><input name="是否需要伦理评审" type="checkbox"> 需要伦理评审</label><br><label><input name="是否需要伦理批文" type="checkbox"> 已有伦理批文</label></div>
+                    <div class="col-md-4"><label>伦理批文编号</label><input name="伦理批文编号" class="form-control" maxlength="100"></div>
+                    <div class="col-md-4"><label>伦理批文路径</label><input name="伦理批文路径" class="form-control" maxlength="1000"></div>
+                    <div class="col-md-12"><label><input name="是否委托外单位进行实验或实验分析" type="checkbox"> 委托外单位进行实验或实验分析</label><input name="实验委托检测内容" class="form-control" maxlength="1000" placeholder="如有外委，请填写检测内容"></div>
+                </div>
+                <button type="button" id="preflight" class="btn btn-info">提交前预检查</button>
+                <button type="submit" class="btn btn-primary">正式提交申报</button>
+                <button type="reset" class="btn btn-default">清空</button>
+            </form>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">预检查结果</div>
+        <div class="table-responsive"><table class="table table-bordered table-striped check-table" id="check-table"><thead><tr><th>检查项</th><th>结果</th><th>说明</th></tr></thead><tbody><tr><td colspan="3">尚未检查</td></tr></tbody></table></div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">申报评审汇总</div>
+        <div class="panel-body form-inline"><input id="review-id" type="number" class="form-control" placeholder="纵向项目申报编号"><button id="review-query" class="btn btn-default">查询评审汇总</button>
+            <div id="review-output" style="margin-top:10px">
+                <div id="review-basic" class="review-output">输入申报编号后查询。</div>
+                <h5>申报版本</h5><div class="table-responsive"><table class="table table-bordered table-striped" id="review-versions"><thead><tr><th>版本</th><th>变更类型</th><th>变更人</th><th>建立时间</th></tr></thead><tbody><tr><td colspan="4">暂无数据</td></tr></tbody></table></div>
+                <h5>评审意见</h5><div class="table-responsive"><table class="table table-bordered table-striped" id="review-opinions"><thead><tr><th>评审人</th><th>意见类型</th><th>意见内容</th><th>是否公开</th><th>建立时间</th></tr></thead><tbody><tr><td colspan="5">暂无数据</td></tr></tbody></table></div>
+                <h5>专家评分</h5><div class="table-responsive"><table class="table table-bordered table-striped" id="review-scores"><thead><tr><th>评分项</th><th>评分</th><th>备注</th><th>建立时间</th></tr></thead><tbody><tr><td colspan="4">暂无数据</td></tr></tbody></table></div>
+                <h5>未获资助复盘</h5><div class="table-responsive"><table class="table table-bordered table-striped" id="review-recaps"><thead><tr><th>原因分类</th><th>复盘结论</th><th>改进措施</th><th>负责人</th><th>建立时间</th></tr></thead><tbody><tr><td colspan="5">暂无数据</td></tr></tbody></table></div>
+                <div class="form-inline"><input id="left-version" type="number" class="form-control" placeholder="左版本号"><input id="right-version" type="number" class="form-control" placeholder="右版本号"><button id="version-compare" class="btn btn-default">比较版本</button></div>
+                <pre id="version-compare-output" class="review-output" style="margin-top:10px;display:none"></pre>
+            </div>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">专家评审安全检查与意见登记</div>
+        <div class="panel-body">
+            <div class="form-inline">
+                <input id="review-step-id" type="number" class="form-control" placeholder="评审步骤编号">
+                <button id="conflict-check" class="btn btn-info">检查利益冲突</button>
+                <span id="conflict-output" class="text-muted"></span>
+            </div>
+            <hr>
+            <form id="review-comment-form" class="form-inline">
+                <input name="项目编号" type="number" class="form-control" placeholder="申报编号" required>
+                <input name="流程模板编号" type="number" class="form-control" placeholder="申报流程模板编号" required>
+                <input name="步骤编号" type="number" class="form-control" placeholder="步骤编号">
+                <input name="意见类型" class="form-control" maxlength="30" placeholder="意见类型" required>
+                <input name="意见内容" class="form-control" style="min-width:320px" maxlength="4000" placeholder="评审意见" required>
+                <label><input name="是否公开给申请人" type="checkbox" checked> 对申请人公开</label>
+                <button class="btn btn-primary" type="submit">登记评审意见</button>
+            </form>
+            <hr>
+            <form id="review-score-form" class="form-inline">
+                <input name="评分项" class="form-control" maxlength="100" placeholder="评分项，例如创新性" required>
+                <input name="评分" class="form-control" maxlength="30" placeholder="分数" required>
+                <input name="评审备注" class="form-control" style="min-width:260px" maxlength="1000" placeholder="评分说明">
+                <select name="状态值" class="form-control"><option value="1">通过</option><option value="0">退回修改</option><option value="-2">终止</option></select>
+                <button class="btn btn-warning" type="submit">提交专家评分</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

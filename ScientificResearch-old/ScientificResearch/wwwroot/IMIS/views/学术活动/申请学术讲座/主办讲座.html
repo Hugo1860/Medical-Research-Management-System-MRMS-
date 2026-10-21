@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>主办讲座</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/ztree/metroStyle/metroStyle.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/ztree/jquery.ztree.all.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+    <script src="/IMIS/js/pager.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+
+    <script>
+        document.write(' <link rel="stylesheet" href="/IMIS/css/child_pages.css?time='+ new Date().getTime() +'"/>');
+        document.write(' <script src="/IMIS/js/学术活动/申请学术讲座/主办讲座.js?time=' + new Date().getTime() + '"></s' + 'cript>');
+
+    </script>
+
+</head>
+<body ms-controller="root" class="ms-controller" onload="IFrameResize()">
+<div class="page-xueShu page-table page-common">
+    <div class="main">
+        <h4 class="title">主办讲座列表</h4>
+        <div class="screen-box">
+            <div class="form-inline">
+                <div class="form-group form-add-box">
+                    <a class="btn btn-primary btn-add" data-toggle="modal" data-target=".modal-add"
+                       ms-attr="{'href':@getUrl('主办讲座申请.html')}" onclick="changeUrl(this)"
+                       ms-on-click="@clickBtnAdd">
+                        <i class="icon iconfont icon-tianjia"></i> 添加
+                    </a>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">活动名称</div>
+                        <input type="text" class="form-control" ms-duplex="@title" ms-keydown="@submit">
+                    </div>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">主办人姓名</div>
+                        <input type="text" class="form-control name" ms-duplex="@name" ms-keydown="@submit">
+                    </div>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">是否反馈过</div>
+                       <select class="form-control type" ms-duplex="@req.是否反馈过" ms-on-change="@change">
+                           <option value="">全部</option>
+                           <option value="false">未反馈</option>
+                           <option value="true">已反馈</option>
+                       </select>
+                    </div>
+                </div>
+                <a class="btn btn-primary btn-search" href="javascript:;" ms-on-click="@search()">查询</a>
+                <div class="total-box">
+                    总计：<strong>{{@total}}</strong> 条
+                    <button type="button" class="btn btn-success btn-refresh">刷新</button>
+                </div>
+            </div>
+        </div>
+        <div class="personnel-box">
+            <div class="personnel-list">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                        <tr>
+                            <th width="80">序号</th>
+                            <th>活动名称</th>
+                            <th>所属部门</th>
+                            <th>主办人姓名</th>
+                            <th>活动对象</th>
+                            <th>会议类型</th>
+                            <th>活动经费(元)</th>
+                            <th>审核进度</th>
+                            <th>当前步骤</th>
+                            <th>是否反馈过</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ms-for="($index,el) in @model" ms-if="@loaded && @model!= null && @model.length != 0">
+                            <td>{{$index+1}}</td>
+                            <td class="text-left">{{el.活动名称}}</td>
+                            <td>{{el.所属部门名称}}</td>
+                            <td>{{el.主办人姓名}}</td>
+                            <td>{{el.活动对象}}</td>
+                            <td>{{el.会议类型}}</td>
+                            <td>{{el.活动经费|currency}}</td>
+                            <td>{{el.审核进度}}</td>
+                            <td ms-class="getClass(el.步骤状态说明)">{{el.步骤名称}}-{{el.步骤状态说明}}</td>
+                            <td class="statue" ms-class="getFeedbackClass(el.是否反馈过)">
+                                {{el.是否反馈过?'已反馈':'未反馈'}}
+                            </td>
+                            <td>{{el.开始时间|date("yyyy-MM-dd")}}</td>
+                            <td>{{el.结束时间|date("yyyy-MM-dd")}}</td>
+                            <td class="operation">
+                                <li class="bs-tooltip" ms-class="getStatusClass(el.步骤链接名称
+)" data-toggle="tooltip" data-placement="bottom" ms-attr="{'title':@el.步骤名称}" ms-if="el.是否可处理">
+                                    <a data-toggle="modal" data-target=".modal-add"
+                                       ms-attr="{'href':@getUrl(@el.步骤链接路径)}"
+                                       ms-on-click="@clickBtnEdit(el)" onclick="changeUrl(this)">
+                                        <i class="icon iconfont" ms-class="@el.步骤链接样式"></i>
+                                    </a>
+                                </li>
+                                <li class="bs-tooltip btn-addFeedback"  ms-if="el.是否可以反馈" data-toggle="tooltip" data-placement="bottom" title="添加反馈">
+                                    <a data-toggle="modal" data-target=".modal-add"
+                                       ms-attr="{'href':@getUrl('讲座反馈申请.html')}"
+                                       ms-on-click="@clickBtnEdit(el)" onclick="changeUrl(this)">
+                                        <i class="icon iconfont icon-tianjia"></i>
+                                    </a>
+                                </li>
+                                <li class="bs-tooltip btn-feedbackList" ms-if="@el.是否反馈过" data-toggle="tooltip" data-placement="bottom" title="查看反馈列表">
+                                    <a ms-attr="{'href':'讲座反馈.html?id='+@getUrl(@el.编号)}">
+                                        <i class="icon iconfont icon-liuyan3"></i>
+                                    </a>
+                                </li>
+                                <li class="bs-tooltip btn-details" data-toggle="tooltip" data-placement="bottom"
+                                    title="详情">
+                                    <a href="javascript:;" data-toggle="modal" data-target=".modal-details"
+                                       ms-on-click="@details(el)">
+                                        <i class="icon iconfont icon-16"></i>
+                                    </a>
+                                </li>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div ms-if="@nothing">
+                    <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+                </div>
+                <div class="page paging text-center">
+                    <div class="pager paging"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-add" tabindex="-1" role="dialog"
+         aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg"></div>
+    </div>
+    <div class="modal fade modal-details" tabindex="-1" role="dialog"
+         aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content ms-controller add-user details" ms-controller="details">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="NoPermissionModalLabel">查看详情</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="details-content">
+                        <iframe class="detailsPage" scrolling="auto" frameborder="0" src=""></iframe>
+                    </div>
+                </div>
+                <div class="modal-footer submit-wrapper">
+                    <div class="form-group">
+                        <div class="submit-box text-center">
+                            <button type="button" class="btn btn-default" ms-on-click="@clickBtnReturn">返回</button>
+                            <div class="tip-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>ScientificResearchApi.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="log4net\**" />
+    <Content Remove="log4net\**" />
+    <EmbeddedResource Remove="log4net\**" />
+    <None Remove="log4net\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controllers\ValuesController.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\Table\" />
+    <Folder Include="Models\View\" />
+    <Folder Include="wwwroot\upload\办公\通知公告文件\" />
+    <Folder Include="wwwroot\upload\办公\通知公告图片\" />
+    <Folder Include="wwwroot\upload\基础信息\导入期刊\" />
+    <Folder Include="wwwroot\upload\基础信息\导入人员\" />
+    <Folder Include="wwwroot\upload\学术活动\主讲人简历\" />
+    <Folder Include="wwwroot\upload\学术活动\参会相关文件\" />
+    <Folder Include="wwwroot\upload\学术活动\会议反馈文件\" />
+    <Folder Include="wwwroot\upload\学术活动\讲座附件\" />
+    <Folder Include="wwwroot\upload\成果\专利\相关文件\" />
+    <Folder Include="wwwroot\upload\成果\获奖\获奖批文\" />
+    <Folder Include="wwwroot\upload\成果\获奖\获奖单位文件\" />
+    <Folder Include="wwwroot\upload\成果\获奖\相关文件\" />
+    <Folder Include="wwwroot\upload\成果\著作\封面相关文件\" />
+    <Folder Include="wwwroot\upload\成果\著作\前言页相关文件\" />
+    <Folder Include="wwwroot\upload\成果\著作\完整目录页相关文件\" />
+    <Folder Include="wwwroot\upload\成果\著作\其他相关文件\" />
+    <Folder Include="wwwroot\upload\成果\著作\版权页相关文件\" />
+    <Folder Include="wwwroot\upload\成果\论文\其他相关文件\" />
+    <Folder Include="wwwroot\upload\成果\论文\导入知网论文\" />
+    <Folder Include="wwwroot\upload\成果\论文\导入自定义论文\" />
+    <Folder Include="wwwroot\upload\成果\论文\论文正文\" />
+    <Folder Include="wwwroot\upload\成果\论文\检索信息页相关文件\" />
+    <Folder Include="wwwroot\upload\下载中心\" />
+    <Folder Include="wwwroot\upload\报销\相关文件\" />
+    <Folder Include="wwwroot\upload\横向项目\合同认定登记承诺书\" />
+    <Folder Include="wwwroot\upload\横向项目\合同文件\" />
+    <Folder Include="wwwroot\upload\横向项目\结题资料\" />
+    <Folder Include="wwwroot\upload\纵向项目\伦理批文\" />
+    <Folder Include="wwwroot\upload\纵向项目\中检资料\" />
+    <Folder Include="wwwroot\upload\纵向项目\结题资料\" />
+    <Folder Include="wwwroot\upload\纵向项目\立项文件\" />
+    <Folder Include="wwwroot\upload\纵向项目\项目申报书\" />
+    <Folder Include="wwwroot\upload\组织架构\学术任职\" />
+    <Folder Include="wwwroot\upload\项目经费到账\到账凭证\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="EPPlus" Version="8.7.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+    <PackageReference Include="log4net" Version="3.5.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.0" />
+    <PackageReference Include="Npgsql" Version="10.0.0" />
+    <PackageReference Include="StackExchange.Redis" Version="3.3.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="log4net.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ScientificResearchApi.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

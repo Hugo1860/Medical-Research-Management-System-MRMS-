@@ -1,0 +1,24 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?请在 .env 中设置 REDIS_PASSWORD}"]
+    volumes:
+      - scientificresearch_redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    environment:
+      Redis__Configuration: redis:6379,password=${REDIS_PASSWORD},abortConnect=false,connectTimeout=1000,syncTimeout=1000,asyncTimeout=1000
+      Redis__InstanceName: ${REDIS_INSTANCE_NAME:-ScientificResearch:}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  scientificresearch_redisdata:

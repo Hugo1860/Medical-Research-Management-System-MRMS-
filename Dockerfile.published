@@ -1,0 +1,27 @@
+# Offline deployment image. Run dotnet publish first, then build this image.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:63739 \
+    ASPNETCORE_ENVIRONMENT=Production
+
+# Keep the published/offline image consistent with the normal runtime image:
+# Npgsql may probe GSSAPI and the Docker healthcheck uses curl.
+USER root
+RUN apt-get -o Acquire::Retries=3 update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY publish/linux-x64/ ./
+# The modern Vue SPA is a release artifact as well as a hot-sync target.
+# Copy it after the legacy wwwroot so recreating the container preserves
+# history-fallback routes such as /dashboard and /project/vertical-application.
+COPY frontend/dist/ ./wwwroot/
+RUN test -s /app/ScientificResearch.dll \
+    && test -s /app/ScientificResearch.deps.json \
+    && test -s /app/ScientificResearch.runtimeconfig.json \
+    && test -s /app/wwwroot/index.html
+RUN mkdir -p /app/wwwroot/upload /home/app/.aspnet/DataProtection-Keys \
+    && chown -R $APP_UID:$APP_UID /app /home/app/.aspnet
+USER $APP_UID
+EXPOSE 63739
+ENTRYPOINT ["dotnet", "ScientificResearch.dll"]

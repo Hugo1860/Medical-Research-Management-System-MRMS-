@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>统计-科研信息管理系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/ztree/metroStyle/metroStyle.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/ztree/jquery.ztree.all.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+    <script src="/IMIS/js/pager.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+    <script src="/IMIS/js/statistics.js"></script>
+
+</head>
+<body ms-controller="root" class="ms-controller" onload="IFrameResize()">
+<div class="page-statistics page-common">
+    <div class="col-md-8 module">
+        <div class="workbench box">
+            <div class="box-header">
+                <h3><i class="icon iconfont icon-home6"></i> 我的工作台</h3>
+                <a class="more" href="科研办公/我的科研/科研待办.html">查看待办 <i class="icon iconfont icon-xiayibu"></i></a>
+            </div>
+            <div class="content">
+                <div class="row text-center">
+                    <div class="col-sm-3"><strong>{{@workbench.待办数量}}</strong><p>待办事项</p></div>
+                    <div class="col-sm-3"><strong>{{@workbench.未读通知数量}}</strong><p>未读通知</p></div>
+                    <div class="col-sm-3"><strong>{{@workbench.已发起流程数量}}</strong><p>处理中流程</p></div>
+                    <div class="col-sm-3"><strong>{{@workbench.最近待办事项 || '暂无'}}</strong><p>下一步办理</p></div>
+                </div>
+                <div class="row" style="margin-top:12px;">
+                    <div class="col-sm-6"><strong>当前角色：</strong>{{@workbench.角色名称 || '未配置角色'}}</div>
+                    <div class="col-sm-6"><strong>责任人/角色：</strong>{{@workbench.下一步办理人 || @workbench.下一步办理角色 || '暂无'}}</div>
+                </div>
+                <div class="row" style="margin-top:8px;">
+                    <div class="col-sm-8"><strong>办理提示：</strong>{{@workbench.待办提示}}</div>
+                    <div class="col-sm-4" ms-if="@workbench.最近待办路径">
+                        <a class="btn btn-primary btn-xs pull-right" ms-attr-href="@workbench.最近待办路径">立即办理</a>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:8px;" ms-if="@workbench.缺件数>0"><div class="col-sm-12 text-danger"><strong>缺件提示：</strong>{{@workbench.缺件提示}}（{{@workbench.缺件数}}项）</div></div>
+            </div>
+        </div>
+        <div class="notice box">
+            <div class="box-header">
+                <h3><i class="icon iconfont icon-hangzhenggonggao"></i> 通知公告</h3>
+                <a class="more" href="javascript:;">总计：<strong>{{@noticeTotal}}</strong> 条</a>
+            </div>
+            <div class="content list">
+                <ul ms-if="@notice!=null&&@notice.length>0">
+                    <li ms-for="el in @notice" ms-class="@getStateClass(el.是否已接收)">
+                        <a href="/IMIS/views/科研办公/科研办公/通知公告详情.html" data-toggle="modal" data-target=".modal-add"
+                           ms-on-click="@noticeDetails(el.编号)" onclick="changeUrl(this)">
+                            <span class="btn-icon"><i class="icon iconfont icon-tongzhi"></i></span>
+                            <span class="title">【{{el.通知标识}}】{{el.通知名称}}</span>
+                            <span class="time">{{el.建立时间}}<i class="icon iconfont icon-xiayibu"></i></span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div ms-if="@nothing">
+                <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+            </div>
+            <div class="page paging text-center">
+                <div class="pager paging"></div>
+            </div>
+        </div>
+        <div class="shortcuts box">
+            <div class="box-header">
+                <h3><i class="icon iconfont icon-leimupinleifenleileibie2"></i> 快捷功能</h3>
+                <a class="more" href="javascript:;">更多 <i class="icon iconfont icon-down1"></i></a>
+            </div>
+            <div class="content">
+                <ul>
+                    <li><a href="javascript:;"><img src="../images/医院负责人.png"> <span>人员管理</span></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/移动科研工作台.html"><img src="../images/详情.png"> <span>移动科研工作台</span></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研治理中心.html"><img src="../images/设置.png"> <span>科研治理中心</span></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=bill-search"><img src="../images/项目.png"> <span>项目经费</span></a></li>
+                    <li><a href="javascript:;"><img src="../images/活动.png"> <span>成果统计</span></a></li>
+                    <li><a href="javascript:;"><img src="../images/获奖.png"> <span>获奖申报</span></a></li>
+                    <li><a href="javascript:;"><img src="../images/会议.png"> <span>主办会议申请</span></a></li>
+                    <li><a href="javascript:;"><img src="../images/专利.png"> <span>专利新增</span></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=x-list"><img src="../images/项目.png"> <span>横向项目</span></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-approval"><img src="../images/项目2.png"> <span>纵向项目</span></a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="regulation box">
+            <div class="box-header">
+                <h3><i class="icon iconfont icon-gongneng"></i> 管理办法</h3>
+                <a class="more" href="javascript:;">更多 <i class="icon iconfont icon-down1"></i></a>
+            </div>
+            <div class="content list">
+                <ul>
+                    <li><a href="javascript:;">门诊安排<i class="icon iconfont icon-xiayibu"></i></a></li>
+                    <li><a href="javascript:;">研究安排<i class="icon iconfont icon-xiayibu"></i></a></li>
+                    <li><a href="javascript:;">行程安排<i class="icon iconfont icon-xiayibu"></i></a></li>
+                    <li><a href="javascript:;">课题移交申请报告<i class="icon iconfont icon-xiayibu"></i></a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 module">
+        <div class="statistics box">
+            <div class="box-header">
+                <h3><i class="icon iconfont icon-tongjichakan"></i> 统计总览</h3>
+                <a class="more" href="javascript:;">更多 <i class="icon iconfont icon-down1"></i></a>
+            </div>
+            <div class="content">
+                <ul>
+                    <li><a href="javascript:;"><img src="../images/详情.png"> <span>站内信息</span></a></li>
+                    <li><a href="javascript:;"><img src="../images/检索.png"> <span>待办信息</span></a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="procedure box">
+            <div class="box-header">
+                <h3><i class="icon iconfont icon-liucheng"></i> 办事流程</h3>
+                <a class="more" href="javascript:;">更多 <i class="icon iconfont icon-down1"></i></a>
+            </div>
+            <div class="content list">
+                <ul>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-approval">纵向项目立项流程<i class="icon iconfont icon-xiayibu"></i></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-application">项目预审报审批<i class="icon iconfont icon-xiayibu"></i></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=x-list">横向项目审核<i class="icon iconfont icon-xiayibu"></i></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-income">项目经费到账<i class="icon iconfont icon-xiayibu"></i></a></li>
+                    <li><a href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-application">项目申报<i class="icon iconfont icon-xiayibu"></i></a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="doc-download box">
+            <div class="box-header">
+                <h3><i class="icon iconfont icon-download"></i> 文档下载</h3>
+                <a class="more" href="javascript:;">总计：<strong>{{@downFileTotal}}</strong> 条</a>
+            </div>
+            <div class="content list">
+                <ul ms-if="@downFile!=null&&@downFile.length>0">
+                    <li ms-for="el in @downFile">
+                        <a href="/IMIS/views/科研办公/科研办公/下载详情.html" data-toggle="modal" data-target=".modal-add"
+                           ms-on-click="@downloadDetails(el)" onclick="changeUrl(this)">
+                            <span class="btn-icon"><i class="icon iconfont icon-16"></i></span>
+                            <span class="title">【{{el.文件类型}}】{{el.文件名称}}</span>
+                            <span class="time">{{el.建立时间}}<i class="icon iconfont icon-xiayibu"></i></span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div ms-if="@nothing2">
+                <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+            </div>
+            <div class="page paging text-center">
+                <div class="pager paging"></div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-add" tabindex="-1" role="dialog"
+         aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg"></div>
+    </div>
+</div>
+</body>
+</html>

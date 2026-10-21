@@ -1,0 +1,19 @@
+{
+  "clientId": "scientificresearch-api",
+  "name": "Scientific Research Management",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "redirectUris": [
+    "https://research.example.org/IMIS/views/login.html"
+  ],
+  "webOrigins": [
+    "https://research.example.org"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256"
+  }
+}

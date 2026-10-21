@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN" style="height:100%">
+<head>
+    <meta charset="UTF-8">
+    <title>科研成果台账</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css">
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/成果管理/成果业务台账.js"></script>
+</head>
+<body class="page-table page-common" onload="IFrameResize()">
+<div class="main research-ledger" id="result-ledger">
+    <div class="ledger-header clearfix"><h4 class="title pull-left" id="page-title">科研成果台账</h4><a class="btn btn-default pull-right" href="/IMIS/views/index.html">返回首页</a></div>
+    <div class="alert alert-info" id="page-description">正在加载成果数据…</div>
+    <div class="screen-box"><div class="form-inline"><div class="form-group input-box"><div class="input-group"><div class="input-group-addon">关键词</div><input id="keyword" type="text" class="form-control" placeholder="成果名称"></div></div><button id="search" class="btn btn-primary">查询</button><button id="refresh" class="btn btn-default">刷新</button><span id="total" class="text-muted ledger-total"></span></div></div>
+    <div class="ledger-links" id="quick-links"></div>
+    <div class="table-responsive"><table class="table table-bordered table-striped" id="ledger-table"><thead></thead><tbody><tr><td class="text-center text-muted">正在加载…</td></tr></tbody></table></div>
+    <div class="text-center"><button id="prev" class="btn btn-default">上一页</button><span id="page" class="pager-label"></span><button id="next" class="btn btn-default">下一页</button></div>
+</div>
+</body>
+</html>

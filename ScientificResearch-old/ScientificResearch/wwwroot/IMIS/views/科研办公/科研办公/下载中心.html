@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>下载中心</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/ztree/metroStyle/metroStyle.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/ztree/jquery.ztree.all.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+
+    <script src="/IMIS/js/pager.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+
+    <script>
+        document.write(' <link rel="stylesheet" href="/IMIS/css/child_pages.css?time='+ new Date().getTime() +'"/>');
+        document.write(' <script src="/IMIS/js/科研办公/科研办公/下载中心.js?time=' + new Date().getTime() + '"></s' + 'cript>');
+
+    </script>
+
+</head>
+<body ms-controller="root" class="ms-controller" onload="IFrameResize()">
+<div class="page-notice page-common page-table page-tableborder">
+    <div class="main">
+        <h4 class="title">下载中心</h4>
+        <div class="screen-box">
+            <div class="form-inline">
+                <div class="form-group form-add-box">
+                    <a class="btn btn-primary btn-add" data-toggle="modal" data-target=".modal-add"
+                       ms-attr="{'href':@getUrl('添加下载.html')}" onclick="changeUrl(this)"
+                       ms-on-click="@clickBtnAdd">
+                        <i class="icon iconfont icon-tianjia"></i> 添加下载
+                    </a>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">文件名称</div>
+                        <input type="text" class="form-control file-name" ms-duplex="@fileName" ms-keydown="@submit">
+                    </div>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">文件类型</div>
+                        <select class="form-control type" ms-on-change="@changeType" ms-duplex="@type">
+                            <option value="">全部</option>
+                            <option value="政策法规类">政策法规类</option>
+                            <option value="普通文件类">普通文件类</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">文件状态</div>
+                        <select class="form-control statue" ms-duplex="@是否启用" ms-on-change="@changeStatue">
+                            <option value="">全部</option>
+                            <option value="true">启用</option>
+                            <option value="false">已禁用</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">发布人</div>
+                        <input type="text" class="form-control name" ms-duplex="@name" ms-keydown="@submit">
+                    </div>
+                </div>
+                <a class="btn btn-primary btn-search" href="javascript:;" ms-on-click="@search()">查询</a>
+                <div class="total-box">
+                    总计：<strong>{{@total}}</strong> 条
+                    <button type="button" class="btn btn-success btn-refresh">刷新</button>
+                </div>
+            </div>
+        </div>
+        <div class="personnel-box">
+            <div class="personnel-list">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th width="80">序号</th>
+                            <th width="380" class="text-left">文件名称</th>
+                            <th>文件类型</th>
+                            <th>文件状态</th>
+                            <th>发布人</th>
+                            <th>发布人部门</th>
+                            <th>发布时间</th>
+                            <th>文件说明</th>
+                            <th class="operation">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ms-for="($index,el) in @model" ms-if="@loaded && @model!= null && @model.length != 0" >
+                            <td>{{$index+1}}</td>
+                            <td class="text-left title">
+                                <a ms-attr="{'href':@getUrl('下载详情.html')}" data-toggle="modal" data-target=".modal-details"
+                                   ms-on-click="@details(el)">{{el.文件名称}}
+                                </a>
+                            </td>
+                            <td>{{el.文件类型}}</td>
+                            <td class="statue" ms-class="getStatusClass(el.是否启用)">{{el.是否启用?'正常':'已禁用'}}</td>
+                            <td>{{el.上传人姓名}}</td>
+                            <td>{{el.上传人部门名称}}</td>
+                            <td>{{el.建立时间}}</td>
+                            <td>{{el.备注}}</td>
+                            <td class="operation">
+                                <li class="bs-tooltip btn-edit" data-toggle="tooltip" data-placement="bottom">
+                                    <a data-toggle="modal" data-target=".modal-add"
+                                       ms-attr="{'href':@getUrl('添加下载.html')}"
+                                       ms-on-click="@clickBtnEdit(el)" onclick="changeUrl(this)">
+                                        <i class="icon iconfont icon-bianji"></i>
+                                    </a>
+                                </li>
+                                <li class="bs-tooltip btn-details" data-toggle="tooltip" data-placement="bottom"
+                                    title="详情">
+                                    <a ms-attr="{'href':@getUrl('下载详情.html')}" data-toggle="modal" data-target=".modal-add"
+                                       ms-on-click="@details(el)" onclick="changeUrl(this)">
+                                        <i class="icon iconfont icon-16"></i>
+                                    </a>
+                                </li>
+                                <li class="bs-tooltip btn-disable" data-toggle="tooltip"
+                                    data-placement="bottom"  ms-attr="{'title':@el.是否启用?'禁用':'启用'}">
+                                    <a ms-class="getStatusClass(el.是否启用)" href="javascript:;" data-toggle="modal"
+                                       data-target=".modal-disable"
+                                       ms-on-click="@clickBtnDisable(el)" onclick="changeUrl(this)" >
+                                        <i class="icon iconfont icon-zhongzhitiaojian"></i>
+                                    </a>
+                                </li>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div ms-if="@nothing">
+                    <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+                </div>
+                <div class="page paging text-center">
+                    <div class="pager paging"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-add" tabindex="-1" role="dialog"
+         aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg"></div>
+    </div>
+    <div class="modal fade modal-disable" tabindex="-1" role="dialog"
+         aria-labelledby="mySmallModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">提示</h4>
+                </div>
+                <div class="modal-body">
+                    <p>您确定要【{{@text}}】此下载文件吗？</p>
+                </div>
+                <div class="modal-footer submit-wrapper">
+                    <div class="submit-box text-center">
+                        <button type="submit" class="btn btn-primary btn-submit"
+                                ms-on-click="@confirmDel()">确定
+                        </button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal"
+                                ms-on-click="@clickBtnReturn">取消
+                        </button>
+                        <div class="tip-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

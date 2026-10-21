@@ -1,0 +1,93 @@
+# 现代化前后端分离 / 双轨共存 Nginx 生产环境模板
+# 适用场景：前端 Vue 3 SPA 独立静态托管，后端 .NET 10 Kestrel 提供 API 与旧版兼容静态页
+
+upstream scientificresearch_backend {
+    server 127.0.0.1:63739;
+    keepalive 32;
+}
+
+# 强制 HTTP 重定向至 HTTPS
+server {
+    listen 80;
+    server_name research.example.org;
+    return 308 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name research.example.org;
+
+    # TLS 证书配置（上线前替换为有效证书路径）
+    ssl_certificate /etc/letsencrypt/live/research.example.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/research.example.org/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+
+    # 基础安全响应头
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always; # 允许本站 iframe 加载双轨旧页面
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # 上传与请求体大小限制
+    client_max_body_size 50m;
+
+    # 开启 Gzip 静态资源压缩
+    gzip on;
+    gzip_min_length 1k;
+    gzip_buffers 4 16k;
+    gzip_http_version 1.1;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+    gzip_vary on;
+
+    # 1. 现代化 Vue 3 SPA 前端静态资源根目录
+    root /opt/scientificresearch/frontend/dist;
+    index index.html;
+
+    # 现代前端单页应用路由回退（保证 HTML5 History Mode 刷新不 404）
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 现代前端指纹静态资源长缓存
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
+    # 2. 双轨兼容：老版页面（/IMIS/...）转发至后端或静态旧目录
+    location /IMIS/ {
+        proxy_pass http://scientificresearch_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # 3. 业务附件与报表文件转发
+    location /upload/ {
+        proxy_pass http://scientificresearch_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # 4. 后端 API 接口与健康检查转发
+    location ~* ^/(Access|YProject|HProject|Expense|Fruit|WorkFlow|BaseInfo|Statistic|health|swagger|api)/ {
+        proxy_pass http://scientificresearch_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 120s;
+    }
+}

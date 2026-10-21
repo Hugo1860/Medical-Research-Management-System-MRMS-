@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>权限代理与预算对账</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css"/>
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+</head>
+<body onload="IFrameResize()">
+<div class="page-common" style="padding: 18px 24px;">
+    <h4 class="title">权限代理与预算对账</h4>
+    <div id="message" class="alert" style="display:none;"></div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">我的代理授权</div>
+        <div class="panel-body">
+            <form id="grant-form" class="form-inline" style="margin-bottom:15px;">
+                <input class="form-control" name="delegateId" type="number" min="1" placeholder="被代理人员编号" required>
+                <select id="proxy-scope" class="form-control" name="scope" required><option value="">加载代理范围…</option></select>
+                <input class="form-control" name="start" type="datetime-local" required>
+                <input class="form-control" name="end" type="datetime-local" required>
+                <input class="form-control" name="note" placeholder="备注" maxlength="500">
+                <button class="btn btn-primary" type="submit">授权</button>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead><tr><th>编号</th><th>授权人</th><th>被代理人</th><th>范围</th><th>开始</th><th>结束</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="proxy-list"><tr><td colspan="8">加载中…</td></tr></tbody>
+                </table>
+            </div>
+            <div class="form-inline">
+                <input id="revoke-person-id" class="form-control" type="number" min="1" placeholder="离岗人员编号">
+                <input id="revoke-person-reason" class="form-control" placeholder="批量回收原因" maxlength="500">
+                <button id="revoke-person" class="btn btn-warning" type="button">批量回收该人员代理</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">预算异常对账</div>
+        <div class="panel-body">
+            <button id="refresh-budget" class="btn btn-default" type="button">刷新异常</button>
+            <div class="table-responsive" style="margin-top:15px;">
+                <table class="table table-bordered table-striped">
+                    <thead><tr><th>流程模板</th><th>项目</th><th>异常类型</th><th>批准预算</th><th>到账</th><th>已审核报销</th><th>待审核报销</th><th>处理状态</th><th>责任人</th><th>处理说明</th><th>处理</th></tr></thead>
+                    <tbody id="budget-list"><tr><td colspan="11">加载中…</td></tr></tbody>
+                </table>
+            </div>
+            <div id="budget-form" class="well" style="display:none;">
+                <strong>登记处理结果</strong>
+                <form id="budget-disposition-form" class="form-inline" style="margin-top:10px;">
+                    <input name="flowId" type="hidden"><input name="projectId" type="hidden"><input name="anomaly" type="hidden">
+                    <select name="status" class="form-control"><option>处理中</option><option>已确认</option><option>已修正</option><option>已忽略</option></select>
+                    <input name="ownerId" class="form-control" type="number" min="1" placeholder="责任人编号">
+                    <input name="note" class="form-control" placeholder="处理说明" maxlength="500" required>
+                    <button class="btn btn-primary" type="submit">保存处理</button>
+                    <button id="cancel-budget" class="btn btn-default" type="button">取消</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/IMIS/js/科研办公/科研办公/权限代理与预算对账.js"></script>
+</body>
+</html>

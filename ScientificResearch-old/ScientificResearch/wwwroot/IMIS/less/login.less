@@ -1,0 +1,209 @@
+@color: #1976D2;
+
+@hack: ~"\9";
+
+body {
+  font-family: "Microsoft YaHei";
+  min-width: 1024px;
+  a {
+    text-decoration: none;
+    color: #fafafa;
+    &:hover {
+      text-decoration: none;
+      color: #fafafa;
+    }
+  }
+}
+
+
+
+.page-login {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background:url("../images/bg.jpg") no-repeat;
+  filter:"progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod='scale')";
+  -moz-background-size:100% 100%;
+  background-size:100% 100%;
+  background-attachment: fixed; //	当页面的其余部分滚动时，背景图像不会移动。
+}
+
+.login {
+  width: 410px;
+  height: 370px;
+  padding: 18px 26px 30px;
+  margin: 180px auto 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  background: #424242 @hack;
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+  animation: main-move 0.6s;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Shadow(Strength=4, Direction=135, Color='#1b1b1b')";
+  position: relative;
+  .form-signin-heading {
+    color: #fff;
+    margin: 10px 0 25px;
+    text-align: center;
+  }
+  .form-group {
+    margin-left: 7px;
+    margin-bottom: 25px;
+    overflow: hidden;
+  }
+  .control-label {
+    color: #fafafa;
+    font-size: 16px;
+    font-weight: normal;
+    float: left;
+    padding: 8px 15px 0 0;
+  }
+  .icon-account2, .icon-mima2 {
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    color: #7D7D7D;
+    font-size: 20px;
+    z-index: 22;
+  }
+  .input-box {
+    position: relative;
+    padding-left: 0;
+    float: left;
+    i {
+      position: absolute;
+      left: 12px;
+      top: 8px;
+      color: #7d7d7d;
+      font-size: 20px;
+      z-index: 22;
+    }
+  }
+  .form-control {
+    position: relative;
+    height: auto;
+    width: 342px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 10px 10px 10px 40px;
+    font-size: 16px;
+  }
+  .form-control:focus {
+    z-index: 2;
+  }
+  .checkbox {
+    margin-top: -10px;
+    margin-left: 7px;
+    font-weight: normal;
+    overflow: hidden;
+    color: #fafafa;
+    .forget-password {
+      float: right;
+      &:hover {
+        color: #f60;
+      }
+    }
+  }
+
+  .btn-login {
+    margin-top: 40px;
+    margin-left: 7px;
+    width: 342px;
+    border-radius: 4px;
+    background: @color;
+    border-color: @color;
+    &:hover {
+      background: #1461ad;
+      border-color: #1461ad;
+    }
+  }
+  .login-tip {
+    color: #f00;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 10px;
+    position: absolute;
+    bottom: 75px;
+    left: 0;
+    width: 100%;
+  }
+  .login-tip-success {
+    color: #0cdc0c;
+  }
+}
+
+.login-tip-show {
+  .login-tip {
+    display: block;
+  }
+  .btn-login {
+    margin-top: 10px;
+  }
+}
+
+.select-login {
+  margin: 250px auto 0;
+  width: 920px;
+  animation: main-move2 1s;
+  a {
+    display: inline-block;
+    margin: 0 50px;
+    width: 355px;
+    height: 160px;
+    line-height: 160px;
+    color: #fff;
+    font-size: 40px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.25);
+    background: #1976D2 @hack;
+    border-radius: 12px;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    overflow: hidden;
+    i {
+      font-size: 70px;
+      margin-right: 10px;
+      padding-top: 8px;
+      padding-left: 62px;
+      float: left;
+    }
+    span {
+      float: left;
+    }
+    &:hover {
+      background: #7bb92d;
+    }
+  }
+  .task {
+    i {
+      font-size: 62px;
+    }
+  }
+  .task:hover {
+    background: @color;
+  }
+}
+
+@keyframes main-move {
+  from {
+    margin-top: 0;
+  }
+  to {
+    margin-top: 180px;
+  }
+}
+
+@keyframes main-move2 {
+  from {
+    margin-top: 500px;
+  }
+  to {
+    margin-top: 250px;
+  }
+}
+
+
+
+
+

@@ -1,0 +1,109 @@
+<div class="modal-content ms-controller add-user" ms-controller="Add">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="NoPermissionModalLabel">{{@title}}</h4>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="col-sm-12">
+                <h5 class="title"><span>基本信息</span></h5>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>文件名称：
+                    </label>
+                    <div class="col-sm-7 department-box">
+                        <input type="text" class="form-control file-title"
+                               ms-duplex="@model.文件名称" ms-on-change="@inputVal('.file-title')">
+                        <span class="error-texe">文件名称不能为空！</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">是否启用：</label>
+                    <div class="col-sm-7">
+                        <label class="radio-inline">
+                            <input type="radio" name="type" value="true" ms-duplex="@model.是否启用"> 启用
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="type" value="false" ms-duplex="@model.是否启用"> 禁用
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>文件类型：
+                    </label>
+                    <div class="col-sm-7">
+                        <select class="form-control file-type" ms-duplex="@model.文件类型">
+                            <option value="">请选择</option>
+                            <option value="政策法规类">政策法规类</option>
+                            <option value="普通文件类">普通文件类</option>
+                        </select>
+                        <span class="error-texe">文件类型不能为空！</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">发布人：</label>
+                    <div class="col-sm-7 department-box">
+                        <input type="text" class="form-control" ms-duplex="@userName" readonly>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">发布人部门：</label>
+                    <div class="col-sm-7 department-box">
+                        <input type="text" class="form-control" ms-duplex="@department" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 fileUpload-box">
+                <h5 class="title"><span>文件上传</span></h5>
+                <div class="form-group  col-sm-6">
+                    <label class="col-md-4 col-sm-4 control-label" for="input-file">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>上传共享文件：
+                    </label>
+                    <div class="col-md-7 col-sm-7 file-box">
+                        <input type="file" id="input-file" class="input-file" name="fileUpload"
+                               onclick="fileChange(this,'#input-file')">
+                        <div class="file">
+                            <a class="file-text btn btn-default" href="javascript:;">选择文件</a>
+                            <span class="file-name"></span>
+                        </div>
+                        <a class="btn btn-primary" href="javascript:;" ms-on-click="@clickUpload">上传</a>
+                        <div class="loading">文件上传中...</div>
+                    </div>
+                </div>
+                <div class="form-group  col-sm-6" ms-if="@files.length>0">
+                    <label class="col-md-3 col-sm-3 control-label">已上传：</label>
+                    <div class="col-md-8 col-sm-8 items">
+                        <div class="item" ms-for="el in @files">
+                            <a class="name" ms-attr="{'href':@el}" download="">{{@getHtmlDocName(el)}}</a>
+                            <a class="btn-del" href="javascript:;" ms-on-click="@files.remove(el)">
+                                <i class="icon iconfont icon-shanchu1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 notice-content">
+                <h5 class="title"><span>文件组说明</span></h5>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">说明：</label>
+                    <div class="col-sm-9">
+                        <textarea class="form-control" cols="3" ms-duplex="@model.备注"></textarea>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer submit-wrapper">
+        <div class="form-group">
+            <div class="submit-box text-center">
+                <button type="button" class="btn btn-primary btn-submit" ms-on-click="@clickSubmit()">提交</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal" ms-on-click="@clickBtnReturn">取消
+                </button>
+                <div class="tip-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/IMIS/js/科研办公/科研办公/添加下载.js" ></script>

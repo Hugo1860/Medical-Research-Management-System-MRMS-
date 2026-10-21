@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>科研详情</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+    <script src="/IMIS/js/pager.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+
+    <script>
+        document.write(' <link rel="stylesheet" href="/IMIS/css/child_pages.css?time=' + new Date().getTime() + '"/>');
+        document.write(' <script src="/IMIS/js/科研办公/我的科研/科研详情.js?time=' + new Date().getTime() + '"></s' + 'cript>');
+
+    </script>
+</head>
+<body ms-controller="root" onload="IFrameResize()">
+<div class="page-keyanDetails page-table page-common">
+    <div class="main">
+        <a class="btn btn-default" href="javascript:history.back(-1)" ms-if="@back">返回</a>
+        <div class="user-info">
+            <div class="item active">
+                <a class="one" href="javascript:;" ms-on-click="@titleClick('.one')">基础信息</a>
+                <ul class="row">
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>姓名：</label><span>{{@mUsers.姓名}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>用户名/工号：</label><span>{{@mUsers.工号}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>密码：</label><span>{{@mUsers.密码}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>所属部门：</label><span>{{@mUsers.部门名称}}</span></li>
+                </ul>
+            </div>
+            <div class="item">
+                <a class="two" href="javascript:;" ms-on-click="@titleClick('.two')">其他信息</a>
+                <ul class="row">
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>英文名：</label><span>{{@mUsers.英文名}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>性别：</label><span>{{@mUsers.性别}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>出生日期：</label><span>{{@mUsers.出生日期|date("yyyy-MM-dd")}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>身份证：</label><span>{{@mUsers.身份证}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>入职日期：</label><span>{{@mUsers.入职日期|date("yyyy-MM-dd")}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>手机：</label><span>{{@mUsers.手机}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>邮箱：</label><span>{{@mUsers.邮箱}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>QQ：</label><span>{{@mUsers.qq}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>学位：</label><span>{{@mUsers.学位}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>学历：</label><span>{{@mUsers.学历}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>政治面貌：</label><span>{{@mUsers.政治面貌}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>岗位：</label><span>{{@mUsers.岗位名称}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>技术职称类别：</label><span>{{@mUsers.技术职称类别}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>技术职称：</label><span>{{@mUsers.技术职称}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>学科门类：</label><span>{{@mUsers.学科门类}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>一级学科：</label><span>{{@mUsers.一级学科}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>二级学科：</label><span>{{@mUsers.二级学科}}</span></li>
+                    <li class="col-lg-3 col-md-3 col-sm-2"><label>三级学科：</label><span>{{@mUsers.三级学科}}</span></li>
+                    <li class="col-lg-5 col-md-5 col-sm-4">
+                        <label>获得最高学历的院校：</label><span>{{@mUsers.获得最高学历的院校}}</span></li>
+                    <li class="col-lg-6 col-md-6 col-sm-5">
+                        <label>获得最高学位的院校：</label><span>{{@mUsers.获得最高学位的院校}}</span></li>
+                    <li class="col-lg-5 col-md-5 col-sm-4"><label>住宅地址：</label><span>{{@mUsers.住宅地址}}</span></li>
+                </ul>
+            </div>
+            <div class="item">
+                <a class="three" href="javascript:;" ms-on-click="@titleClick('.three')">学术特长</a>
+                <p ms-text="@mUsers.学术特长==null?'无':@mUsers.研究方向"></p>
+            </div>
+            <div class="item">
+                <a class="four" href="javascript:;" ms-on-click="@titleClick('.four')">研究方向</a>
+                <p ms-text="@mUsers.研究方向==null?'无':@mUsers.研究方向"></p>
+            </div>
+            <div class="item">
+                <a class="five" href="javascript:;" ms-on-click="@titleClick('.five')">个人获得的荣誉和奖项</a>
+                <p ms-text="@mUsers.个人获得的荣誉和奖项==null?'无':@mUsers.个人获得的荣誉和奖项"></p>
+            </div>
+        </div>
+        <div class="personnel-box">
+            <ul class="nav nav-tabs">
+                <li role="presentation" class="active"><a href="#tab1" aria-controls="tab1" role="tab" data-toggle="tab">纵向项目</a></li>
+                <li role="presentation"><a href="#tab2" aria-controls="tab2" role="tab" data-toggle="tab">横向项目</a></li>
+                <li role="presentation"><a href="#tab3" aria-controls="tab3" role="tab" data-toggle="tab">论文成果</a></li>
+                <li role="presentation"><a href="#tab4" aria-controls="tab4" role="tab" data-toggle="tab">著作成果</a></li>
+                <li role="presentation"><a href="#tab5" aria-controls="tab5" role="tab" data-toggle="tab">专利成果</a></li>
+                <li role="presentation"><a href="#tab6" aria-controls="tab6" role="tab" data-toggle="tab">文体成果</a></li>
+                <li role="presentation"><a href="#tab7" aria-controls="tab7" role="tab" data-toggle="tab">获奖成果</a></li>
+                <li role="presentation"><a href="#tab8" aria-controls="tab8" role="tab" data-toggle="tab">学术活动</a></li>
+                <li role="presentation"><a href="#tab9" aria-controls="tab9" role="tab" data-toggle="tab">研究生</a></li>
+            </ul>
+            <div class="tab-content">
+                <div role="tabpanel" id="tab1" class="tab-pane active">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th class="number">序号</th>
+                                <th class="name">项目名称</th>
+                                <th>项目级别</th>
+                                <th>项目分类</th>
+                                <th>负责人</th>
+                                <th>立项单位</th>
+                                <th>批准经费</th>
+                                <th>配套经费</th>
+                                <th>审核进度</th>
+                                <th>开始时间</th>
+                                <th>结束时间</th>
+                                <th>查看详情</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr ms-for="($index,el) in @model.纵向项目总览" ms-if="@model.纵向项目总览!= null && @model.纵向项目总览.length != 0">
+                                <td class="number">{{$index+1}}</td>
+                                <td>{{el.项目中文名称}}</td>
+                                <td>{{el.项目级别}}</td>
+                                <td>{{el.分类名称}}</td>
+                                <td>{{el.负责人姓名}}</td>
+                                <td>{{el.项目来源单位}}</td>
+                                <td>{{el.批准经费|currency}}</td>
+                                <td>{{el.配套经费|currency}}</td>
+                                <td>{{el.审核进度}}</td>
+                                <td>{{el.计划开始日期|date("yyyy-MM-dd")}}</td>
+                                <td>{{el.计划完成日期|date("yyyy-MM-dd")}}</td>
+                                <td class="operation">
+                                    <ul>
+                                        <li class="bs-tooltip btn-details" data-toggle="tooltip"
+                                            data-placement="bottom" title="详情" ms-on-click="@clickDetails(el)">
+                                            <a data-toggle="modal" data-target=".modal-add"
+                                               ms-attr="{'href':@getUrl('详情.html')}"
+                                               onclick="changeUrl(this)">
+                                                <i class="icon iconfont icon-16"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="nothing" ms-if="@model.纵向项目总览.length==0">
+                        <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+                    </div>
+                    <div class="page paging text-center">
+                        <div class="pager paging"></div>
+                    </div>
+                </div>
+                <div role="tabpanel" id="tab2" class="tab-pane">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th class="number">序号</th>
+                                <th class="name">项目名称</th>
+                                <th class="name">合同编号</th>
+                                <th>合同名称</th>
+                                <th>合同金额</th>
+                                <th>签定时间</th>
+                                <th>项目负责人</th>
+                                <th>部门</th>
+                                <th>审核进度</th>
+                                <th>查看详情</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr ms-for="($index,el) in @model.横向项目总览" ms-if="@model.横向项目总览!= null && @model.横向项目总览.length != 0">
+                                <td class="number">{{$index+1}}</td>
+                                <td>{{el.名称}}</td>
+                                <td>{{el.合同编号}}</td>
+                                <td>{{el.合同名称}}</td>
+                                <td>{{el.合同金额|currency}}</td>
+                                <td>{{el.签订时间|date("yyyy-MM-dd")}}</td>
+                                <td>{{el.项目负责人姓名}}</td>
+                                <td>{{el.项目归属部门名称}}</td>
+                                <td>{{el.审核进度}}</td>
+                                <td class="operation">
+                                    <ul>
+                                        <li class="bs-tooltip btn-details" data-toggle="tooltip"
+                                            data-placement="bottom" title="详情" ms-on-click="@clickDetails(el)">
+                                            <a data-toggle="modal" data-target=".modal-add"
+                                               ms-attr="{'href':@getUrl('详情.html')}"
+                                               onclick="changeUrl(this)">
+                                                <i class="icon iconfont icon-16"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="nothing" ms-if="@model.横向项目总览.length==0">
+                        <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+                    </div>
+                    <div class="page paging text-center">
+                        <div class="pager paging"></div>
+                    </div>
+                </div>
+                <div role="tabpanel" id="tab3" class="tab-pane">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th class="number">序号</th>
+                                <th>成果名称</th>
+                                <th>成果类型</th>
+                                <th>发起人</th>
+                                <th>发起人部门</th>
+                                <th>查看详情</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr ms-for="($index,el) in @model.成果总览" ms-if="@model.成果总览!= null && @model.成果总览.length != 0">
+                                <td class="number">{{$index+1}}</td>
+                                <td>{{el.成果名称}}</td>
+                                <td>{{el.成果类型}}</td>
+                                <td>{{el.发起人姓名}}</td>
+                                <td>{{el.发起人部门名称}}</td>
+                                <td class="operation">
+                                    <ul>
+                                        <li class="bs-tooltip btn-details" data-toggle="tooltip"
+                                            data-placement="bottom" title="详情" ms-on-click="@clickDetails(el)">
+                                            <a data-toggle="modal" data-target=".modal-add"
+                                               ms-attr="{'href':@getUrl('详情.html')}"
+                                               onclick="changeUrl(this)">
+                                                <i class="icon iconfont icon-16"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="nothing" ms-if="@model.成果预览.length==0">
+                        <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+                    </div>
+                    <div class="page paging text-center">
+                        <div class="pager paging"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-add" tabindex="-1" role="dialog"
+         aria-labelledby="mySmallModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg"></div>
+    </div>
+</div>
+</body>
+</html>

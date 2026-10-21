@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>角色管理</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/ztree/metroStyle/metroStyle.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+    <script src="/IMIS/libs/ztree/jquery.ztree.all.min.js"></script>
+
+    <script src="/IMIS/js/pager.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+
+    <script>
+        document.write(' <link rel="stylesheet" href="/IMIS/css/child_pages.css?time=' + new Date().getTime() + '"/>');
+        document.write(' <script src="/IMIS/js/set/role.js?time=' + new Date().getTime() + '"></s' + 'cript>');
+    </script>
+
+</head>
+<body ms-controller="root" class="ms-controller" onload="IFrameResize()">
+<div class="page-role page-table page-common">
+    <div class="main">
+        <h4 class="title">角色列表 <a class="btn btn-info btn-sm" href="/IMIS/views/系统管理/权限管理/字段授权.html">字段级授权</a></h4>
+        <div class="screen-box">
+            <div class="form-inline">
+                <div class="form-group form-add-box">
+                    <a class="btn btn-primary btn-add" data-toggle="modal" data-target=".modal-add"
+                       href="add_role.html" onclick="changeUrl(this)" ms-on-click="clickBtnAdd">
+                        <i class="icon iconfont icon-tianjia"></i> 添加角色
+                    </a>
+                </div>
+                <div class="total-box">
+                    总计：<strong>{{@total}}</strong> 条
+                    <button type="button" class="btn btn-success btn-refresh">刷新</button>
+                </div>
+            </div>
+        </div>
+        <div class="personnel-box">
+            <div class="personnel-list">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                        <tr>
+                            <th width="80">序号</th>
+                            <th>角色名称</th>
+                            <th>用户人数</th>
+                            <th>功能数目</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ms-for="el in @model" ms-if="@loaded && @model!= null && @model.length != 0">
+                            <td>{{el.number}}</td>
+                            <td>{{el.名称}}</td>
+                            <td class="btn-modal">
+                                <div class="bs-tooltip" data-toggle="tooltip" data-placement="bottom" title="角色人员">
+                                    <a class="btn-users" data-toggle="modal" data-target=".modal-add" href="role_user.html"
+                                       ms-on-click="@roleUsers(el)" onclick="changeUrl(this)">
+                                        {{el.人数}}
+                                    </a>
+                                </div>
+                            </td>
+                            <td class="btn-modal">
+                                <div class="bs-tooltip" data-toggle="tooltip" data-placement="bottom" title="功能权限">
+                                    <a data-toggle="modal" data-target=".modal-add" href="role_jurisdiction.html"
+                                       ms-on-click="@roleJurisdiction(el)" onclick="changeUrl(this)">
+                                        {{el.功能数}}
+                                    </a>
+                                </div>
+                            </td>
+                            <td>{{el.备注}}</td>
+                            <td class="operation">
+                                <ul>
+                                    <li class="bs-tooltip btn-edit" data-toggle="tooltip"
+                                        data-placement="bottom" title="角色修改">
+                                        <a data-toggle="modal" data-target=".modal-add" href="add_role.html"
+                                           onclick="changeUrl(this)" ms-on-click="@clickBtnEdit(el)">
+                                            <i class="icon iconfont icon-bianji"></i>
+                                        </a>
+                                    </li>
+                                    <li class="bs-tooltip btn-users" data-toggle="tooltip"
+                                        data-placement="bottom" title="角色人员">
+                                        <a data-toggle="modal" data-target=".modal-add" href="role_user.html"
+                                          onclick="changeUrl(this)"  ms-on-click="@roleUsers(el)">
+                                            <i class="icon iconfont icon-yiyuanfuzeren"></i>
+                                        </a>
+                                    </li>
+                                    <li class="bs-tooltip btn-Jurisdiction" data-toggle="tooltip"
+                                        data-placement="bottom" title="角色权限">
+                                        <a data-toggle="modal" data-target=".modal-add" href="role_jurisdiction.html"
+                                           ms-on-click="@roleJurisdiction(el)" onclick="changeUrl(this)">
+                                            <i class="icon iconfont icon-quanxian"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div ms-if="@loaded && (@model== null || @model.length == 0)">
+                    <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-add" tabindex="-1" role="dialog"
+         aria-labelledby="mySmallModalLabel" aria-hidden="true">
+        <div class="modal-dialog"></div>
+    </div>
+</div>
+</body>
+</html>

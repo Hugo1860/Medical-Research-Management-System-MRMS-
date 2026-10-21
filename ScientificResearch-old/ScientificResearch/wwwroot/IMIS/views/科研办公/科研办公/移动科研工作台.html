@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="theme-color" content="#337ab7"><link rel="manifest" href="/IMIS/mobile-manifest.webmanifest"><title>移动科研工作台</title>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"><link rel="stylesheet" href="/IMIS/css/child_pages.css">
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script><script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script><script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <style>
+        body { background:#f4f7fa; }
+        .mobile-workbench { max-width:720px; margin:0 auto; padding:14px; }
+        .mobile-header { background:#337ab7; color:#fff; border-radius:10px; padding:18px; margin-bottom:12px; }
+        .mobile-header h3 { margin:0 0 6px; font-size:22px; }
+        .metric { background:#fff; border-radius:10px; padding:14px; margin-bottom:10px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+        .metric strong { display:block; font-size:26px; color:#337ab7; }
+        .metric span { color:#6d7782; font-size:13px; }
+        .mobile-card { background:#fff; border-radius:10px; margin:12px 0; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+        .mobile-card h4 { margin:0 0 10px; font-size:16px; color:#34495e; }
+        .mobile-list { margin:0; padding:0; list-style:none; }
+        .mobile-list li { padding:9px 0; border-bottom:1px solid #eef1f4; font-size:14px; }
+        .mobile-list li:last-child { border-bottom:0; }
+        .muted { color:#8a949e; }
+        .mobile-actions a { margin:4px 2px; }
+        @media (max-width:480px) { .mobile-workbench { padding:8px; } .mobile-header { border-radius:7px; } }
+    </style>
+</head>
+<body>
+<main class="mobile-workbench">
+    <section class="mobile-header"><h3>移动科研工作台</h3><div id="mobile-user">加载当前人员…</div><small id="mobile-connection">在线数据模式</small></section>
+    <div id="mobile-message" class="alert" style="display:none"></div>
+    <div class="row">
+        <div class="col-xs-4"><div class="metric"><strong id="todo-count">—</strong><span>待办事项</span></div></div>
+        <div class="col-xs-4"><div class="metric"><strong id="notice-count">—</strong><span>未读通知</span></div></div>
+        <div class="col-xs-4"><div class="metric"><strong id="flow-count">—</strong><span>进行中流程</span></div></div>
+    </div>
+    <section class="mobile-card"><h4>下一步办理</h4><ul id="next-list" class="mobile-list"><li class="muted">加载中…</li></ul><div id="mobile-missing" class="text-danger" style="display:none;margin-top:8px"></div></section>
+    <section class="mobile-card"><h4>我的待办</h4><ul id="todo-list" class="mobile-list"><li class="muted">加载中…</li></ul></section>
+    <section class="mobile-card"><h4>项目摘要</h4><ul id="project-list" class="mobile-list"><li class="muted">加载中…</li></ul></section>
+    <section class="mobile-card"><h4>经费摘要</h4><ul id="fund-list" class="mobile-list"><li class="muted">加载中…</li></ul></section>
+    <section class="mobile-card"><h4>成果摘要</h4><ul id="result-list" class="mobile-list"><li class="muted">加载中…</li></ul></section>
+    <section class="mobile-card"><h4>待认领论文</h4><ul id="paper-list" class="mobile-list"><li class="muted">加载中…</li></ul><a class="btn btn-info btn-sm" href="/IMIS/views/成果管理/论文/论文认领.html">打开论文认领</a></section>
+    <section class="mobile-card"><h4>快捷入口</h4><div class="mobile-actions"><a class="btn btn-primary btn-sm" href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-approval">纵向项目</a><a class="btn btn-primary btn-sm" href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=x-list">横向项目</a><a class="btn btn-primary btn-sm" href="/IMIS/views/科研办公/科研办公/科研业务台账.html?module=y-expense">项目经费</a><a class="btn btn-primary btn-sm" href="/IMIS/views/成果管理/论文/论文认领.html">论文认领</a></div></section>
+    <div class="text-center"><button id="mobile-refresh" class="btn btn-default btn-sm">刷新</button> <a href="/IMIS/views/index.html" class="btn btn-link btn-sm">返回系统首页</a></div>
+</main>
+<script>
+(function () {
+    function esc(v) { return $('<div>').text(v == null ? '' : v).html(); }
+    function api(path, params, done) { Connect_Http.httpDatas('get', path, params || {}, function (ok, obj, error) { done(ok, obj && obj.data !== undefined ? obj.data : obj, error); }); }
+    function list(id, rows, fallback) { var el = document.getElementById(id); rows = rows || []; el.innerHTML = rows.length ? rows.slice(0, 8).map(function (x) { return '<li>' + esc(x.步骤名称 || x.事项名称 || x.通知名称 || x.下一步 || JSON.stringify(x)) + '<br><small class="muted">' + esc(x.项目名称 || x.流程名称 || x.状态名称 || '') + '</small></li>'; }).join('') : '<li class="muted">' + fallback + '</li>'; }
+    function load() {
+        api('/Office/获取科研工作台摘要', {}, function (ok, data, error) { if (!ok) { $('#mobile-message').text(error).addClass('alert-danger').show(); return; } $('#mobile-message').hide(); data = data || {}; $('#mobile-user').text(data.人员姓名 || data.姓名 || '当前人员'); $('#todo-count').text(data.待办数量 == null ? (data.待办 || data.待办事项 || []).length : data.待办数量); $('#notice-count').text(data.未读通知数量 == null ? (data.未读通知 || data.通知 || []).length : data.未读通知数量); $('#flow-count').text(data.已发起流程数量 == null ? (data.进行中流程 || data.流程 || []).length : data.已发起流程数量); var next = data.最近待办事项 ? [{ 事项名称: data.最近待办事项, 项目名称: data.下一步流程名称 || '', 状态名称: data.办理提示 || data.下一步状态说明 || '' }] : []; list('next-list', next, '暂无下一步事项'); if (data.缺件数 > 0) $('#mobile-missing').text('缺件提示：' + data.缺件提示 + '（' + data.缺件数 + '项）').show(); else $('#mobile-missing').hide(); list('todo-list', data.待办 || data.待办事项 || [], '暂无待办事项'); });
+        api('/YProject/分页获取科研项目立项', { Index: 1, Size: 5, OrderType: false }, function (ok, data) { var rows = data && (data.list || data) || []; list('project-list', rows.map(function (x) { return { 事项名称: x.项目中文名称, 项目名称: x.负责人姓名 || '', 状态名称: x.审核进度 || x.计划完成日期 || '' }; }), ok ? '暂无项目' : '项目暂不可用'); });
+        api('/Expense/分页获取纵向项目经费合计报销列表', { Index: 1, Size: 5, OrderType: false }, function (ok, data) { var rows = data && (data.list || data) || []; list('fund-list', rows.map(function (x) { return { 事项名称: x.项目中文名称, 项目名称: '剩余经费：' + (x.剩余经费 == null ? '—' : x.剩余经费), 状态名称: '已审核报销：' + (x.已审核报销 == null ? '—' : x.已审核报销) }; }), ok ? '暂无经费记录' : '经费暂不可用'); });
+        api('/Fruit/分页获取成果总览', { Index: 1, Size: 5, OrderType: false }, function (ok, data) { var rows = data && (data.list || data) || []; list('result-list', rows.map(function (x) { return { 事项名称: x.成果名称, 项目名称: x.成果类型 || '', 状态名称: x.发起人姓名 || '' }; }), ok ? '暂无成果记录' : '成果暂不可用'); });
+        api('/Fruit/分页获取可领取论文', { Index: 1, Size: 5, OrderType: false }, function (ok, data) { var rows = data && (data.list || data) || []; list('paper-list', rows.map(function (x) { return { 事项名称: x.论文标题, 项目名称: x.刊物名称 || '', 状态名称: x.论文Online日期 || x.论文正式出版日期 || '' }; }), ok ? '暂无待认领论文' : '论文暂不可用'); });
+    }
+    function connection() { $('#mobile-connection').text(navigator.onLine ? '在线数据模式' : '离线壳模式：请恢复网络后刷新'); }
+    window.addEventListener('online', connection); window.addEventListener('offline', connection); connection();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/IMIS/mobile-service-worker.js').catch(function () {});
+    $('#mobile-refresh').on('click', load); if (!sessionStorage.userInfo && !sessionStorage.keycloakAccessToken && !sessionStorage.access_token) location.href = '/IMIS/views/login.html'; else load();
+}());
+</script>
+</body>
+</html>

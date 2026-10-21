@@ -1,0 +1,74 @@
+<div class="modal-content details-box" ms-controller="details-box">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="NoPermissionModalLabel"> 期刊详情 <span>（{{@model.名称}}）</span></h4>
+    </div>
+    <div class="modal-body">
+        <div class="detail">
+            <table class="table table-bordered table-hover table-bg">
+                <tbody>
+                <tr>
+                    <th>期刊名称</th>
+                    <th class="naem">{{@model.名称}}</th>
+                    <th>英文刊名</th>
+                    <td>{{@model.英文刊名}}</td>
+                </tr>
+                <tr>
+                    <th>主办单位</th>
+                    <td>{{@model.主办单位}}</td>
+                    <th>期刊系列</th>
+                    <td>{{@model.期刊系列}}</td>
+                </tr>
+                <tr>
+                    <th>期刊语种</th>
+                    <td>{{@model.语种}}</td>
+                    <th>期刊JCR分区</th>
+                    <td>{{@model.jcR分区}}</td>
+                </tr>
+                <tr>
+                    <th>收录情况</th>
+                    <td>{{@model.收录情况}}</td>
+                    <th>编目名称</th>
+                    <td>{{@model.编目名称}}</td>
+                </tr>
+                <tr>
+                    <th>编目类别</th>
+                    <td>{{@model.编目类别}}</td>
+                    <th>创刊时间</th>
+                    <td>{{@model.创刊日期}}</td>
+                </tr>
+                <tr>
+                    <th>被引用次数</th>
+                    <td>{{@model.被引用次数}}</td>
+                    <th>影响因子</th>
+                    <td>{{@model.影响因子}}</td>
+                </tr>
+                <tr>
+                    <th>特征因子分值</th>
+                    <td>{{@model.特征因子分值}}</td>
+                    <th>期刊ISSN号</th>
+                    <td>{{@model.issN号}}</td>
+                </tr>
+                <tr>
+                    <th>年度</th>
+                    <td>{{@model.年度}}</td>
+                    <th>期刊CN号</th>
+                    <td>{{@model.cN号}}</td>
+                </tr>
+                <tr>
+                    <th>出版周期</th>
+                    <td>{{@model.出版周期}}</td>
+                    <th>出版地</th>
+                    <td>{{@model.出版地}}</td>
+                </tr>
+                <tr>
+                    <th>期刊开本</th>
+                    <td colspan="3">{{@model.开本}}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="/IMIS/js/基础信息维护/成果基本信息维护/刊物论文集详情.js"></script>

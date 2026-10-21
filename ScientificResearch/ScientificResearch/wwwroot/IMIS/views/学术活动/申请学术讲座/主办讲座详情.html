@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>详情</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+    <script src="/IMIS/js/学术活动/申请学术讲座/主办讲座详情.js"></script>
+
+</head>
+<body ms-controller="root" class="ms-controller" style="background: #fff;">
+<div class="form-horizontal page-details">
+    <ul class="nav nav-tabs">
+        <li role="presentation" class="active">
+            <a href="#tab1" aria-controls="tab1" role="tab" data-toggle="tab">基本信息</a>
+        </li>
+        <li role="presentation">
+            <a href="#tab2" aria-controls="tab2" role="tab" data-toggle="tab">主讲人简历</a>
+        </li>
+        <li role="presentation">
+            <a href="#tab3" aria-controls="tab3" role="tab" data-toggle="tab">审核记录</a>
+        </li>
+    </ul>
+    <div class="tab-content add-user">
+        <div role="tabpanel" id="tab1" class="tab-pane active">
+            <form class="form-horizontal content">
+                <div class="col-sm-12">
+                    <h5 class="title"><span>基本信息</span></h5>
+                    <div class="form-group col-sm-12">
+                        <label class="col-sm-3 control-label">活动名称：</label>
+                        <div class="col-sm-9">
+                            <span>{{@model.学术任职详情.活动名称}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">活动经费：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.活动经费|currency 元}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">所属部门：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.所属部门名称}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">会议类型：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.会议类型}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">开始时间：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.开始时间|date("yyyy-MM-dd")}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">结束时间：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.结束时间|date("yyyy-MM-dd")}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">主办人：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.主办人姓名}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-12">
+                        <label class="col-sm-3 control-label">讲座地点：</label>
+                        <div class="col-sm-9">
+                            <span>{{@model.学术任职详情.讲座地点}}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12">
+                    <h5 class="title"><span>主讲人信息</span></h5>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">主讲人姓名：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.主讲人姓名}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">国别：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.主讲人国别}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">单位：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.主讲人单位}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">学位：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.主讲人学位}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">职称：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.学术任职详情.主讲人职称}}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12">
+                    <h5 class="title"><span>主讲的学术或技术内容概述</span></h5>
+                    <div class="col-sm-11">
+                        <p>{{@model.学术任职详情.内容概述}}</p>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div role="tabpanel" id="tab2" class="tab-pane">
+            <form class="form-horizontal content fileUpload-box">
+                <label class="col-sm-3 control-label">附件：</label>
+                <div class="form-group col-sm-8 items">
+                    <div class="item" ms-for="el in @files">
+                        <a class="name" ms-attr="{'href':@el}" download="">{{@getHtmlDocName(el)}}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div role="tabpanel" id="tab3" class="tab-pane">
+            <h4 class="text-center auditing-title">审核记录</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                    <tr>
+                        <th width="80">序号</th>
+                        <th>步骤名称</th>
+                        <th>处理人</th>
+                        <th>状态</th>
+                        <th>执行时间</th>
+                        <th>备注</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ms-for="($index,el) in @model.审核情况">
+                        <td>{{$index+1}}</td>
+                        <td>{{el.名称}}</td>
+                        <td>{{el.姓名}}</td>
+                        <td ms-class="getClass(el.状态说明)">{{el.状态说明}}</td>
+                        <td>{{el.执行时间}}</td>
+                        <td>{{el.备注}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div ms-if="@model.审核情况.length==0||@model.审核情况==null">
+            <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>修改密码</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css"/>
+
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+
+    <script>
+        document.write(' <link rel="stylesheet" href="/IMIS/css/child_pages.css?time='+ new Date().getTime() +'"/>');
+        document.write(' <script src="/IMIS/js/科研办公/科研办公/修改密码.js?time=' + new Date().getTime() + '"></s' + 'cript>');
+    </script>
+</head>
+<body class="ms-controller" ms-controller="root" onload="IFrameResize()">
+<div class="page-password">
+    <button class="btn btn-default btn-back" ms-if="@back" onclick="history.go(-1)">返回</button>
+    <div class="personal-info">
+        <div class="personal-title"><i class="icon iconfont icon-shezhi1"></i> 修改密码</div>
+        <form class="form-horizontal" role="form">
+            <div class="form-group">
+                <label class="col-md-2 col-sm-2 control-label">
+                    <i class="icon iconfont icon-text-sign icon-sign"></i>旧密码：
+                </label>
+                <div class="col-md-3">
+                    <input type="password" class="form-control" name="password" placeholder="请输入旧密码"
+                           ms-duplex="@model.旧密码"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-md-2 col-sm-2 control-label">
+                    <i class="icon iconfont icon-text-sign icon-sign"></i>新密码：
+                </label>
+                <div class="col-md-3">
+                    <input type="password" class="form-control password" name="newpassword"
+                           placeholder="请输入新密码" ms-duplex="@model.新密码"
+                           ms-on-change="@password('.password')"/>
+                    <span class="remarks">说明：密码由6-20字母和数字组成，不能是纯数字或纯英文。</span>
+                    <span class="error-texe">密码格式不正确！</span>
+                </div>
+            </div>
+        </form>
+        <div class="modal-footer submit-wrapper">
+            <div class="form-group">
+                <div class="col-sm-offset-1 col-sm-11 submit-box">
+                    <button type="button" class="btn btn-primary" ms-on-click="@clickSubmit">提交</button>
+                    <div class="tip-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

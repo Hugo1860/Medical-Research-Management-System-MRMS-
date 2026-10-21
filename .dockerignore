@@ -1,0 +1,11 @@
+.git
+.codex
+.agents
+**/bin
+**/obj
+数据库备份文件
+ScientificResearch/ScientificResearch/log4net/*.log
+database/postgresql/source-sqlserver/data
+*.bak
+*.zip
+*.7z

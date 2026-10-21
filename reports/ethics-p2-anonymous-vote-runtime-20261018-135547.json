@@ -1,0 +1,23 @@
+{
+  "scenario": "伦理匿名投票运行时验收",
+  "executedAt": "2026-10-18T05:55:47.093874+00:00",
+  "httpStatus": 200,
+  "meetingId": 1,
+  "anonymous": true,
+  "anonymousFlag": true,
+  "voteSummary": {
+    "agendaRows": 1,
+    "同意票": 1,
+    "修改后同意票": 1,
+    "不同意票": 1,
+    "回避票": 0,
+    "有效意见数": 3
+  },
+  "identityFieldsReturned": false,
+  "fixtureCleanup": {
+    "伦理审查会议": 0,
+    "伦理审查申请": 0,
+    "伦理持续审查记录": 0
+  },
+  "note": "使用临时 P2_RUNTIME_FIXTURE 数据验证后已清理；报告不含令牌或委员身份。"
+}

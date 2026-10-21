@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>会议反馈</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/ztree/metroStyle/metroStyle.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/ztree/jquery.ztree.all.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+    <script src="/IMIS/js/pager.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+
+    <script>
+        document.write(' <link rel="stylesheet" href="/IMIS/css/child_pages.css?time='+ new Date().getTime() +'"/>');
+        document.write(' <script src="/IMIS/js/学术活动/参加学术会议/参加会议反馈.js?time=' + new Date().getTime() + '"></s' + 'cript>');
+
+    </script>
+
+</head>
+<body ms-controller="root" class="ms-controller" onload="IFrameResize()">
+<div class="page-xueShu page-table page-common">
+    <button class="btn btn-default btn-back" ms-if="@isShow" onclick="history.go(-1)">返回</button>
+    <div class="main">
+        <h4 class="title">会议反馈列表</h4>
+        <div class="screen-box">
+            <div class="form-inline">
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">会议名称</div>
+                        <input type="text" class="form-control" ms-duplex="@title" ms-keydown="@submit">
+                    </div>
+                </div>
+                <div class="form-group input-box">
+                    <div class="input-group">
+                        <div class="input-group-addon">申请人姓名</div>
+                        <input type="text" class="form-control name" ms-duplex="@name" ms-keydown="@submit">
+                    </div>
+                </div>
+                <a class="btn btn-primary btn-search" href="javascript:;" ms-on-click="@search()">查询</a>
+                <div class="total-box">
+                    总计：<strong>{{@total}}</strong> 条
+                    <button type="button" class="btn btn-success btn-refresh">刷新</button>
+                </div>
+            </div>
+        </div>
+        <div class="personnel-box">
+            <div class="personnel-list">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                        <tr>
+                            <th width="80">序号</th>
+                            <th>会议名称</th>
+                            <th>主办单位</th>
+                            <th>申请人</th>
+                            <th>申请人部门</th>
+                            <th>会议地址</th>
+                            <th>学科类型</th>
+                            <th>参会人数</th>
+                            <th>审核进度</th>
+                            <th>当前步骤</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ms-for="($index,el) in @model" ms-if="@loaded && @model!= null && @model.length != 0">
+                            <td>{{$index+1}}</td>
+                            <td class="text-left">{{el.会议名称}}</td>
+                            <td>{{el.会议主办单位}}</td>
+                            <td>{{el.申请人姓名}}</td>
+                            <td>{{el.申请人部门名称}}</td>
+                            <td>{{el.会议地址}}</td>
+                            <td>{{el.学科类型}}</td>
+                            <td>{{el.参会人数}}</td>
+                            <td>{{el.审核进度}}</td>
+                            <td ms-class="getClass(el.步骤状态说明)">{{el.步骤名称}}-{{el.步骤状态说明}}</td>
+                            <td>{{el.会议开始时间|date("yyyy-MM-dd")}}</td>
+                            <td>{{el.会议结束时间|date("yyyy-MM-dd")}}</td>
+                            <td class="operation">
+                                <li class="bs-tooltip" ms-class="getStatusClass(el.步骤链接名称
+)" data-toggle="tooltip" data-placement="bottom" ms-attr="{'title':@el.步骤名称}" ms-if="el.是否可处理">
+                                    <a data-toggle="modal" data-target=".modal-add"
+                                       ms-attr="{'href':@getUrl(@el.步骤链接路径)}"
+                                       ms-on-click="@clickBtnEdit(el)" onclick="changeUrl(this)">
+                                        <i class="icon iconfont" ms-class="@el.步骤链接样式"></i>
+                                    </a>
+                                </li>
+                                <li class="bs-tooltip btn-details" data-toggle="tooltip" data-placement="bottom"
+                                    title="详情">
+                                    <a href="javascript:;" data-toggle="modal" data-target=".modal-details"
+                                       ms-on-click="@details(el)">
+                                        <i class="icon iconfont icon-16"></i>
+                                    </a>
+                                </li>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div ms-if="@nothing">
+                    <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+                </div>
+                <div class="page paging text-center">
+                    <div class="pager paging"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-add" tabindex="-1" role="dialog"
+         aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg"></div>
+    </div>
+    <div class="modal fade modal-details" tabindex="-1" role="dialog"
+         aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content ms-controller add-user details" ms-controller="details">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="NoPermissionModalLabel">查看详情</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="details-content">
+                        <iframe class="detailsPage" scrolling="auto" frameborder="0" src=""></iframe>
+                    </div>
+                </div>
+                <div class="modal-footer submit-wrapper">
+                    <div class="form-group">
+                        <div class="submit-box text-center">
+                            <button type="button" class="btn btn-default" ms-on-click="@clickBtnReturn">返回</button>
+                            <div class="tip-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

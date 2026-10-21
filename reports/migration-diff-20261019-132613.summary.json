@@ -1,0 +1,794 @@
+{
+  "generated_at": "2026-10-19T05:26:14.269178+00:00",
+  "report": "/Users/hugo/keyanguanli2018/2018-7-24科研管理的备份/reports/migration-diff-20261019-132613.tsv",
+  "runtime_schema_version": 95,
+  "all_difference_count": 15,
+  "blocking_difference_count": 1,
+  "classification_counts": {
+    "治理扩展": 4,
+    "流程绑定孤立": 1,
+    "目标库追加": 9,
+    "运行时追加": 1
+  },
+  "blocking_classes": [
+    "源数据缺失",
+    "主键核对差异",
+    "预算金额差异",
+    "流程绑定孤立",
+    "流程绑定差异",
+    "业务绑定孤立",
+    "运行策略违规"
+  ],
+  "rows": [
+    {
+      "source_file": "001",
+      "table_name": "报销",
+      "source_count": 2,
+      "postgres_count": 2,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "002",
+      "table_name": "报销详情",
+      "source_count": 2,
+      "postgres_count": 2,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "003",
+      "table_name": "步骤",
+      "source_count": 144,
+      "postgres_count": 154,
+      "delta": "10",
+      "status": "差异",
+      "difference_class": "治理扩展",
+      "review_action": "人工确认新增菜单、权限或流程步骤授权"
+    },
+    {
+      "source_file": "004",
+      "table_name": "步骤角色",
+      "source_count": 54,
+      "postgres_count": 54,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "005",
+      "table_name": "步骤类型",
+      "source_count": 25,
+      "postgres_count": 25,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "006",
+      "table_name": "步骤类型状态",
+      "source_count": 67,
+      "postgres_count": 67,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "007",
+      "table_name": "步骤模板",
+      "source_count": 54,
+      "postgres_count": 54,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "008",
+      "table_name": "步骤指定人",
+      "source_count": 3,
+      "postgres_count": 3,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "009",
+      "table_name": "部门",
+      "source_count": 124,
+      "postgres_count": 124,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "010",
+      "table_name": "参加会议",
+      "source_count": 6,
+      "postgres_count": 6,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "011",
+      "table_name": "参加会议反馈",
+      "source_count": 8,
+      "postgres_count": 8,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "012",
+      "table_name": "成果获奖",
+      "source_count": 1,
+      "postgres_count": 1,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "013",
+      "table_name": "成果论文",
+      "source_count": 4,
+      "postgres_count": 6,
+      "delta": "2",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "014",
+      "table_name": "成果项目",
+      "source_count": 1,
+      "postgres_count": 1,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "015",
+      "table_name": "成果著作",
+      "source_count": 3,
+      "postgres_count": 3,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "016",
+      "table_name": "成果专利",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "017",
+      "table_name": "成果作者",
+      "source_count": 3,
+      "postgres_count": 5,
+      "delta": "2",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "018",
+      "table_name": "登录日志",
+      "source_count": 453,
+      "postgres_count": 485,
+      "delta": "32",
+      "status": "差异",
+      "difference_class": "运行时追加",
+      "review_action": "确认新增记录来自本次运行的审计或登录活动"
+    },
+    {
+      "source_file": "019",
+      "table_name": "国民行业代码",
+      "source_count": 1424,
+      "postgres_count": 1424,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "020",
+      "table_name": "合同买方性质",
+      "source_count": 72,
+      "postgres_count": 72,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "021",
+      "table_name": "横向项目",
+      "source_count": 2,
+      "postgres_count": 2,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "022",
+      "table_name": "横向项目变更",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "023",
+      "table_name": "横向项目结题",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "024",
+      "table_name": "技术领域",
+      "source_count": 175,
+      "postgres_count": 175,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "025",
+      "table_name": "讲座反馈",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "026",
+      "table_name": "角色",
+      "source_count": 36,
+      "postgres_count": 43,
+      "delta": "7",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "027",
+      "table_name": "角色权限",
+      "source_count": 202,
+      "postgres_count": 333,
+      "delta": "131",
+      "status": "差异",
+      "difference_class": "治理扩展",
+      "review_action": "人工确认新增菜单、权限或流程步骤授权"
+    },
+    {
+      "source_file": "028",
+      "table_name": "经费模版",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "029",
+      "table_name": "经费模版项目支出类型",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "030",
+      "table_name": "经费模版项目支出内容",
+      "source_count": 8,
+      "postgres_count": 8,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "031",
+      "table_name": "来源表",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "032",
+      "table_name": "流程",
+      "source_count": 51,
+      "postgres_count": 53,
+      "delta": "2",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "033",
+      "table_name": "流程模板",
+      "source_count": 20,
+      "postgres_count": 20,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "034",
+      "table_name": "期刊",
+      "source_count": 25269,
+      "postgres_count": 25269,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "035",
+      "table_name": "区域",
+      "source_count": 3531,
+      "postgres_count": 3531,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "036",
+      "table_name": "权限",
+      "source_count": 192,
+      "postgres_count": 196,
+      "delta": "4",
+      "status": "差异",
+      "difference_class": "治理扩展",
+      "review_action": "人工确认新增菜单、权限或流程步骤授权"
+    },
+    {
+      "source_file": "037",
+      "table_name": "人员",
+      "source_count": 9,
+      "postgres_count": 18,
+      "delta": "9",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "038",
+      "table_name": "人员角色",
+      "source_count": 11,
+      "postgres_count": 23,
+      "delta": "12",
+      "status": "差异",
+      "difference_class": "治理扩展",
+      "review_action": "人工确认新增菜单、权限或流程步骤授权"
+    },
+    {
+      "source_file": "039",
+      "table_name": "任职",
+      "source_count": 9,
+      "postgres_count": 9,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "040",
+      "table_name": "通知公告",
+      "source_count": 7,
+      "postgres_count": 8,
+      "delta": "1",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "041",
+      "table_name": "通知公告接收条件",
+      "source_count": 14,
+      "postgres_count": 14,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "042",
+      "table_name": "通知公告已接收人",
+      "source_count": 7,
+      "postgres_count": 7,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "043",
+      "table_name": "下载中心",
+      "source_count": 3,
+      "postgres_count": 5,
+      "delta": "2",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "044",
+      "table_name": "项目参与人",
+      "source_count": 7,
+      "postgres_count": 10,
+      "delta": "3",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "045",
+      "table_name": "项目分类",
+      "source_count": 27,
+      "postgres_count": 27,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "046",
+      "table_name": "项目计划",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "047",
+      "table_name": "项目经费到账",
+      "source_count": 3,
+      "postgres_count": 3,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "048",
+      "table_name": "项目经费预算",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "049",
+      "table_name": "项目预期成果",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "050",
+      "table_name": "学科",
+      "source_count": 3575,
+      "postgres_count": 3575,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "051",
+      "table_name": "主办讲座",
+      "source_count": 6,
+      "postgres_count": 6,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "052",
+      "table_name": "专家评分",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "053",
+      "table_name": "字典",
+      "source_count": 1597,
+      "postgres_count": 1597,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "054",
+      "table_name": "纵向项目变更",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "055",
+      "table_name": "纵向项目结题",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "056",
+      "table_name": "纵向项目立项",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "057",
+      "table_name": "纵向项目申报",
+      "source_count": 1,
+      "postgres_count": 3,
+      "delta": "2",
+      "status": "差异",
+      "difference_class": "目标库追加",
+      "review_action": "人工确认新增记录来源和导入批次"
+    },
+    {
+      "source_file": "058",
+      "table_name": "纵向项目中检",
+      "source_count": 1,
+      "postgres_count": 1,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "binding",
+      "table_name": "预算无对应流程",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "关键绑定检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "binding",
+      "table_name": "到账无对应流程",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "关键绑定检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "binding",
+      "table_name": "报销无对应流程",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "关键绑定检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "binding",
+      "table_name": "参与人无对应流程",
+      "source_count": 0,
+      "postgres_count": 1,
+      "delta": "关键绑定检查",
+      "status": "差异",
+      "difference_class": "流程绑定孤立",
+      "review_action": "业务负责人确认绑定后再修复；不自动删除"
+    },
+    {
+      "source_file": "project-binding",
+      "table_name": "预算调整无对应项目",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "项目关联检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project-binding",
+      "table_name": "年度结算无对应项目",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "项目关联检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project-binding",
+      "table_name": "任务书无对应纵向项目",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "项目关联检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project-binding",
+      "table_name": "电子档案无对应纵向项目",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "项目关联检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "runtime-policy",
+      "table_name": "移动通道示例凭据或模拟成功",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "真实通道状态检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "governance-policy",
+      "table_name": "成果治理与专家邀请审计结构",
+      "source_count": 0,
+      "postgres_count": 0,
+      "delta": "083–088 结构与 HRP/成果/奖励/横向生命周期安全函数检查",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "纵向项目立项-编号核对",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "横向项目-编号核对",
+      "source_count": 2,
+      "postgres_count": 2,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "项目经费预算-编号核对",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "项目经费到账-编号核对",
+      "source_count": 3,
+      "postgres_count": 3,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "报销-编号核对",
+      "source_count": 2,
+      "postgres_count": 2,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "项目参与人-编号核对",
+      "source_count": 7,
+      "postgres_count": 7,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "纵向项目申报-编号核对",
+      "source_count": 1,
+      "postgres_count": 1,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project",
+      "table_name": "纵向项目中检-编号核对",
+      "source_count": 1,
+      "postgres_count": 1,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    },
+    {
+      "source_file": "project-budget",
+      "table_name": "预算批准经费逐项目核对",
+      "source_count": 4,
+      "postgres_count": 4,
+      "delta": "0",
+      "status": "一致",
+      "difference_class": "一致",
+      "review_action": "无需处理"
+    }
+  ]
+}

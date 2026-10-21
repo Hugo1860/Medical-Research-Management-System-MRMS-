@@ -1,0 +1,29 @@
+# Local acceptance overlay for the Keycloak instance exposed by
+# healthcare-identity-platform on the Docker host. Use it through
+# deploy/start-local.sh so the merged configuration and runtime OIDC contract
+# are checked together; do not start the base Compose stack for SSO acceptance.
+services:
+  app:
+    # Docker Desktop's host-gateway expands to both an IPv4 and an IPv6
+    # address on macOS.  The application network has no IPv6 route, so .NET's
+    # resolver can select the unreachable IPv6 endpoint and readiness fails.
+    # Pin this *local acceptance overlay* to the current Docker Desktop IPv4
+    # gateway while keeping the hostname unchanged; Keycloak's discovery
+    # issuer remains http://keycloak.localhost:8180/... and issuer validation
+    # therefore stays strict.  Production overlays must provide their own
+    # reachable Keycloak DNS name instead of copying this host-specific IP.
+    extra_hosts:
+      - "keycloak.localhost:${KEYCLOAK_HOST_GATEWAY_IPV4:-192.168.65.254}"
+    environment:
+      Keycloak__Enabled: "true"
+      Keycloak__Authority: "http://keycloak.localhost:8180/realms/scientific-research"
+      Keycloak__Audience: "scientificresearch-api"
+      Keycloak__ClientId: "scientificresearch-api"
+      Keycloak__RedirectUri: "${KEYCLOAK_REDIRECT_URI:-http://127.0.0.1:16379/login}"
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__RequireMfa: "${KEYCLOAK_REQUIRE_MFA:-false}"
+      Keycloak__MfaAmr: "${KEYCLOAK_MFA_AMR:-otp,mfa}"
+      Keycloak__UserIdentifierClaim: "preferred_username"
+      Keycloak__DbKey: "ScientificResearch_Model"
+      Logging__LogLevel__Microsoft.AspNetCore.Authentication: "Debug"
+      Logging__LogLevel__Microsoft.IdentityModel: "Information"

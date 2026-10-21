@@ -1,0 +1,80 @@
+<div class="modal-content ms-controller details-content-box" ms-controller="details">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="NoPermissionModalLabel">查看详情</h4>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="col-sm-12">
+                <h5 class="title"><span>基本信息</span></h5>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">文件名称：</label>
+                    <div class="col-sm-7">
+                        <span>{{@model.文件名称}}</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">状态：</label>
+                    <div class="col-sm-7">
+                        <span>{{@model.是否启用?'正常':'已禁用'}}</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">文件类型：</label>
+                    <div class="col-sm-7">
+                        <span>{{@model.文件类型}}</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">发布人：</label>
+                    <div class="col-sm-7">
+                        <span>{{@model.上传人姓名}}</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">发布人部门：</label>
+                    <div class="col-sm-7">
+                        <span>{{@model.上传人部门名称}}</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">发布时间：</label>
+                    <div class="col-sm-7">
+                        <span>{{@model.建立时间}}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 fileUpload-box">
+                <h5 class="title"><span>已上传的文件</span></h5>
+                <div class="form-group">
+                    <label class="col-md-3 col-sm-3 control-label">文件：</label>
+                    <div class="col-md-8 col-sm-8 items">
+                        <div class="item">
+                            <a class="name" ms-for="el in @files" ms-attr="{'href':@el}" download="">{{@getHtmlDocName(el)}}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <h5 class="title"><span>文件组说明</span></h5>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">说明：</label>
+                    <div class="col-sm-9">
+                        <textarea class="form-control" cols="3" ms-attr="{'value':@model.备注}"></textarea>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer submit-wrapper">
+        <div class="form-group">
+            <div class="submit-box text-center">
+                <button type="button" class="btn btn-default" data-dismiss="modal" ms-on-click="@clickBtnReturn">关闭
+                </button>
+                <div class="tip-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/IMIS/js/科研办公/科研办公/下载详情.js" ></script>

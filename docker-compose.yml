@@ -1,0 +1,137 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ScientificResearch_Model}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_HOST_PORT:-15433}:5432"
+    volumes:
+      - scientificresearch_pgdata:/var/lib/postgresql
+      - ./database/postgresql/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-07-23T15-54-02Z}
+    container_name: 2018-7-24-minio-1
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ResearchAdmin2026!}
+    ports:
+      - "${MINIO_HOST_PORT:-19000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-19001}:9001"
+    volumes:
+      - scientificresearch_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    platform: ${APP_PLATFORM:-linux/amd64}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:63739
+      connectionString__ScientificResearch_Release: >-
+        Host=db;Port=5432;Database={0};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD};SSL Mode=Disable
+      allowedDatabaseKeys__0: ${POSTGRES_DB:-ScientificResearch_Model}
+      Postgres__ExpectedSchemaVersion: ${POSTGRES_EXPECTED_SCHEMA_VERSION:-106}
+      Storage__Provider: ${STORAGE_PROVIDER:-Minio}
+      Storage__Minio__Endpoint: ${MINIO_ENDPOINT:-minio:9000}
+      Storage__Minio__ExternalEndpoint: ${MINIO_EXTERNAL_ENDPOINT:-http://127.0.0.1:19000}
+      Storage__Minio__AccessKey: ${MINIO_ROOT_USER:-admin}
+      Storage__Minio__SecretKey: ${MINIO_ROOT_PASSWORD:-ResearchAdmin2026!}
+      Storage__Minio__BucketName: ${MINIO_BUCKET_NAME:-scientificresearch-private}
+      Storage__Minio__Region: ${MINIO_REGION:-us-east-1}
+      Storage__Minio__UseSSL: ${MINIO_USE_SSL:-false}
+      EthicsArchive__Provider: ${ETHICS_ARCHIVE_PROVIDER:-Local}
+      EthicsArchive__LocalRoot: ${ETHICS_ARCHIVE_LOCAL_ROOT:-wwwroot}
+      EthicsArchive__RequireExistingObject: ${ETHICS_ARCHIVE_REQUIRE_EXISTING_OBJECT:-true}
+      EthicsArchive__MaxFileBytes: ${ETHICS_ARCHIVE_MAX_FILE_BYTES:-10485760}
+      ElectronicSignature__Enabled: ${ELECTRONIC_SIGNATURE_ENABLED:-false}
+      ElectronicSignature__Provider: ${ELECTRONIC_SIGNATURE_PROVIDER:-}
+      ElectronicSignature__Endpoint: ${ELECTRONIC_SIGNATURE_ENDPOINT:-}
+      ElectronicSignature__ProtocolVersion: ${ELECTRONIC_SIGNATURE_PROTOCOL_VERSION:-}
+      ElectronicSignature__AdapterReady: ${ELECTRONIC_SIGNATURE_ADAPTER_READY:-false}
+      ElectronicSignature__RequireHttps: ${ELECTRONIC_SIGNATURE_REQUIRE_HTTPS:-true}
+      ElectronicArchive__Enabled: ${ELECTRONIC_ARCHIVE_ENABLED:-false}
+      ElectronicArchive__Provider: ${ELECTRONIC_ARCHIVE_PROVIDER:-}
+      ElectronicArchive__Endpoint: ${ELECTRONIC_ARCHIVE_ENDPOINT:-}
+      ElectronicArchive__ProtocolVersion: ${ELECTRONIC_ARCHIVE_PROTOCOL_VERSION:-}
+      ElectronicArchive__AdapterReady: ${ELECTRONIC_ARCHIVE_ADAPTER_READY:-false}
+      ElectronicArchive__RequireHttps: ${ELECTRONIC_ARCHIVE_REQUIRE_HTTPS:-true}
+      ExternalExpertInvitation__Enabled: ${EXTERNAL_EXPERT_INVITATION_ENABLED:-false}
+      ExternalExpertInvitation__AdapterReady: ${EXTERNAL_EXPERT_INVITATION_ADAPTER_READY:-false}
+      ExternalExpertInvitation__Provider: ${EXTERNAL_EXPERT_INVITATION_PROVIDER:-}
+      ExternalExpertInvitation__Endpoint: ${EXTERNAL_EXPERT_INVITATION_ENDPOINT:-}
+      ExternalExpertInvitation__RequireHttps: ${EXTERNAL_EXPERT_INVITATION_REQUIRE_HTTPS:-true}
+      Swagger__Enabled: ${SWAGGER_ENABLED:-false}
+      Audit__TimeoutSeconds: ${AUDIT_TIMEOUT_SECONDS:-3}
+      ForwardedHeaders__TrustedProxies__0: ${TRUSTED_PROXY_0:-127.0.0.1}
+      ForwardedHeaders__TrustedProxies__1: ${TRUSTED_PROXY_1:-::1}
+      Redis__Configuration: ${REDIS_CONFIGURATION:-}
+      Redis__InstanceName: ${REDIS_INSTANCE_NAME:-ScientificResearch:}
+      权限代理范围__0: ${PROXY_SCOPE_0:-项目审批}
+      # ExternalSync stays disabled until the supplier contracts, field maps,
+      # and the eight-system acceptance are complete. These optional settings
+      # make the HR/finance adapter path explicit without embedding secrets.
+      ExternalSync__Enabled: ${EXTERNAL_SYNC_ENABLED:-false}
+      ExternalSync__PollIntervalSeconds: ${EXTERNAL_SYNC_POLL_INTERVAL_SECONDS:-30}
+      ExternalSync__BatchSize: ${EXTERNAL_SYNC_BATCH_SIZE:-10}
+      ExternalSync__RequestTimeoutSeconds: ${EXTERNAL_SYNC_REQUEST_TIMEOUT_SECONDS:-30}
+      ExternalSync__LeaseTimeoutSeconds: ${EXTERNAL_SYNC_LEASE_TIMEOUT_SECONDS:-900}
+      Finance__InvoiceOcr__Enabled: ${FINANCE_INVOICE_OCR_ENABLED:-false}
+      # The names below are canonical references used by the core-adapter
+      # runbook. Values are injected only through the environment and never
+      # written to PostgreSQL or source control.
+      ExternalSystems__Secrets__HIS_HR_TOKEN: ${HIS_HR_TOKEN:-}
+      ExternalSystems__Secrets__FINANCE_API_TOKEN: ${FINANCE_API_TOKEN:-}
+      ExternalSystems__Secrets__PROCUREMENT_API_TOKEN: ${PROCUREMENT_API_TOKEN:-}
+      # Authentication mode is intentionally explicit.  A missing value must
+      # fail Compose interpolation instead of silently falling back to the
+      # legacy local-password login page.  Local UAT uses the Keycloak overlay;
+      # production/password emergency mode must declare false in its env file.
+      Keycloak__Enabled: ${KEYCLOAK_ENABLED:?请显式设置 KEYCLOAK_ENABLED=true（统一认证）或 false（仅应急密码模式）}
+      Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-}
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-scientificresearch-api}
+      Keycloak__ClientId: ${KEYCLOAK_CLIENT_ID:-scientificresearch-api}
+      Keycloak__RedirectUri: ${KEYCLOAK_REDIRECT_URI:-}
+      Keycloak__RequireHttpsMetadata: ${KEYCLOAK_REQUIRE_HTTPS_METADATA:-true}
+      Keycloak__RequireMfa: ${KEYCLOAK_REQUIRE_MFA:-false}
+      Keycloak__MfaAmr: ${KEYCLOAK_MFA_AMR:-otp,mfa}
+      Keycloak__UserIdentifierClaim: ${KEYCLOAK_USER_IDENTIFIER_CLAIM:-preferred_username}
+      Keycloak__DbKey: ${KEYCLOAK_DB_KEY:-ScientificResearch_Model}
+      EPPlusLicenseContext: ${EPPlusLicenseContext:-}
+    ports:
+      - "${APP_HOST_PORT:-16379}:63739"
+    volumes:
+      - scientificresearch_uploads:/app/wwwroot/upload
+      - scientificresearch_keys:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:63739/health/ready >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  scientificresearch_pgdata:
+  scientificresearch_uploads:
+  scientificresearch_minio_data:
+  scientificresearch_keys:

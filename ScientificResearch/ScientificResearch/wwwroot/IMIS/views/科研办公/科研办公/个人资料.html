@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>个人资料</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/ztree/metroStyle/metroStyle.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/ztree/jquery.ztree.all.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+    <script src="/IMIS/js/组织架构/添加用户.js"></script>
+</head>
+<body class="ms-controller" ms-controller="Add" onload="IFrameResize()">
+<div class="page-personal-info">
+    <button class="btn btn-default btn-back" ms-if="@back" onclick="history.go(-1)">返回</button>
+    <div class="had-portrait col-md-3 col-sm-3">
+        <img src="/IMIS/images/user.jpg" alt="user"/>
+        <p class="info-name">{{@mUsers.姓名}} <span>（工号：{{@mUsers.工号}}）</span></p>
+        <p class="info-department">{{@mUsers.部门名称}} - {{@mUsers.岗位名称}}</p>
+        <!--<div class="form-group file-box">
+            <input type="file" id="input-file" class="input-file" name="file" disabled
+                   accept="image/gif,image/jpeg,image/jpg,image/png" ms-on-click="@postFileUpload">
+            <div class="file">
+                <a class="file-text btn btn-default" href="javascript:;" disabled>选择文件</a>
+                <span class="file-name">未选择任何文件</span>
+                <p class="notes">注意：只支持JPG、PNG、GIF。</p>
+            </div>
+        </div>-->
+    </div>
+    <div class="personal-info col-md-7 col-sm-7">
+        <h5 class="personal-title">个人资料</h5>
+        <div class="personnel-box">
+            <ul class="nav nav-tabs">
+                <li role="presentation" class="active"><a href="#tab1" aria-controls="tab1" role="tab" data-toggle="tab">基本信息</a></li>
+                <li role="presentation"><a href="#tab2" aria-controls="tab2" role="tab" data-toggle="tab">人事信息</a></li>
+                <li role="presentation"><a href="#tab3" aria-controls="tab3" role="tab" data-toggle="tab">教育信息</a></li>
+                <li role="presentation"><a href="#tab4" aria-controls="tab4" role="tab" data-toggle="tab">其他信息</a></li>
+                <li role="presentation"><a href="#tab5" aria-controls="tab5" role="tab" data-toggle="tab">学术特长</a></li>
+                <li role="presentation"><a href="#tab6" aria-controls="tab6" role="tab" data-toggle="tab">研究方向</a></li>
+                <li role="presentation"><a href="#tab7" aria-controls="tab7" role="tab" data-toggle="tab">荣誉奖项</a></li>
+            </ul>
+            <div class="tab-content add-user">
+                <div role="tabpanel" id="tab1" class="tab-pane active">
+                    <form class="form-horizontal content">
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">
+                                <i class="icon iconfont icon-text-sign icon-sign"></i>姓名：
+                            </label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control name" id="name" ms-duplex="@mUsers.姓名"
+                                       ms-on-change="@inputVal('.name')">
+                                <span class="error-texe">姓名不能为空！</span>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">
+                                <i class="icon iconfont icon-text-sign icon-sign"></i>工号：
+                            </label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control gonghao" id="id"
+                                       ms-duplex="@mUsers.工号" onkeyup="value=value.replace(/[^\a-\z\A-\Z0-9\u4E00-\u9FA5]/g,'')"
+                                       onpaste="value=value.replace(/[^\a-\z\A-\Z0-9\u4E00-\u9FA5]/g,'')"
+                                       oncontextmenu="value=value.replace(/[^\a-\z\A-\Z0-9\u4E00-\u9FA5]/g,'')"/>
+                                <span class="error-texe">工号只能是字母或数字或中文，不能有特殊字符。</span>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">
+                                <i class="icon iconfont icon-text-sign icon-sign"></i>身份证：
+                            </label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control card" ms-duplex="@mUsers.身份证"
+                                       ms-on-change="@inputCard('.card')" onkeyup="value=value.replace(/[^\w\.\/]/ig,'')">
+                                <span class="error-texe">请输入正确的身份证号！</span>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6" ms-if="!@type">
+                            <label class="col-sm-3 control-label">
+                                <i class="icon iconfont icon-text-sign icon-sign"></i>密码：
+                            </label>
+                            <div class="col-sm-7">
+                                <input type="password" class="form-control password" ms-duplex="@mUsers.密码==null?'':@mUsers.密码"
+                                       ms-on-change="@password('.password')">
+                                <span class="remarks">说明：密码由6-20字母和数字组成，不能是纯数字或纯英文。</span>
+                                <span class="error-texe">密码格式不正确！</span>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">英文名：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control" ms-duplex="@mUsers.英文名">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">性别：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control" ms-duplex="@mUsers.性别">
+                                    <option value="">请选择</option>
+                                    <option value="男">男</option>
+                                    <option value="女">女</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">出生日期：</label>
+                            <div class="col-sm-7 time">
+                                <input type="text" class="form-control form-time" placeholder="请选择时间" readonly
+                                       ms-duplex="@mUsers.出生日期">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">民族：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control nation" ms-duplex="@mUsers.民族">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.民族" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">手机号：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control tel" ms-duplex="@mUsers.手机" ms-on-change="@tel()">
+                                <span class="error-texe">请输入正确的手机号码！</span>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">邮箱：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control email" ms-duplex="@mUsers.邮箱">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">籍贯：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control jiguan" ms-duplex="@mUsers.籍贯">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">QQ：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control qq" ms-duplex="@mUsers.qq">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">婚姻情况：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control" ms-duplex="@mUsers.婚姻情况">
+                                    <option value="">请选择</option>
+                                    <option value="未婚">未婚</option>
+                                    <option value="已婚">已婚</option>
+                                    <option value="初婚">初婚</option>
+                                    <option value="再婚">再婚</option>
+                                    <option value="丧偶">丧偶</option>
+                                    <option value="离婚">离婚</option>
+                                    <option value="未说明">未说明</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">
+                                <i class="icon iconfont icon-text-sign icon-sign"></i>所属部门或院系：
+                            </label>
+                            <div class="col-sm-7 department-box">
+                                <input type="text" class="form-control department" readonly ms-on-click="@showMenu()"
+                                       ms-duplex="@mUsers.部门名称">
+                                <span class="error-texe">部门不能为空！</span>
+                                <div id="menuContent" class="menuContent">
+                                    <ul class="ztree departmentTree" id="departmentTree"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">政治面貌：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control politicalStatus" ms-duplex="@mUsers.政治面貌">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.政治面貌" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-12 address">
+                            <label class="col-sm-3 control-label">住宅地址：</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" ms-duplex="@mUsers.住宅地址">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div role="tabpanel" id="tab2" class="tab-pane">
+                    <form class="form-horizontal content">
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">入职日期：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control form-time"
+                                       ms-duplex="@mUsers.入职日期">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">人员类别：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control userGenre" ms-duplex="@mUsers.人员类别">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.人员类别" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">岗位性质：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control postNature" ms-duplex="@mUsers.岗位性质">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.岗位性质" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">岗位类型：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control postType" ms-duplex="@mUsers.岗位类型">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.岗位类型" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">岗位名称：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control postName" ms-duplex="@mUsers.岗位名称">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.岗位名称" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">合同开始日期：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control form-time"
+                                       ms-duplex="@mUsers.合同开始日期">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">合同结束日期：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control form-time"
+                                       ms-duplex="@mUsers.合同结束日期">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-3 control-label">参加工作时间：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control form-time"
+                                       ms-duplex="@mUsers.参加工作日期">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div role="tabpanel" id="tab3" class="tab-pane">
+                    <form class="form-horizontal content">
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">最高学历：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control education" ms-duplex="@mUsers.学历">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.学历" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">最高学位：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control degree" ms-duplex="@mUsers.学位">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.学位" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">学科门类：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control subjectType" ms-duplex="@mUsers.学科门类">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.学科门类" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">一级学科：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control subjectOne" ms-duplex="oneSelect">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @subjectOne" ms-attr="{'value':@el.编号}">{{el.名称}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">二级学科：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control subjectTwo" ms-duplex="twoSelect">
+                                    <option ms-if="@subjectTwo.length>0" value="">请选择</option>
+                                    <option ms-if="@subjectTwo.length>0" ms-for="el in @subjectTwo" ms-attr="{'value':@el.编号}">
+                                        {{el.名称}}
+                                    </option>
+                                    <option ms-if="@subjectTwo.length==0" value="">暂无</option>
+                                </select>
+
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">三级学科：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control subjectThree" ms-duplex="@mUsers.三级学科">
+                                    <option ms-if="@subjectThree.length>0" value="">请选择</option>
+                                    <option ms-if="@subjectThree.length>0" ms-for="el in @subjectThree">{{el.名称}}</option>
+
+                                    <option ms-if="@subjectThree.length==0" value="">暂无</option>
+
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">学制：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control schoolSystem" ms-duplex="@mUsers.学制">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.学制" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">所学专业名称：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control profession" ms-duplex="@mUsers.所学专业名称">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.所学专业" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">学习形式：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control studyType" ms-duplex="@mUsers.学习形式">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.学习形式" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">学历性质：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control educationType" ms-duplex="@mUsers.学历性质">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.学历性质" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!--  <div class="form-group  col-sm-6">
+                              <label class="col-sm-3 control-label">所属招生院系：</label>
+                              <div class="col-sm-7">
+                                  <select class="form-control educationType" ms-duplex="@mUsers.岗位名称==null?'':@mUsers.岗位名称">
+                                      <option value="">请选择</option>
+                                      <option ms-for="el in @educationType" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                                  </select>
+                              </div>
+                          </div>
+                          <div class="form-group  col-sm-6">
+                              <label class="col-sm-3 control-label">所属招生科室：</label>
+                              <div class="col-sm-7">
+                                  <select class="form-control educationType" ms-duplex="@mUsers.岗位名称==null?'':@mUsers.岗位名称">
+                                      <option value="">请选择</option>
+                                      <option ms-for="el in @educationType" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                                  </select>
+                              </div>
+                          </div>
+                          -->
+                        <!--<div class="form-group  col-sm-6">
+                            <label class="col-sm-3 control-label">毕业形式：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control graduationForm" ms-duplex="@mUsers.毕业形式">
+                                    <option value="">请选择</option>
+                                    <option value="毕业">毕业</option>
+                                    <option value="结业">结业</option>
+                                    <option value="肄业">肄业</option>
+                                </select>
+                            </div>
+                        </div>-->
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">毕业日期：</label>
+                            <div class="col-sm-7 time">
+                                <input type="text" class="form-control form-time"
+                                       ms-duplex="@mUsers.毕业日期==null?'':@mUsers.毕业日期" readonly>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">研究生导师：</label>
+                            <div class="col-sm-7">
+                                <label class="checkbox-inline" ms-for="el in @userType">
+                                    <input type="checkbox" name="type" ms-attr="{'value':@el}" ms-duplex="@arr" > {{el}}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">获得最高学历的院校：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control"
+                                       ms-duplex="@mUsers.获得最高学历的院校">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-6">
+                            <label class="col-sm-4 control-label">获得最高学位的院校：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control"
+                                       ms-duplex="@mUsers.获得最高学位的院校">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div role="tabpanel" id="tab4" class="tab-pane">
+                    <form class="form-horizontal content">
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">个人身份：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control individualStatus" ms-duplex="@mUsers.个人身份">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.个人身份" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!--<div class="form-group  col-sm-6">
+                            <label class="col-sm-3 control-label">角色：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control " ms-duplex="@mUsers.角色">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.角色" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                                </select>
+                            </div>
+                        </div>-->
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">职务名称：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control position" ms-duplex="@mUsers.职务名称">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.职位" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">职务级别：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control positionLevel" ms-duplex="@mUsers.职务级别">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.职位级别" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">职务任职时间：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control form-time"
+                                       ms-duplex="@mUsers.职务任职日期">
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">专业技术级别：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control technicalLevel" ms-duplex="@mUsers.专业技术级别">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @model.专业技术级别" ms-attr="{'value':@el}">{{el}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">技术职称类别：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control technicalType" ms-duplex="@technicalSelect">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @technicalType" ms-attr="{'value':@el.编号}">{{el.值}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">技术职称名称：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control technicalTitle" ms-duplex="@mUsers.技术职称">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @technicalTitle" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">第二技术职称类别：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control technicalTypeTwo" ms-duplex="@technicalTwoSelect">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @technicalTypeTwo" ms-attr="{'value':@el.编号}">{{el.值}}</option>
+                                </select>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">第二技术职称：</label>
+                            <div class="col-sm-7">
+                                <select class="form-control technicalTitleTwo"
+                                        ms-duplex="@mUsers.第二技术职称">
+                                    <option value="">请选择</option>
+                                    <option ms-for="el in @technicalTitleTwo" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group  col-sm-6">
+                            <label class="col-sm-4 control-label">专业技术取得时间：</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control form-time"
+                                       ms-duplex="@mUsers.专业技术获得日期">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div role="tabpanel" id="tab5" class="tab-pane">
+                    <form class="form-horizontal content">
+                        <label class="col-sm-3 control-label">学术特长：</label>
+                        <div class="form-group col-sm-7">
+                            <textarea class="form-control" ms-duplex="@mUsers.学术特长"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div role="tabpanel" id="tab6" class="tab-pane">
+                    <form class="form-horizontal content">
+                        <label class="col-sm-3 control-label">研究方向：</label>
+                        <div class="form-group col-sm-7">
+                            <textarea class="form-control" ms-duplex="@mUsers.研究方向"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div role="tabpanel" id="tab7" class="tab-pane">
+                    <form class="form-horizontal content">
+                        <label class="col-sm-3 control-label">个人获得的荣誉和奖项：</label>
+                        <div class="form-group col-sm-7">
+                            <textarea class="form-control" ms-duplex="@mUsers.个人获得的荣誉和奖项"></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer submit-wrapper">
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10 submit-box">
+                    <button type="button" class="btn btn-primary" ms-on-click="@clickSubmit">提交</button>
+                    <div class="tip-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<div class="modal-content ms-controller" ms-controller="Add">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="NoPermissionModalLabel">{{@title}} <span ms-if="@type">（{{@PeriodicalInfo.名称}}）</span></h4>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="form-group col-sm-6">
+                <label class="col-sm-3 control-label">
+                    <i class="icon iconfont icon-text-sign icon-sign"></i>名称：
+                </label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" placeholder="请填写名称" id="name" ms-duplex="@PeriodicalInfo.名称==null?'':@PeriodicalInfo.名称">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">英文名称：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" placeholder="请填写名称" id="eName" ms-duplex="@PeriodicalInfo.英文刊名==null?'':@PeriodicalInfo.英文刊名">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">主办单位：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" placeholder="请填写名称" ms-duplex="@PeriodicalInfo.主办单位==null?'':@PeriodicalInfo.主办单位">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">期刊系列：</label>
+                <div class="col-sm-8">
+                    <select class="form-control series" ms-duplex="@PeriodicalInfo.期刊系列">
+                        <option value="">请选择</option>
+                        <option ms-for="el in @series" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">期刊语种：</label>
+                <div class="col-sm-8" >
+                    <select class="form-control languages" ms-duplex="@PeriodicalInfo.语种">
+                        <option value="">请选择</option>
+                        <option value="中文" selected>中文</option>
+                        <option value="英文">英文</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">期刊JCR分区：</label>
+                <div class="col-sm-8">
+                    <select class="form-control partition" ms-duplex="@jcR">
+                        <option value="">请选择</option>
+                        <option ms-for="el in @partition" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">
+                    <i class="icon iconfont icon-text-sign icon-sign"></i>收录情况：
+                </label>
+                <div class="col-sm-8">
+                    <select class="form-control collection" multiple="multiple" ms-duplex="@PeriodicalInfo.收录情况">
+                        <option ms-for="el in @collection" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">编目名称：</label>
+                <div class="col-sm-8">
+                    <select class="form-control catalogue" ms-duplex="@PeriodicalInfo.编目名称">
+                        <option value="">请选择</option>
+                        <option ms-for="el in @catalogue"  ms-attr="{'value':@el.值}">{{el.值}}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">编目类别：</label>
+                <div class="col-sm-8">
+                    <select class="form-control catalogueType">
+                        <option value="">请选择</option>
+                        <option ms-for="el in @catalogueType" ms-attr="{'value':@el.值}">{{el.值}}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">创刊时间：</label>
+                <div class="col-sm-8 time">
+                    <input type="text" class="form-control form-time" placeholder="请选择时间" readonly ms-duplex="@PeriodicalInfo.创刊日期==null?'':@PeriodicalInfo.创刊日期">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">被引用次数：</label>
+                <div class="col-sm-8 time">
+                    <input type="text" class="form-control" placeholder="请选择时间" ms-duplex="@PeriodicalInfo.被引用次数==null?0:@PeriodicalInfo.被引用次数">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">影响因子：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" ms-duplex="@PeriodicalInfo.影响因子==null?0:@PeriodicalInfo.影响因子">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">特征因子分值：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" ms-duplex="@PeriodicalInfo.特征因子分值==null?0:@PeriodicalInfo.特征因子分值">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">issN号：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" ms-duplex="@issN"/>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">
+                    <i class="icon iconfont icon-text-sign icon-sign"></i>年度：
+                </label>
+                <div class="col-sm-8 time">
+                    <input type="text" class="form-control year" placeholder="请选择时间" readonly ms-duplex="@PeriodicalInfo.年度==null?'':@PeriodicalInfo.年度">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">cN号：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" ms-duplex="@cN"/>
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">出版周期：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" ms-duplex="@PeriodicalInfo.出版周期==null?'':@PeriodicalInfo.出版周期">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">出版地：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" ms-duplex="@PeriodicalInfo.出版地==null?'':@PeriodicalInfo.出版地">
+                </div>
+            </div>
+            <div class="form-group  col-sm-6" >
+                <label class="col-sm-3 control-label">期刊开本：</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" ms-duplex="@PeriodicalInfo.期刊开本==null?'':@PeriodicalInfo.期刊开本">
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer submit-wrapper">
+        <div class="form-group">
+            <div class="submit-box text-center">
+                <button type="submit" class="btn btn-primary btn-submit" ms-on-click="@clickSubmit">提交
+                </button>
+                <button type="button" class="btn btn-default" data-dismiss="modal" ms-on-click="@clickBtnReturn">返回
+                </button>
+                <div class="tip-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/IMIS/js/基础信息维护/成果基本信息维护/添加刊物论文集.js" type="text/javascript"></script>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>经费执行治理</title>
+</head>
+<body>
+  <p>正在打开经费执行治理页面…</p>
+  <script>
+    (function () {
+      var target = '/finance/fund-execution';
+      if (location.search && target.indexOf('?') === -1) target += location.search;
+      else if (location.search) target += '&' + location.search.substring(1);
+      if (window.top !== window.self) {
+        try {
+          window.top.location.replace(target);
+          return;
+        } catch (e) {}
+      }
+      window.location.replace(target);
+    }());
+  </script>
+</body>
+</html>

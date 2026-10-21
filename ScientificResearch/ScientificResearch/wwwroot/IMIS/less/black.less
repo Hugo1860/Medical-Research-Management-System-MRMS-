@@ -1,0 +1,137 @@
+@background:#5d5d5d;
+@logobackground:#313035;
+@navfont:#9d9d9d;
+@navborder:#1e1b29;
+@navactiveborder:#1976d2;
+@color: #1976D2;
+@tr-color:#ECF5FD;
+
+.header{
+  background: @background;
+  a{
+    color:@navfont
+  }
+  .main-nav {
+    .parent-li > a {
+      border-bottom: 3px solid @navborder;
+    }
+    .parent-li.active > a {
+      border-bottom: 3px solid @navactiveborder;
+    }
+  }
+}
+.table {
+  tbody tr:hover {
+    background: @tr-color;
+  }
+}
+.operation {
+  a:hover {
+    color: @color;
+  }
+}
+.btn-import i, .btn-export i {
+  color: @color;
+}
+.pager {
+  margin: 0;
+  float: right;
+  padding: 10px 0 0;
+  li {
+    > span, > a {
+      color: @color;
+    }
+  }
+  .page-input {
+    border: 1px solid @color;
+    color: @color;
+  }
+  .active {
+    a, span {
+      background: @color;
+      border-color: @color;
+      color: #fff;
+    }
+    a:hover, span:hover {
+      border-color: @color;
+    }
+  }
+}
+.ztree {
+  li {
+    a:hover {
+      color: @color;
+    }
+  }
+}
+.other {
+  .dropdown-menu > .active > a {
+    color: @color;
+  }
+}
+.btn-person a {
+  color: @color;
+}
+.sidebar{
+  background: #fff;
+  background: #fff url("../images/bg3.jpg")no-repeat center bottom;
+  .logo {
+    background: @logobackground;
+  }
+  .profile-img {
+    background: #fff url("../images/user-bg3.jpg")no-repeat center bottom;
+  }
+}
+.nav-sidebar {
+  > li {
+    >ul {
+      >li {
+        > ul {
+          >li:hover, li.active {
+            > a {
+              color: @color;
+            }
+          }
+        }
+      }
+      >li:hover, li.active {
+        > a {
+          color: @color;
+        }
+      }
+    }
+    &:hover {
+      > a {
+        background: @background!important;
+      }
+    }
+  }
+  >li.active {
+    > a {
+      background: @background!important;
+    }
+    > ul {
+      .active >a {
+        color: @color;
+      }
+    }
+
+  }
+}
+.mini-sidebar {
+  .nav-sidebar {
+    > li:hover {
+      > a {
+        background: @background;
+      }
+      ul.treeview-menu {
+        > li:hover,li.active {
+          >a{
+            color: @color;
+          }
+        }
+      }
+    }
+  }
+}
+

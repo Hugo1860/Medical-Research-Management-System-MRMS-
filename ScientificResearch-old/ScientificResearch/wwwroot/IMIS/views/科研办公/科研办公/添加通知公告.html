@@ -1,0 +1,169 @@
+<div class="modal-content ms-controller add-user" ms-controller="Add">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="NoPermissionModalLabel">{{@title}}</h4>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="col-sm-12">
+                <h5 class="title"><span>基本信息</span></h5>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">发布人：</label>
+                    <div class="col-sm-7">
+                        <input type="text" class="form-control" readonly ms-attr="{'value':@name}">
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">通知类型：</label>
+                    <div class="col-sm-7">
+                        <label class="radio-inline">
+                            <input type="radio" name="type" value="普通通知" ms-duplex="@type"> 普通通知
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="type" value="公告" ms-duplex="@type"> 公告
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>通知名称：
+                    </label>
+                    <div class="col-sm-7 department-box">
+                        <input type="text" class="form-control notice-title"
+                               ms-duplex="@model.基本资料.通知名称" ms-on-change="@inputVal('.notice-title')">
+                        <span class="error-texe">通知名称不能为空！</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">通知标识：</label>
+                    <div class="col-sm-7">
+                        <select class="form-control" ms-duplex="@model.基本资料.通知标识">
+                            <option value="">请选择</option>
+                            <option value="科研动态">科研动态</option>
+                            <option value="继教动态">继教动态</option>
+                            <option value="规章制度">规章制度</option>
+                            <option value="办事流程">办事流程</option>
+                            <option value="科研平台">科研平台</option>
+                        </select>
+                    </div>
+                </div>
+                <!--<div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">申报入口类别：</label>
+                    <div class="col-sm-7">
+                        <select class="form-control">
+                            <option class="">请选择</option>
+                            <option class="科研项目申报">科研项目申报</option>
+                            <option class="获奖申报">获奖申报</option>
+                            <option class="学术任职">学术任职</option>
+                            <option class="学科项目申报">学科项目申报</option>
+                        </select>
+                    </div>
+                </div>-->
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">接受者类型：</label>
+                    <div class="col-sm-7">
+                        <label class="radio-inline">
+                            <input type="radio" name="peopleType" value="0" ms-duplex="@model.通知公告接收条件列表[0].接收者类型" data-duplex-changed="@changePeopleType(0)"> 所有人
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="peopleType" value="20" ms-duplex="@model.通知公告接收条件列表[0].接收者类型" data-duplex-changed="@changePeopleType(20)"> 部门内人员
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="peopleType" value="30" ms-duplex="@model.通知公告接收条件列表[0].接收者类型" data-duplex-changed="@changePeopleType(30)"> 角色
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="peopleType" value="10" ms-duplex="@model.通知公告接收条件列表[0].接收者类型" data-duplex-changed="@changePeopleType(10)"> 人员
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group configure-box">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>配置接收部门：
+                    </label>
+                    <div class="col-sm-7 department-box">
+                        <input type="text" class="form-control department" readonly ms-on-click="@showMenu('.department')"
+                               ms-duplex="@department">
+                        <div class="menuContent" ms-on-mouseleave="@hideMenu()">
+                            <ul class="ztree departmentTree" id="departmentTree"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group configure-box">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>配置接收角色：
+                    </label>
+                    <div class="col-sm-7 role-box">
+                        <input type="text" class="form-control role" readonly ms-on-click="@showMenu('.role')"
+                               ms-duplex="@role">
+                        <div class="menuContent" ms-on-mouseleave="@hideMenu()">
+                            <ul class="ztree roleTree" id="roleTree"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group configure-box">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>配置接收人：
+                    </label>
+                    <div class="col-sm-7 role-box">
+                        <input type="text" class="form-control people" readonly ms-on-click="@showUser()"
+                               ms-duplex="@people">
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">关闭时间：</label>
+                    <div class="col-sm-7">
+                        <input class="form-control form-time end-time" type="text" ms-duplex="@model.基本资料.关闭时间" readonly />
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 fileUpload-box">
+                <h5 class="title"><span>相关文件</span></h5>
+                <div class="form-group  col-sm-6">
+                    <label class="col-md-4 col-sm-4 control-label" for="input-file">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>上传相关材料：
+                    </label>
+                    <div class="col-md-7 col-sm-7 file-box">
+                        <input type="file" id="input-file" class="input-file" name="fileUpload"
+                               onclick="fileChange(this,'#input-file')">
+                        <div class="file">
+                            <a class="file-text btn btn-default" href="javascript:;">选择文件</a>
+                            <span class="file-name"></span>
+                        </div>
+                        <a class="btn btn-primary" href="javascript:;" ms-on-click="@clickUpload">上传</a>
+                        <div class="loading">文件上传中...</div>
+                    </div>
+                </div>
+                <div class="form-group  col-sm-6" ms-if="@files.length>0">
+                    <label class="col-md-3 col-sm-3 control-label">已上传：</label>
+                    <div class="col-md-8 col-sm-8 items">
+                        <div class="item" ms-for="el in @files">
+                            <a class="name" ms-attr="{'href':@el}" download="">{{@getHtmlDocName(el)}}</a>
+                            <a class="btn-del" href="javascript:;" ms-on-click="@files.remove(el)">
+                                <i class="icon iconfont icon-shanchu1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 notice-content">
+                <h5 class="title"><span>通知内容</span></h5>
+                <div class="form-group col-sm-11">
+                    <textarea class="form-control" id="UMContent" name="content" style="width: 830px;height: 200px;"></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer submit-wrapper">
+        <div class="form-group">
+            <div class="submit-box text-center">
+                <button type="button" class="btn btn-primary btn-submit" ms-on-click="@clickSubmit()">提交</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal" ms-on-click="@clickBtnReturn">取消
+                </button>
+                <div class="tip-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/IMIS/js/科研办公/科研办公/添加通知公告.js" ></script>

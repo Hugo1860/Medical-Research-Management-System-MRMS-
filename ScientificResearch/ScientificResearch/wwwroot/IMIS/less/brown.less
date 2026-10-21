@@ -1,0 +1,143 @@
+@background: #1ab799;
+@logobackground:#007d65;
+@navfont: #b2dad1;
+@navborder: #007d65;
+@navactiveborder: #cad42a;
+@color: #1ab799;
+@tr-color: #E3FCE4;
+
+.header {
+  background: @background;
+  a {
+    color: @navfont
+  }
+  .main-nav {
+    .parent-li > a {
+      border-bottom: 3px solid @navborder;
+    }
+    .parent-li.active > a {
+      border-bottom: 3px solid @navactiveborder;
+    }
+  }
+}
+
+.table {
+  tbody tr:hover {
+    background: @tr-color;
+  }
+}
+
+.operation {
+  a:hover {
+    color: @color;
+  }
+}
+.btn-import i, .btn-export i {
+  color: @color;
+}
+.pager {
+  margin: 0;
+  float: right;
+  padding: 10px 0 0;
+  li {
+    > span, > a {
+      color: @color;
+    }
+  }
+  .page-input {
+    border: 1px solid @color;
+    color: @color;
+  }
+  .active {
+    a, span {
+      background: @color;
+      border-color: @color;
+      color: #fff;
+    }
+    a:hover, span:hover {
+      border-color: @color;
+    }
+  }
+}
+
+.ztree {
+  li {
+    a:hover {
+      color: @color;
+    }
+  }
+}
+
+.other {
+  .dropdown-menu > .active > a {
+    color: @color;
+  }
+}
+
+.btn-person a {
+  color: @color;
+}
+
+.sidebar{
+  background: #fff url("../images/bg4.jpg")no-repeat center bottom;
+  .logo {
+    background: @logobackground;
+  }
+  .profile-img {
+    background: #fff url("../images/user-bg4.jpg")no-repeat center bottom;
+  }
+}
+
+.nav-sidebar {
+  > li {
+    >ul {
+      >li {
+        > ul {
+          >li:hover, li.active {
+            > a {
+              color: @color;
+            }
+          }
+        }
+      }
+      >li:hover, li.active {
+        > a {
+          color: @color;
+        }
+      }
+    }
+    &:hover {
+      > a {
+        background: @background!important;
+      }
+    }
+  }
+  >li.active {
+    > a {
+      background: @background!important;
+    }
+    > ul {
+      .active >a {
+        color: @color;
+      }
+    }
+
+  }
+}
+.mini-sidebar {
+  .nav-sidebar {
+    > li:hover {
+      > a {
+        background: @background;
+      }
+      ul.treeview-menu {
+        > li:hover,li.active {
+          >a{
+            color: @color;
+          }
+        }
+      }
+    }
+  }
+}
+

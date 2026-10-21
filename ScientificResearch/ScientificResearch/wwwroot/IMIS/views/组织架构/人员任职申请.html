@@ -1,0 +1,147 @@
+<div class="modal-content ms-controller add-user" ms-controller="Add">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="NoPermissionModalLabel">修改</h4>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="col-sm-12">
+                <h5 class="title"><span>基本信息</span></h5>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">任职人员姓名：</label>
+                    <div class="col-sm-7">
+                        <input class="form-control" type="text" readonly ms-duplex="@editInfo.姓名"/>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">所属部门：</label>
+                    <div class="col-sm-7 department-box">
+                        <input type="text" class="form-control department" readonly ms-duplex="@editInfo.部门名称">
+                    </div>
+                </div>
+                <!--<div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>类别：
+                    </label>
+                    <div class="col-sm-7 department-box">
+                        <select class="form-control" ms-duplex="@model.附加数据.基本资料.类别">
+                            <option value="">请选择</option>
+                            <option value="学会">学会</option>
+                            <option value="杂志">杂志</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>级别：
+                    </label>
+                    <div class="col-sm-7 department-box">
+                        <select class="form-control" ms-duplex="@model.附加数据.基本资料.级别">
+                            <option value="">请选择</option>
+                            <option value="中华">中华</option>
+                            <option value="其他">其他</option>
+                            <option value="核心">核心</option>
+                            <option value="省级">省级</option>
+                            <option value="区内核心">区内核心</option>
+                        </select>
+                    </div>
+                </div>-->
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">所任职务：</label>
+                    <div class="col-sm-7">
+                        <input class="form-control" type="text" ms-duplex="@model.附加数据.基本资料.所任职务"/>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>任职团体名称：
+                    </label>
+                    <div class="col-sm-7">
+                        <input class="form-control tName" type="text" ms-duplex="@model.附加数据.基本资料.任职团体名称" ms-on-change="@inputVal('.tName')"/>
+                        <span class="error-texe">任职团体名称不能为空！</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>开始时间：
+                    </label>
+                    <div class="col-sm-7">
+                        <input class="form-control form-time start-time" type="text" ms-duplex="@model.附加数据.基本资料.任职开始时间" ms-on-change="@inputVal('.start-time')"/>
+                        <span class="error-texe">开始时间不能为空！</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>截止时间：
+                    </label>
+                    <div class="col-sm-7">
+                        <input class="form-control form-time end-time" type="text" ms-duplex="@model.附加数据.基本资料.任职截止时间" ms-on-change="@inputVal('.end-time')"/>
+                        <span class="error-texe">截止时间不能为空！</span>
+                    </div>
+                </div>
+                <!-- <div class="form-group col-sm-6">
+                     <label class="col-sm-3 control-label">上级主管机构：</label>
+                     <div class="col-sm-7">
+                          <input class="form-control" type="text" ms-duplex="@model.附加数据.基本资料.上级主管机构"/>
+                     </div>
+                 </div>-->
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">备注：</label>
+                    <div class="col-sm-9">
+                        <textarea class="form-control" ms-duplex="@model.附加数据.基本资料.备注" rows="3"></textarea>
+                    </div>
+                </div>
+                <!--<div class="form-group col-sm-6">
+                    <label class="col-sm-3 control-label">备案情况：</label>
+                    <div class="col-sm-7">
+                        <input class="form-control" type="text" ms-duplex="@model.附加数据.基本资料.备案情况"/>
+                    </div>
+                </div>-->
+            </div>
+            <div class="col-sm-12 fileUpload-box">
+                <h5 class="title"><span>文件</span></h5>
+                <div class="form-group  col-sm-6">
+                    <label class="col-md-4 col-sm-4 control-label" for="input-file">
+                        <i class="icon iconfont icon-text-sign icon-sign"></i>上传聘书：
+                    </label>
+                    <div class="col-md-7 col-sm-7 file-box">
+                        <input type="file" id="input-file" class="input-file" name="fileUpload"
+                               onclick="fileChange(this,'#input-file')">
+                        <div class="file">
+                            <a class="file-text btn btn-default" href="javascript:;">选择文件</a>
+                            <span class="file-name"></span>
+                        </div>
+                        <a class="btn btn-primary" href="javascript:;" ms-on-click="@clickUpload">上传</a>
+                        <div class="loading">文件上传中...</div>
+                    </div>
+                </div>
+                <div class="form-group  col-sm-6"
+                     ms-if="@model.附加数据.基本资料.相关文件路径!=null||@model.附加数据.基本资料.相关文件路径.length>0">
+                    <label class="col-md-3 col-sm-3 control-label">已上传：</label>
+                    <div class="col-md-8 col-sm-8 items">
+                        <div class="item" ms-for="el in @files">
+                            <a class="name" ms-attr="{'href':@el}" download="">{{@getHtmlDocName(el)}}</a>
+                            <a class="btn-del" href="javascript:;" ms-on-click="@files.remove(el)">
+                                <i class="icon iconfont icon-shanchu1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer submit-wrapper">
+        <div class="form-group">
+            <div class="submit-box text-center">
+                <button type="button" class="btn btn-primary btn-submit" ms-on-click="@clickSubmit">提交</button>
+                <button type="button" class="btn btn-success btn-submit" ms-on-click="@temporary">暂存</button>
+                <button type="button" class="btn btn-danger btn-submit" ms-on-click="@clickStop">终止</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal" ms-on-click="@clickBtnReturn">取消
+                </button>
+                <div class="tip-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/IMIS/js/组织架构/人员任职申请.js" type="text/javascript"></script>

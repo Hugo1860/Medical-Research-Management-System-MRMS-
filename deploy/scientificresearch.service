@@ -1,0 +1,24 @@
+[Unit]
+Description=ScientificResearch ASP.NET Core application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=scientificresearch
+Group=scientificresearch
+WorkingDirectory=/opt/scientificresearch/current
+EnvironmentFile=/etc/scientificresearch/scientificresearch.env
+ExecStart=/usr/bin/dotnet /opt/scientificresearch/current/ScientificResearch.dll
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+SyslogIdentifier=scientificresearch
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/scientificresearch/current/wwwroot/upload
+
+[Install]
+WantedBy=multi-user.target

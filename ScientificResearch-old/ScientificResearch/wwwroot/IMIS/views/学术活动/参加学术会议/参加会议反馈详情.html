@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>会议反馈详情</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap-datetimepicker.min.css"/>
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+    <script src="/IMIS/js/学术活动/参加学术会议/参加会议反馈详情.js"></script>
+
+</head>
+<body ms-controller="root" class="ms-controller" style="background: #fff;">
+<div class="form-horizontal page-details">
+    <ul class="nav nav-tabs">
+        <li role="presentation" class="active">
+            <a href="#tab1" aria-controls="tab1" role="tab" data-toggle="tab">会议反馈信息</a>
+        </li>
+        <li role="presentation">
+            <a href="#tab2" aria-controls="tab2" role="tab" data-toggle="tab">会议反馈文件</a>
+        </li>
+        <li role="presentation">
+            <a href="#tab3" aria-controls="tab3" role="tab" data-toggle="tab">会议基本信息</a>
+        </li>
+        <li role="presentation">
+            <a href="#tab6" aria-controls="tab4" role="tab" data-toggle="tab">参会相关文件</a>
+        </li>
+        <li role="presentation">
+            <a href="#tab7" aria-controls="tab5" role="tab" data-toggle="tab">反馈申请记录</a>
+        </li>
+    </ul>
+    <div class="tab-content add-user">
+        <div role="tabpanel" id="tab1" class="tab-pane active">
+            <form class="form-horizontal content">
+                <div class="col-sm-12">
+                    <h5 class="title"><span>会议反馈基本信息</span></h5>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">活动持续时间(分钟)：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.活动持续分钟}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">参会人数：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.参会人数}}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12">
+                    <h5 class="title"><span>参会总结</span></h5>
+                    <div class="form-group col-sm-12">
+                        <label class="col-sm-3 control-label">总结：</label>
+                        <div class="col-sm-9">
+                            <span>{{@model.参加会议反馈详情.参会总结}}</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div role="tabpanel" id="tab2" class="tab-pane">
+            <form class="form-horizontal content fileUpload-box">
+                <label class="col-sm-3 control-label">会议反馈文件：</label>
+                <div class="form-group col-sm-8 items">
+                    <div class="item" ms-for="el in @files">
+                        <a class="name" ms-attr="{'href':@el}" download="">{{@getHtmlDocName(el)}}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div role="tabpanel" id="tab3" class="tab-pane">
+            <form class="form-horizontal content">
+                <div class="col-sm-12">
+                    <h5 class="title"><span>会议基本信息</span></h5>
+                    <div class="form-group col-sm-12">
+                        <label class="col-sm-3 control-label">会议名称：</label>
+                        <div class="col-sm-9">
+                            <span>{{@model.参加会议反馈详情.会议名称}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">会议主办单位：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.会议主办单位}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">会议承办单位：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.会议承办单位}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">申请人：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.申请人姓名}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">申请人部门：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.申请人部门名称}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">研讨领域：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.研讨领域}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">学科类型：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.学科类型}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">往返时间(天)：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.往返时间}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">开始时间：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.会议开始时间|date("yyyy-MM-dd")}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">结束时间：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.会议结束时间|date("yyyy-MM-dd")}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label class="col-sm-3 control-label">会议网址：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.会议网址}}</span>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-12">
+                        <label class="col-sm-3 control-label">会议地点：</label>
+                        <div class="col-sm-7">
+                            <span>{{@model.参加会议反馈详情.会议地点}}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12">
+                    <h5 class="title"><span>会议简介及申请理由</span></h5>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">简介：</label>
+                        <div class="col-sm-9">
+                            <span>{{@model.参加会议反馈详情.会议简介及申请理由}}</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div role="tabpanel" id="tab6" class="tab-pane">
+            <form class="form-horizontal content fileUpload-box">
+                <label class="col-sm-3 control-label">参会相关文件：</label>
+                <div class="form-group col-sm-8 items">
+                    <div class="item" ms-for="el in @LectureFiles">
+                        <a class="name" ms-attr="{'href':@el}" download="">{{@getHtmlDocName(el)}}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div role="tabpanel" id="tab7" class="tab-pane">
+            <h4 class="text-center auditing-title">反馈申请记录</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                    <tr>
+                        <th width="80">序号</th>
+                        <th>步骤名称</th>
+                        <th>处理人</th>
+                        <th>状态</th>
+                        <th>执行时间</th>
+                        <th>备注</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ms-for="($index,el) in @model.审核情况">
+                        <td>{{$index+1}}</td>
+                        <td>{{el.名称}}</td>
+                        <td>{{el.姓名}}</td>
+                        <td ms-class="getClass(el.状态说明)">{{el.状态说明}}</td>
+                        <td>{{el.执行时间}}</td>
+                        <td>{{el.备注}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div ms-if="@model.审核情况.length==0||@model.审核情况==null">
+            <p class="text-center"><img src="/IMIS/images/nothing-3.png"></p>
+        </div>
+    </div>
+</div>

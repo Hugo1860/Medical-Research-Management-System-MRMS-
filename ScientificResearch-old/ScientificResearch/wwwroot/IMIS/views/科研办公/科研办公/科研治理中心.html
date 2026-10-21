@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>科研治理中心</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <link rel="stylesheet" href="/IMIS/css/child_pages.css"/>
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/js/main.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <style>
+        .governance-page { padding: 18px 24px 36px; }
+        .governance-page .panel-heading { font-weight: 600; }
+        .metric { min-height: 96px; padding: 16px; border-radius: 4px; background: #f7f9fb; border: 1px solid #e6ebf0; }
+        .metric strong { display: block; font-size: 28px; line-height: 1.2; color: #337ab7; }
+        .metric span { color: #66727e; }
+        .table > thead > tr > th { white-space: nowrap; }
+        .table > tbody > tr > td { vertical-align: middle; }
+        .empty { color: #888; padding: 12px 0; }
+        .form-inline .form-control { margin-right: 6px; margin-bottom: 6px; }
+        .status-muted { color: #888; }
+    </style>
+</head>
+<body onload="IFrameResize()">
+<div class="page-common governance-page">
+    <div class="clearfix">
+        <h4 class="title pull-left">科研治理中心</h4>
+        <button id="refresh-all" class="btn btn-default btn-sm pull-right">刷新数据</button>
+    </div>
+    <div id="message" class="alert" style="display:none;"></div>
+
+    <div class="row" id="metrics">
+        <div class="col-sm-3"><div class="metric"><strong id="open-bottlenecks">—</strong><span>开放瓶颈事件</span></div></div>
+        <div class="col-sm-3"><div class="metric"><strong id="waiting-hours">—</strong><span>待处理资源等待小时</span></div></div>
+        <div class="col-sm-3"><div class="metric"><strong id="failure-count">—</strong><span>接口失败告警</span></div></div>
+        <div class="col-sm-3"><div class="metric"><strong id="export-count">—</strong><span>未完成导出任务</span></div></div>
+    </div>
+
+    <div class="row" style="margin-top:15px;">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">瓶颈与资源决策摘要</div>
+                <div class="panel-body" id="decision-summary"><span class="status-muted">加载中…</span></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">科研评价规则版本</div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-condensed" id="evaluation-table">
+                        <thead><tr><th>规则</th><th>版本</th><th>适用岗位</th><th>周期</th><th>状态</th></tr></thead>
+                        <tbody><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">瓶颈事件汇总</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-condensed" id="bottleneck-table">
+                <thead><tr><th>事件类型</th><th>原因代码</th><th>严重程度</th><th>状态</th><th>事件数</th><th>平均等待天数</th><th>最大等待天数</th></tr></thead>
+                <tbody><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">迁移绑定异常（只读）</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-condensed" id="migration-table">
+                <thead><tr><th>异常类型</th><th>记录编号</th><th>流程模板</th><th>项目编号</th><th>关联编号</th><th>说明</th></tr></thead>
+                <tbody><tr><td colspan="6" class="empty">加载中…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">接口失败告警</div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-condensed" id="alert-table">
+                        <thead><tr><th>路径</th><th>方法</th><th>状态</th><th>失败次数</th><th>最近失败</th></tr></thead>
+                        <tbody><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">数据导出任务</div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-condensed" id="export-table">
+                        <thead><tr><th>范围</th><th>状态</th><th>申请时间</th><th>文件校验</th></tr></thead>
+                        <tbody><tr><td colspan="4" class="empty">加载中…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">外部系统注册 <button id="external-config-check" class="btn btn-xs btn-info pull-right" type="button">检查启用条件</button></div>
+                <div class="panel-body">
+                    <form id="external-system-form" class="form-inline">
+                        <input name="系统代码" class="form-control" maxlength="50" placeholder="系统代码" required>
+                        <input name="系统名称" class="form-control" maxlength="100" placeholder="系统名称" required>
+                        <select name="系统类型" class="form-control"><option>HR</option><option>财务</option><option>采购</option><option>伦理</option><option>合同</option><option>人才库</option><option>生物样本库</option><option>论文采集</option><option>其他</option></select>
+                        <input name="基础地址" class="form-control" maxlength="500" placeholder="基础地址">
+                        <select name="认证方式" class="form-control"><option>无</option><option>Bearer</option><option>Basic</option><option>ApiKey</option><option>OIDC</option></select>
+                        <input name="认证引用" class="form-control" maxlength="200" placeholder="认证引用名">
+                        <button class="btn btn-primary" type="submit">保存系统</button>
+                    </form>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-condensed" id="external-system-table">
+                        <thead><tr><th>系统</th><th>类型</th><th>基础地址</th><th>认证</th><th>状态</th></tr></thead>
+                        <tbody><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="table-responsive" style="margin-top:8px;">
+                    <table class="table table-bordered table-striped table-condensed" id="external-config-table">
+                        <thead><tr><th>必需系统</th><th>登记</th><th>地址</th><th>认证</th><th>启用条件</th><th>说明</th></tr></thead>
+                        <tbody><tr><td colspan="6" class="empty">点击“检查启用条件”查看配置完整性</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">外部同步任务队列</div>
+                <div class="panel-body">
+                    <form id="external-sync-form" class="form-inline">
+                        <input name="外部系统编号" type="number" min="1" class="form-control" placeholder="外部系统编号" required>
+                        <input name="业务类型" class="form-control" maxlength="80" placeholder="业务类型" required>
+                        <select name="方向" class="form-control"><option>推送</option><option>拉取</option></select>
+                        <input name="业务主键" class="form-control" maxlength="200" placeholder="业务主键">
+                        <input name="幂等键" class="form-control" maxlength="200" placeholder="幂等键" required>
+                        <input name="请求负载" class="form-control" style="min-width:220px" placeholder="JSON 请求负载，例如 {}">
+                        <button class="btn btn-primary" type="submit">加入队列</button>
+                    </form>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-condensed" id="external-sync-table">
+                        <thead><tr><th>系统</th><th>业务</th><th>方向</th><th>状态</th><th>尝试</th><th>最近错误</th><th>操作</th></tr></thead>
+                        <tbody><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">科研单位名称规范</div>
+        <div class="panel-body">
+            <form id="institution-form" class="form-inline">
+                <input name="规范名称" class="form-control" maxlength="300" placeholder="新增规范单位名称" required>
+                <input name="统一社会信用代码" class="form-control" maxlength="50" placeholder="统一社会信用代码">
+                <input name="备注" class="form-control" maxlength="1000" placeholder="备注">
+                <button class="btn btn-primary" type="submit">保存单位</button>
+            </form>
+            <form id="alias-form" class="form-inline" style="margin-top:8px;">
+                <select name="规范单位编号" id="institution-select" class="form-control" required><option value="">先加载规范单位</option></select>
+                <input name="别名" class="form-control" maxlength="300" placeholder="单位历史名称或别名" required>
+                <input name="来源" class="form-control" maxlength="100" placeholder="来源">
+                <button class="btn btn-default" type="submit">保存别名</button>
+            </form>
+            <div class="table-responsive" style="margin-top:12px;">
+                <table class="table table-bordered table-striped table-condensed" id="institution-table">
+                    <thead><tr><th>规范名称</th><th>统一社会信用代码</th><th>状态</th><th>别名</th><th>备注</th></tr></thead>
+                    <tbody><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-info">
+        <div class="panel-heading">HR 人员同步回放</div>
+        <div class="panel-body">
+            <form id="hr-sync-form">
+                <div class="form-inline"><input name="外部系统编号" type="number" min="1" class="form-control" placeholder="HR 外部系统编号" required><input name="同步批次号" class="form-control" placeholder="同步批次号" required><label><input name="是否全量" type="checkbox"> 全量同步</label><button id="hr-preview" class="btn btn-default" type="button">预览影响</button><button class="btn btn-info" type="submit">执行 HR 同步</button></div>
+                <textarea name="人员列表" class="form-control" rows="4" style="margin-top:8px" placeholder='[{"外部人员编号":"hr-001","工号":"1001","姓名":"张三","部门名称":"科研处","岗位名称":"科研秘书","手机":"","邮箱":"","是否在职":true}]' required></textarea>
+            </form>
+            <p class="help-block">服务端按外部人员编号幂等映射；离岗记录会禁用本地人员并回收其有效代理。仅管理员可执行。</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-info">
+                <div class="panel-heading">财务流水同步回放</div>
+                <div class="panel-body"><form id="finance-sync-form"><div class="form-inline"><input name="外部系统编号" type="number" min="1" class="form-control" placeholder="财务外部系统编号" required><input name="同步批次号" class="form-control" placeholder="同步批次号" required><button class="btn btn-info" type="submit">执行财务同步</button></div><textarea name="流水列表" class="form-control" rows="4" style="margin-top:8px" placeholder='[{"外部单据号":"pay-001","流程模板编号":410,"项目编号":3,"业务类型":"实际付款","金额":100,"状态":"已付款","付款日期":"2026-10-14"}]' required></textarea></form></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-info">
+                <div class="panel-heading">伦理审批同步回放</div>
+                <div class="panel-body"><form id="ethics-sync-form"><div class="form-inline"><input name="外部系统编号" type="number" min="1" class="form-control" placeholder="伦理外部系统编号" required><input name="同步批次号" class="form-control" placeholder="同步批次号" required><button class="btn btn-info" type="submit">执行伦理同步</button></div><textarea name="审批列表" class="form-control" rows="4" style="margin-top:8px" placeholder='[{"外部审批编号":"eth-001","流程模板编号":400,"项目编号":1,"状态":"已批准","批文编号":"IRB-001"}]' required></textarea></form></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <a class="btn btn-link" href="/IMIS/views/科研办公/科研办公/科研评价管理.html">绩效评价管理</a>
+            <a class="btn btn-link" href="/IMIS/views/科研办公/科研办公/权限代理与预算对账.html">权限代理与预算异常对账</a>
+            <a class="btn btn-link" href="/IMIS/views/科研办公/我的科研/科研待办.html">我的科研待办</a>
+            <a class="btn btn-link" href="/IMIS/views/index.html">返回首页</a>
+        </div>
+    </div>
+</div>
+<script src="/IMIS/js/科研办公/科研办公/科研治理中心.js"></script>
+</body>
+</html>

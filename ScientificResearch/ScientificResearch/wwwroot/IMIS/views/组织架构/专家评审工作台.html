@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"><title>专家评审工作台</title><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"><link rel="stylesheet" href="/IMIS/css/child_pages.css">
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script><script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script><script src="/IMIS/js/main.js"></script><script src="/IMIS/js/get_connect/connect_http.js"></script><script src="/IMIS/js/组织架构/专家评审工作台.js"></script>
+</head>
+<body onload="IFrameResize()">
+<div class="page-common" style="padding:18px 24px 36px">
+    <div class="clearfix"><h4 class="title pull-left">专家评审工作台</h4><a class="btn btn-default btn-sm pull-right" href="/IMIS/views/组织架构/专家人才.html">返回专家列表</a></div>
+    <div id="message" class="alert" style="display:none"></div>
+    <div class="alert alert-info">待办项目以匿名方式展示。提交评分前必须完成利益冲突检查。</div>
+    <div class="table-responsive"><table class="table table-bordered table-striped" id="review-task-table"><thead><tr><th>流程</th><th>评审步骤</th><th>项目</th><th>申请人</th><th style="min-width:420px">评审操作</th></tr></thead><tbody><tr><td colspan="5" class="text-center text-muted">正在加载…</td></tr></tbody></table></div>
+</div>
+</body>
+</html>

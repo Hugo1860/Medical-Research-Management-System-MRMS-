@@ -1,0 +1,42 @@
+<div class="modal-content ms-controller shenHe-box" ms-controller="shenHe">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="NoPermissionModalLabel">审核</h4>
+    </div>
+    <div class="modal-body">
+        <div class="details-content">
+            <iframe class="detailsPage" scrolling="auto" frameborder="0" ms-attr="{'src':@editInfo.流程相关项目路径}"></iframe>
+        </div>
+        <div class="form-horizontal">
+            <div class="col-sm-12">
+                <h5 class="title"><span>审核</span></h5>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">审核说明：</label>
+                    <div class="col-sm-9">
+                        <textarea class="form-control content" rows="3" ms-duplex="@model.备注"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer submit-wrapper">
+        <div class="form-group">
+            <div class="submit-box text-center">
+                <button type="button" class="btn btn-success btn-submit" ms-on-click="@clickSubmit(1)">
+                    通过
+                </button>
+                <button type="button" class="btn btn-warning btn-submit" ms-on-click="@clickSubmit(-1)">
+                    不通过
+                </button>
+                <button type="button" class="btn btn-danger btn-submit" ms-on-click="@clickSubmit(-2)">
+                    终止
+                </button>
+                <button type="button" class="btn btn-default" ms-on-click="@clickBtnReturn">返回
+                </button>
+                <div class="tip-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/IMIS/js/流程/审核.js" type="text/javascript"></script>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>首页-科研信息管理系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/iconfont/iconfont.css"/>
+    <link rel="stylesheet" href="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="/IMIS/css/index.css"/>
+    <link title="black" rel="stylesheet" href="/IMIS/css/black.css" ty="theme" disabled="disabled"/>
+    <link title="brown" rel="stylesheet" href="/IMIS/css/brown.css" ty="theme" disabled="disabled"/>
+    <!--[if lt IE 9]>
+    <script src="/IMIS/libs/html5shiv.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/respond.min.js"></script>
+    <![endif]-->
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script>
+    <script src="/IMIS/libs/jquery.placeholder.min.js"></script>
+    <script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/libs/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/IMIS/libs/avalon.min.js"></script>
+    <script src="/IMIS/js/get_connect/code.js"></script>
+    <script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/get_connect/return_data.js"></script>
+
+    <script>
+        document.write(' <script src="/IMIS/js/index.js?time=' + new Date().getTime() + '"></s' + 'cript>');
+    </script>
+
+</head>
+<body ms-controller="root" class="ms-controller">
+<div class="sidebar" sroll="no">
+    <div class="logo">
+        <img class="title" src="../images/logo3.png"/>
+    </div>
+    <div class="nav-sidebar-box">
+        <div class="profile-img">
+            <img src="../images/user.jpg" alt="user">
+            <div class="notify setpos">
+                <span class="heartbit"></span>
+                <span class="point"></span>
+            </div>
+            <div class="profile-text">
+                <h6 class="user">{{userInfo.姓名}}</h6>
+                <p class="department">{{userInfo.部门名称}}（工号：{{userInfo.工号}}）</p>
+                <a class="bs-tooltip btn-edit-info" data-toggle="tooltip" data-placement="bottom" title="编辑"
+                   ms-on-click="@clickBtnEdit(true)" href="javascript:;">
+                    <i class="icon iconfont icon-bianji"></i>
+                </a>
+            </div>
+        </div>
+        <ul class="nav-sidebar">
+            <li class="parent-li">
+                <a href="statistics.html">
+                    <i class="icon iconfont icon-home6"></i>
+                    <span class="title">首页</span>
+                </a>
+            </li>
+            <li class="parent-li" ms-for="($index,el) in @jurisdiction" ms-on-mouseenter="@hoverLi($index,el)">
+                <a ms-attr="{'href':el.菜单.路径==''?'javascript:;':el.菜单.路径}"
+                   ms-on-click="@ClickLiParent($index,el)">
+                    <i ms-attr="{'class':'icon iconfont '+el.菜单.图标}"></i>
+                    <span class="title">{{el.菜单.名称}}</span>
+                    <i ms-if="el.子级菜单.length>0" class="icon iconfont icon-right icon-shouqi icon-xiala"></i>
+                </a>
+                <ul class="treeview-menu" ms-if="el.子级菜单.length>0">
+                    <li ms-for="($index,aa) in @el.子级菜单">
+                        <a ms-attr="{'href':aa.菜单.路径==''?'javascript:;':aa.菜单.路径}"
+                           ms-on-click="@ClickLiTwo($index,aa)">
+                            <i ms-attr="{'class':'icon iconfont '+aa.菜单.图标}"></i>
+                            <span class="title">{{aa.菜单.名称}}</span>
+                            <i ms-if="aa.子级菜单.length>0" class="icon iconfont icon-right icon-shouqi icon-xiala"></i>
+                        </a>
+                        <ul class="treeview-menu-sub" ms-if="aa.子级菜单.length>0">
+                            <li ms-for="($index,bb) in @aa.子级菜单">
+                                <a ms-attr="{'href':bb.菜单.路径==''?'javascript:;':bb.菜单.路径}"
+                                   ms-on-click="@ClickLiThree($index,bb)">
+                                    <span class="title">{{bb.菜单.名称}}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</div>
+<div class="main">
+    <div class="header">
+        <div class="left">
+            <a href="javascript:;" class="sidebar-toggle bs-tooltip" data-toggle="tooltip" data-placement="bottom"
+               title="菜单切换">
+                <i class="icon iconfont icon-iconfont303"></i>
+            </a>
+        </div>
+        <div class="right">
+            <ul class="user-info">
+                <li class="user">
+                    <a class="dropdown-toggle" href="javascript:;">
+                        <img class="userimg" src="../images/user.jpg" alt="user"/>
+                        <span class="name">{{userInfo.姓名}}</span>
+                        <span class="caret"></span>
+                    </a>
+                    <div class="dropdown-menu">
+                        <i class="icon iconfont icon-shangla"></i>
+                        <ul>
+                            <li>
+                                <a href="javascript:;" ms-on-click="@clickBtnEdit(true)">
+                                    <i class="icon iconfont icon-account2"></i>个人资料管理</a>
+                            </li>
+                            <li>
+                                <a href="javascript:;" ms-on-click="@clickPassWord()">
+                                    <i class="icon iconfont icon-xiugaimima1"></i>修改密码
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/IMIS/views/基础信息维护/字典.html">
+                                    <i class="icon iconfont icon-zhuanjiajiangzuo"></i>我的学术任职
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/IMIS/views/科研办公/科研办公/权限代理与预算对账.html">
+                                    <i class="icon iconfont icon-set"></i>权限代理与预算对账
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/IMIS/views/科研办公/科研办公/科研治理中心.html">
+                                    <i class="icon iconfont icon-tongjichakan"></i>科研治理中心
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="theme">
+                    <a class="dropdown-toggle" href="javascript:;">
+                        <i class="icon iconfont icon-pifu"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <i class="icon iconfont icon-shangla"></i>
+                        <ul id="styles">
+                            <li id="default"><a href="javascript:;"><i class="icon iconfont icon-pifu"></i> 默认</a>
+                            </li>
+                            <li id="black"><a href="javascript:;"><i class="icon iconfont icon-pifu"></i> 暗夜黑</a></li>
+                            <li id="brown"><a href="javascript:;"><i class="icon iconfont icon-pifu"></i> 薄荷绿</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="bs-tooltip btn-out" data-toggle="tooltip" data-placement="bottom" title="退出">
+                    <a class="btn-out" href="login.html"><i class="icon iconfont icon-out2"></i></a>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+    <div class="subpage">
+        <div class="tab-content">
+            <iframe id="subpage" scrolling="auto" frameborder="0" src="statistics.html"></iframe>
+        </div>
+    </div>
+</div>
+</body>
+</html>

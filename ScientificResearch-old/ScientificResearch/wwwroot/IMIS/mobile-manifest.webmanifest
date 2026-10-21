@@ -1,0 +1,11 @@
+{
+  "name": "科研管理移动工作台",
+  "short_name": "科研工作台",
+  "lang": "zh-CN",
+  "start_url": "/IMIS/views/科研办公/科研办公/移动科研工作台.html",
+  "scope": "/IMIS/",
+  "display": "standalone",
+  "background_color": "#f4f7fa",
+  "theme_color": "#337ab7",
+  "description": "科研管理系统移动端待办、项目、经费、成果和论文认领入口"
+}

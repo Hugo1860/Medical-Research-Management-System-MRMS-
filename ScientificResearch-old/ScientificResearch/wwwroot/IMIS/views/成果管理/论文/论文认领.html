@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"><title>论文采集与认领</title><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/IMIS/libs/bootstrap/css/bootstrap.min.css"><link rel="stylesheet" href="/IMIS/css/child_pages.css">
+    <script src="/IMIS/libs/jquery-1.11.1.min.js"></script><script src="/IMIS/libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/IMIS/js/main.js"></script><script src="/IMIS/js/get_connect/code.js"></script><script src="/IMIS/js/get_connect/connect_http.js"></script>
+    <script src="/IMIS/js/成果管理/论文/论文认领.js"></script>
+</head>
+<body onload="IFrameResize()">
+<div class="page-common page-table" style="padding:18px 24px 36px">
+    <div class="clearfix"><h4 class="title pull-left">论文采集与认领</h4><a class="btn btn-default btn-sm pull-right" href="/IMIS/views/成果管理/论文/论文管理.html">返回论文管理</a></div>
+    <div id="message" class="alert" style="display:none"></div>
+    <div class="screen-box"><div class="form-inline"><input id="paper-keyword" class="form-control" placeholder="论文标题" style="min-width:260px"><button id="paper-search" class="btn btn-primary">查询可认领论文</button><a class="btn btn-default" href="/IMIS/views/成果管理/论文/论文采集任务.html" style="margin-left:8px">采集任务队列</a><span id="paper-total" class="text-muted" style="margin-left:10px"></span></div></div>
+    <div class="panel panel-default"><div class="panel-heading">期刊信息自动识别</div><div class="panel-body"><div class="form-inline"><input id="journal-name" class="form-control" placeholder="刊物名称"><input id="journal-issn" class="form-control" placeholder="ISSN号"><input id="journal-cn" class="form-control" placeholder="CN号"><button id="journal-identify" class="btn btn-info">识别期刊</button></div><div class="table-responsive" style="margin-top:10px"><table class="table table-bordered table-condensed" id="journal-table"><thead><tr><th>刊物</th><th>ISSN</th><th>CN</th><th>收录情况</th><th>JCR分区</th><th>影响因子</th><th>匹配分数</th></tr></thead><tbody><tr><td colspan="7">请输入刊物信息后识别</td></tr></tbody></table></div></div></div>
+    <div class="table-responsive"><table class="table table-bordered table-striped" id="paper-table"><thead><tr><th>论文标题</th><th>刊物</th><th>Online 日期</th><th>正式出版日期</th><th>第一作者</th><th>操作</th></tr></thead><tbody><tr><td colspan="6">加载中…</td></tr></tbody></table></div>
+    <div class="text-center"><button id="paper-prev" class="btn btn-default">上一页</button><span id="paper-page" style="margin:0 12px"></span><button id="paper-next" class="btn btn-default">下一页</button></div>
+</div>
+</body>
+</html>
