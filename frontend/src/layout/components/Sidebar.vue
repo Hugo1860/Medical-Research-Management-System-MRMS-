@@ -76,6 +76,19 @@
             <span>全景图</span>
           </button>
         </el-tooltip>
+
+        <el-tooltip content="自定义调整菜单显示顺序 (个人偏好)" placement="top" :show-after="300">
+          <button
+            type="button"
+            class="tool-btn sort-btn"
+            :class="{ active: menuOrderStore.hasCustomOrder }"
+            data-testid="btn-menu-sort"
+            @click="menuSortDialogVisible = true"
+          >
+            <el-icon><Sort /></el-icon>
+            <span>排序</span>
+          </button>
+        </el-tooltip>
       </div>
     </div>
 
@@ -362,6 +375,13 @@
       :favorites="favoritePaths"
       @toggle-favorite="onToggleFavorite"
     />
+
+    <!-- 自定义菜单顺序设置弹窗 -->
+    <MenuSortDialog
+      v-model="menuSortDialogVisible"
+      :raw-permissions="rawPermissionsList"
+      @order-changed="menuKey++"
+    />
   </div>
 </template>
 
@@ -370,8 +390,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useFavoritesStore } from '@/stores/favorites'
+import { useMenuOrderStore } from '@/stores/menuOrder'
 import type { MenuItem, PermissionNode } from '@/api/auth'
 import MegaMapDrawer from './MegaMapDrawer.vue'
+import MenuSortDialog from './MenuSortDialog.vue'
 import { resolveModernRoute } from '@/utils/route-resolver'
 import { ElMessage } from 'element-plus'
 import {
@@ -394,6 +416,7 @@ import {
   Fold,
   Grid,
   Operation,
+  Sort,
   Star,
   StarFilled,
   Close,
@@ -413,6 +436,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const favoritesStore = useFavoritesStore()
+const menuOrderStore = useMenuOrderStore()
 
 // 1. 状态与配置
 const searchKeyword = ref('')
@@ -420,6 +444,7 @@ const viewMode = ref<'tree' | 'flat'>(
   (localStorage.getItem('scientific_research_menu_view_mode') as 'tree' | 'flat') || 'tree'
 )
 const megaMapVisible = ref(false)
+const menuSortDialogVisible = ref(false)
 const menuKey = ref(1)
 const collapsedFlatSections = ref<string[]>([])
 
@@ -518,11 +543,15 @@ const defaultTreePermissions = computed<PermissionNode[]>(() => {
   return tree
 })
 
-const effectivePermissions = computed<PermissionNode[]>(() => {
+const rawPermissionsList = computed<PermissionNode[]>(() => {
   if (Array.isArray(userStore.permissions) && userStore.permissions.length > 0) {
     return userStore.permissions
   }
   return defaultTreePermissions.value
+})
+
+const effectivePermissions = computed<PermissionNode[]>(() => {
+  return menuOrderStore.sortPermissionNodes(rawPermissionsList.value)
 })
 
 const allLeafMenus = computed<LeafMenuItem[]>(() => {
@@ -593,7 +622,19 @@ const groupedFlatCatalog = computed(() => {
     groups[mainCat].push(item)
   }
 
-  return Object.keys(groups).map((key) => ({
+  const categories = Object.keys(groups)
+  const rootOrder = menuOrderStore.customOrderMap['_root']
+  if (rootOrder && Array.isArray(rootOrder) && rootOrder.length > 0) {
+    const rankMap = new Map<string, number>()
+    rootOrder.forEach((name, idx) => rankMap.set(name, idx))
+    categories.sort((a, b) => {
+      const rankA = rankMap.has(a) ? rankMap.get(a)! : 9999
+      const rankB = rankMap.has(b) ? rankMap.get(b)! : 9999
+      return rankA - rankB
+    })
+  }
+
+  return categories.map((key) => ({
     category: key,
     items: groups[key]
   }))
@@ -908,6 +949,23 @@ onMounted(() => {
           &:hover {
             background: #b45309;
             color: #ffffff;
+          }
+        }
+
+        &.sort-btn {
+          color: #38bdf8;
+          border-color: #0284c7;
+
+          &:hover {
+            background: #0369a1;
+            color: #ffffff;
+          }
+
+          &.active {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
           }
         }
       }
