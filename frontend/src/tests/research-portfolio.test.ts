@@ -114,4 +114,52 @@ describe('Personal Scientific Research Portfolio (个人科研全景与成果资
     expect(getTypeTagType('期刊论文')).toBe('primary')
     expect(getTypeTagType('发明专利')).toBe('warning')
   })
+
+  it('应准确解析五维学术能力量化指标与综合评级', () => {
+    const portfolio: ResearchPortfolioData = {
+      个人资料: { 编号: 101, 姓名: '李首席' },
+      纵向项目总览: [],
+      横向项目总览: [],
+      成果总览: [],
+      能力画像量化: {
+        人员编号: 101,
+        课题主持得分: 85,
+        经费规模得分: 90,
+        论文能力得分: 80,
+        成果转化得分: 75,
+        团队指导得分: 88,
+        综合科研指数: 84.2,
+        评级称号: '杰出科研骨干 (A级)'
+      }
+    }
+
+    expect(portfolio.能力画像量化).toBeDefined()
+    expect(portfolio.能力画像量化?.综合科研指数).toBe(84.2)
+    expect(portfolio.能力画像量化?.评级称号).toContain('A级')
+    expect(portfolio.能力画像量化?.课题主持得分).toBe(85)
+    expect(portfolio.能力画像量化?.经费规模得分).toBe(90)
+  })
+
+  it('应准确解析历年科研学术产出走势与多维团队带教数据', () => {
+    const portfolio: ResearchPortfolioData = {
+      个人资料: { 编号: 102, 姓名: '王教授' },
+      纵向项目总览: [],
+      横向项目总览: [],
+      成果总览: [],
+      历年产出趋势: [
+        { 年度: '2024', 纵向课题数: 1, 纵向经费: 30, 横向合同数: 1, 横向经费: 50, 论文数: 3, 专利数: 1, 著作数: 0, 获奖数: 0 },
+        { 年度: '2025', 纵向课题数: 2, 纵向经费: 60, 横向合同数: 2, 横向经费: 80, 论文数: 5, 专利数: 2, 著作数: 1, 获奖数: 1 }
+      ],
+      团队: [{ 团队名称: '脑血管重大疾病创新团队', 成员角色: '团队带头人' }],
+      导师关系: [{ 导师姓名: '王教授', 学员姓名: '张博士', 关系类型: '博导' }]
+    }
+
+    expect(portfolio.历年产出趋势).toHaveLength(2)
+    expect(portfolio.历年产出趋势?.[1].年度).toBe('2025')
+    expect(portfolio.历年产出趋势?.[1].论文数).toBe(5)
+    expect(portfolio.团队).toHaveLength(1)
+    expect(portfolio.团队?.[0].成员角色).toBe('团队带头人')
+    expect(portfolio.导师关系).toHaveLength(1)
+    expect(portfolio.导师关系?.[0].学员姓名).toBe('张博士')
+  })
 })

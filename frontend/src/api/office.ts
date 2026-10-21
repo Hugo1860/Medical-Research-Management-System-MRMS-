@@ -231,6 +231,35 @@ export function uploadDownloadFile(file: File) {
 }
 
 /**
+ * 历年产出趋势项
+ */
+export interface YearTrendItem {
+  年度: string
+  纵向课题数: number
+  纵向经费: number
+  横向合同数: number
+  横向经费: number
+  论文数: number
+  专利数: number
+  著作数: number
+  获奖数: number
+}
+
+/**
+ * 能力画像量化得分
+ */
+export interface CapabilityScores {
+  人员编号: number
+  课题主持得分: number
+  经费规模得分: number
+  论文能力得分: number
+  成果转化得分: number
+  团队指导得分: number
+  综合科研指数: number
+  评级称号: string
+}
+
+/**
  * 个人科研全景详情数据
  */
 export interface ResearchPortfolioData {
@@ -238,6 +267,13 @@ export interface ResearchPortfolioData {
   纵向项目总览: any[]
   横向项目总览: any[]
   成果总览: any[]
+  科研能力?: any
+  能力标签?: any[]
+  导师关系?: any[]
+  团队?: any[]
+  项目分工?: any[]
+  能力画像量化?: CapabilityScores
+  历年产出趋势?: YearTrendItem[]
 }
 
 /**

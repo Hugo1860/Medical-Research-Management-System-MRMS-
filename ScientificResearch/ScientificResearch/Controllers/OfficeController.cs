@@ -219,25 +219,133 @@ namespace ScientificResearch.Controllers
         [HttpGet]
         async public Task<object> 获取科研详情(int 当前登录人编号)
         {
-            //var 当前登录人编号 = currentUser.编号;
+            if (当前登录人编号 <= 0) 当前登录人编号 = CurrentUser.编号;
 
             var r1 = await Db.GetModelByIdSpAsync<v1_人员_带部门名>(当前登录人编号);
 
             var 纵向项目总览filter = new 纵向项目总览Filter() { 发起人编号 = 当前登录人编号 };
-            var r2 = await Db.GetListSpAsync<v4_纵向项目总览, 纵向项目总览Filter>(纵向项目总览filter);
+            var r2 = (await Db.GetListSpAsync<v4_纵向项目总览, 纵向项目总览Filter>(纵向项目总览filter))?.ToList() ?? new List<v4_纵向项目总览>();
 
             var 横向项目filter = new 横向项目Filter() { 发起人编号 = 当前登录人编号 };
-            var r3 = await Db.GetListSpAsync<v4_横向项目总览, 横向项目Filter>(横向项目filter);
+            var r3 = (await Db.GetListSpAsync<v4_横向项目总览, 横向项目Filter>(横向项目filter))?.ToList() ?? new List<v4_横向项目总览>();
 
             var 成果总览filter = new 成果总览Filter() { 发起人编号 = 当前登录人编号 };
-            var r4 = await Db.GetListSpAsync<v4_成果总览, 成果总览Filter>(成果总览filter);
+            var r4 = (await Db.GetListSpAsync<v4_成果总览, 成果总览Filter>(成果总览filter))?.ToList() ?? new List<v4_成果总览>();
+
+            // 补充：人员科研能力与标签
+            var capability = await Db.QuerySingleOrDefaultAsync<object>(@"
+SELECT ""人员编号"", ""研究专长"", ""研究方向标签"", ""技术服务能力"", ""合作意愿"", ""合作说明"", ""可用时间"", ""每周可用小时"", ""可承担项目数"", ""当前可接项目"", ""可公开展示""
+  FROM ""人员科研能力"" WHERE ""人员编号""=@当前登录人编号;", new { 当前登录人编号 });
+
+            var tags = await Db.QueryAsync<object>(@"
+SELECT ""编号"", ""标签类型"", ""标签"", ""来源""
+  FROM ""人员能力标签"" WHERE ""人员编号""=@当前登录人编号
+ ORDER BY ""标签类型"", ""标签"";", new { 当前登录人编号 });
+
+            var mentor = (await Db.QueryAsync<object>(@"
+SELECT r.""编号"", r.""导师编号"", m.""姓名"" AS ""导师姓名"", r.""学员编号"", s.""姓名"" AS ""学员姓名"", r.""关系类型"", r.""开始日期"", r.""结束日期"", r.""状态"", r.""备注""
+  FROM ""人员导师关系"" r JOIN ""人员"" m ON m.""编号""=r.""导师编号"" JOIN ""人员"" s ON s.""编号""=r.""学员编号""
+ WHERE r.""导师编号""=@当前登录人编号 OR r.""学员编号""=@当前登录人编号 ORDER BY r.""状态"", r.""开始日期"" DESC NULLS LAST;", new { 当前登录人编号 }))?.ToList() ?? new List<object>();
+
+            var teams = (await Db.QueryAsync<object>(@"
+SELECT t.""编号"", t.""团队名称"", t.""负责人编号"", t.""研究方向"", t.""技术服务范围"", t.""合作说明"", t.""状态"", m.""成员角色"", m.""加入日期"", m.""状态"" AS ""成员状态""
+  FROM ""科研团队成员"" m JOIN ""科研团队"" t ON t.""编号""=m.""团队编号""
+ WHERE m.""人员编号""=@当前登录人编号 ORDER BY t.""团队名称"";", new { 当前登录人编号 }))?.ToList() ?? new List<object>();
+
+            var assignments = (await Db.QueryAsync<object>(@"
+SELECT a.""流程模板编号"", a.""项目编号"", a.""分工类型"", a.""工作量占比"", a.""开始日期"", a.""结束日期"", a.""状态"", a.""备注""
+  FROM ""人员项目分工"" a
+ WHERE a.""人员编号""=@当前登录人编号
+ ORDER BY a.""状态"", a.""开始日期"" DESC NULLS LAST;", new { 当前登录人编号 }))?.ToList() ?? new List<object>();
+
+            // 历年成果统计
+            var fruitYearStats = await Db.QueryAsync<dynamic>(@"
+SELECT EXTRACT(YEAR FROM a.""创建时间"")::int AS ""年度"",
+       COUNT(*) FILTER (WHERE a.""流程模板编号"" IN (300, 310))::int AS ""论文数"",
+       COUNT(*) FILTER (WHERE a.""流程模板编号"" = 302)::int AS ""专利数"",
+       COUNT(*) FILTER (WHERE a.""流程模板编号"" = 301)::int AS ""著作数"",
+       COUNT(*) FILTER (WHERE a.""流程模板编号"" = 303)::int AS ""获奖数""
+  FROM ""v3_流程"" a
+ WHERE a.""发起人编号"" = @当前登录人编号 AND a.""流程模板编号"" BETWEEN 300 AND 399
+ GROUP BY EXTRACT(YEAR FROM a.""创建时间"")
+ ORDER BY ""年度"" ASC;", new { 当前登录人编号 });
+
+            // 历年立项与经费趋势计算 (近 5-6 年)
+            var currentYear = DateTime.Now.Year;
+            var startYear = currentYear - 5;
+            var yearDict = new SortedDictionary<int, YearTrendItem>();
+            for (int y = startYear; y <= currentYear; y++)
+            {
+                yearDict[y] = new YearTrendItem
+                {
+                    年度 = y.ToString(),
+                    纵向课题数 = 0,
+                    纵向经费 = 0.0m,
+                    横向合同数 = 0,
+                    横向经费 = 0.0m,
+                    论文数 = 0,
+                    专利数 = 0,
+                    著作数 = 0,
+                    获奖数 = 0
+                };
+            }
+
+            foreach (var v in r2)
+            {
+                int vy = v.计划开始日期 != default ? v.计划开始日期.Year : currentYear;
+                if (yearDict.ContainsKey(vy))
+                {
+                    yearDict[vy].纵向课题数++;
+                    yearDict[vy].纵向经费 += Math.Round((v.批准经费 ?? 0) / 10000m, 2);
+                }
+            }
+
+            foreach (var h in r3)
+            {
+                int hy = h.签订时间 != default ? h.签订时间.Year : currentYear;
+                if (yearDict.ContainsKey(hy))
+                {
+                    yearDict[hy].横向合同数++;
+                    yearDict[hy].横向经费 += Math.Round(h.合同金额 / 10000m, 2);
+                }
+            }
+
+            foreach (var f in fruitYearStats)
+            {
+                if (f?.年度 != null)
+                {
+                    int fy = (int)f.年度;
+                    if (yearDict.ContainsKey(fy))
+                    {
+                        yearDict[fy].论文数 += (int)(f.论文数 ?? 0);
+                        yearDict[fy].专利数 += (int)(f.专利数 ?? 0);
+                        yearDict[fy].著作数 += (int)(f.著作数 ?? 0);
+                        yearDict[fy].获奖数 += (int)(f.获奖数 ?? 0);
+                    }
+                }
+            }
+
+            var capabilityScores = ResearcherCapabilityEvaluator.Evaluate(
+                当前登录人编号,
+                r2,
+                r3,
+                r4,
+                mentor.Count,
+                teams.Count);
 
             return new
             {
                 个人资料 = r1,
                 纵向项目总览 = r2,
                 横向项目总览 = r3,
-                成果总览 = r4
+                成果总览 = r4,
+                科研能力 = capability,
+                能力标签 = tags,
+                导师关系 = mentor,
+                团队 = teams,
+                项目分工 = assignments,
+                能力画像量化 = capabilityScores,
+                历年产出趋势 = yearDict.Values.ToList()
             };
         }
 

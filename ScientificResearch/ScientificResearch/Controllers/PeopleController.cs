@@ -516,8 +516,46 @@ SELECT a.""流程模板编号"", a.""项目编号"", a.""分工类型"", a.""工
  WHERE a.""人员编号""=@人员编号
    AND (@管理者 OR ""fn_人员可访问项目""(@当前人员编号,a.""流程模板编号"",a.""项目编号""))
  ORDER BY a.""状态"", a.""开始日期"" DESC NULLS LAST;", new { 人员编号, 管理者 = isManager, 当前人员编号 = CurrentUser.编号 });
+
+            var 纵向项目总览filter = new 纵向项目总览Filter() { 发起人编号 = 人员编号 };
+            var r2 = (await Db.GetListSpAsync<v4_纵向项目总览, 纵向项目总览Filter>(纵向项目总览filter))?.ToList() ?? new List<v4_纵向项目总览>();
+
+            var 横向项目filter = new 横向项目Filter() { 发起人编号 = 人员编号 };
+            var r3 = (await Db.GetListSpAsync<v4_横向项目总览, 横向项目Filter>(横向项目filter))?.ToList() ?? new List<v4_横向项目总览>();
+
+            var 成果总览filter = new 成果总览Filter() { 发起人编号 = 人员编号 };
+            var r4 = (await Db.GetListSpAsync<v4_成果总览, 成果总览Filter>(成果总览filter))?.ToList() ?? new List<v4_成果总览>();
+
+            var mentorList = (mentor as IEnumerable<object>)?.ToList() ?? new List<object>();
+            var teamList = (teams as IEnumerable<object>)?.ToList() ?? new List<object>();
+
+            var capabilityScores = ResearcherCapabilityEvaluator.Evaluate(
+                人员编号,
+                r2,
+                r3,
+                r4,
+                mentorList.Count,
+                teamList.Count);
+
             await 记录画像访问审计($"/People/获取人员科研能力画像?人员编号={人员编号}");
-            return new { 人员 = person, 科研能力 = capability, 能力标签 = tags, 导师关系 = mentor, 团队 = teams, 项目分工 = assignments };
+            return new
+            {
+                人员 = person,
+                科研能力 = capability,
+                能力标签 = tags,
+                导师关系 = mentor,
+                团队 = teams,
+                项目分工 = assignments,
+                人员编号 = 人员编号,
+                论文能力得分 = capabilityScores.论文能力得分,
+                课题主持得分 = capabilityScores.课题主持得分,
+                经费规模得分 = capabilityScores.经费规模得分,
+                成果转化得分 = capabilityScores.成果转化得分,
+                团队指导得分 = capabilityScores.团队指导得分,
+                综合科研指数 = capabilityScores.综合科研指数,
+                评级称号 = capabilityScores.评级称号,
+                能力画像量化 = capabilityScores
+            };
         }
 
         [HttpPost]
