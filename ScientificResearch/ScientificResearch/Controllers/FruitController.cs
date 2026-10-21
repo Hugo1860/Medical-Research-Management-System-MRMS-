@@ -130,11 +130,12 @@ namespace ScientificResearch.Controllers
             int importedCount = 0;
             try
             {
-                importedCount = await Db.ExecuteSpAsync(new sp_导入论文() { tt = validRows.ToDataTable() });
+                var dt = ((IEnumerable<论文导入>)validRows).ToDataTable();
+                importedCount = await Db.ExecuteSpAsync(new sp_导入论文() { tt = dt });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = $"论文入库保存异常: {ex.Message}" });
+                return StatusCode(500, new { error = $"论文入库保存异常: {ex.Message}", details = ex.ToString() });
             }
 
             return new
@@ -192,11 +193,12 @@ namespace ScientificResearch.Controllers
             int importedCount = 0;
             try
             {
-                importedCount = await Db.ExecuteSpAsync(new sp_导入自定义论文() { tt = rows.ToDataTable() });
+                var dt = ((IEnumerable<论文自定义导入>)rows).ToDataTable();
+                importedCount = await Db.ExecuteSpAsync(new sp_导入自定义论文() { tt = dt });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = $"自定义论文入库保存异常: {ex.Message}" });
+                return StatusCode(500, new { error = $"自定义论文入库保存异常: {ex.Message}", details = ex.ToString() });
             }
 
             return new

@@ -457,6 +457,7 @@ namespace MyLib
 
         #region 对象转为DataTable
         /// <summary>
+        /// <summary>
         /// list转datatable
         /// </summary>
         /// <typeparam name="TResult"></typeparam>
@@ -469,33 +470,56 @@ namespace MyLib
             List<PropertyInfo> pList = new List<PropertyInfo>();
             Type type = typeof(TResult);
             DataTable dt = new DataTable();
-            Array.ForEach<PropertyInfo>(type.GetProperties(), p => { pList.Add(p); dt.Columns.Add(p.Name); });
+            var validProps = type.GetProperties().Where(p => p.CanRead && p.GetIndexParameters().Length == 0).ToList();
+            validProps.ForEach(p => { pList.Add(p); dt.Columns.Add(p.Name); });
             foreach (var item in value)
             {
                 //创建一个DataRow实例
                 DataRow row = dt.NewRow();
-                pList.ForEach(p => row[p.Name] = p.GetValue(item, null));
+                pList.ForEach(p => row[p.Name] = p.GetValue(item, null) ?? DBNull.Value);
                 dt.Rows.Add(row);
             }
             return dt;
         }
         /// <summary>
-        /// 对象转datatable
+        /// 对象转datatable（若传入集合则自动转换为集合模式，防止重载解析冲突）
         /// </summary>
         /// <typeparam name="TResult"></typeparam>
         /// <param name="value"></param>
         /// <returns></returns>
         public static DataTable ToDataTable<TResult>(this TResult value) where TResult : new()
         {
+            if (value is System.Collections.IEnumerable enumerable && value is not string)
+            {
+                var dtCol = new DataTable();
+                var itemType = typeof(TResult).GetGenericArguments().FirstOrDefault()
+                               ?? typeof(TResult).GetInterfaces()
+                                       .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                                       ?.GetGenericArguments().FirstOrDefault();
+                if (itemType != null)
+                {
+                    var props = itemType.GetProperties().Where(p => p.CanRead && p.GetIndexParameters().Length == 0).ToList();
+                    props.ForEach(p => dtCol.Columns.Add(p.Name));
+                    foreach (var elem in enumerable)
+                    {
+                        var r = dtCol.NewRow();
+                        props.ForEach(p => r[p.Name] = p.GetValue(elem, null) ?? DBNull.Value);
+                        dtCol.Rows.Add(r);
+                    }
+                    return dtCol;
+                }
+            }
+
             if (value == null) value = new TResult();
             //创建属性的集合
             List<PropertyInfo> pList = new List<PropertyInfo>();
             Type type = typeof(TResult);
             DataTable dt = new DataTable();
-            Array.ForEach<PropertyInfo>(type.GetProperties(), p => { pList.Add(p); dt.Columns.Add(p.Name); });
+            var singleProps = type.GetProperties().Where(p => p.CanRead && p.GetIndexParameters().Length == 0).ToList();
+            singleProps.ForEach(p => { pList.Add(p); dt.Columns.Add(p.Name); });
             //创建一个DataRow实例
             DataRow row = dt.NewRow();
-            pList.ForEach(p => row[p.Name] = p.GetValue(value, null));
+            pList.ForEach(p => row[p.Name] = p.GetValue(value, null) ?? DBNull.Value);
             dt.Rows.Add(row);
             return dt;
         }
