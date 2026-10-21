@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -455,7 +455,8 @@ SELECT '项目参与人' AS ""异常类型"", p.""编号""::text AS ""记录编�
                "upload/基础信息/导入期刊",
                config.GetValue<int>("uploadFileMaxSize"));
 
-            var result = MyXls.Import<期刊>(Path.Combine(Env.WebRootPath, filesNameList[0]));
+            var relativePath = filesNameList[0].TrimStart('/', '\\');
+            var result = MyXls.Import<期刊>(Path.Combine(Env.WebRootPath, relativePath));
 
             //var f = "C:\\Users\\Administrator\\Desktop\\导入期刊模板.xlsx";
             //var result = MyXls.Import<期刊>(f);

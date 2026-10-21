@@ -288,9 +288,11 @@ namespace ScientificResearch
                 {
                     var feature = context.Features.Get<IExceptionHandlerPathFeature>();
                     var exception = feature?.Error;
+                    var isAuthRequired = exception is UnauthorizedAccessException uae &&
+                        (uae.Message.Contains("请先登录") || uae.Message.Contains("未登录") || uae.Message.Contains("凭证已失效"));
                     var statusCode = exception is ForbiddenAccessException
                         ? StatusCodes.Status403Forbidden
-                        : exception is UnauthorizedAccessException
+                        : isAuthRequired
                             ? StatusCodes.Status401Unauthorized
                             : exception is ArgumentException
                                 ? StatusCodes.Status400BadRequest
@@ -306,7 +308,9 @@ namespace ScientificResearch
                                 ? "未登录或登录已过期"
                                 : statusCode == StatusCodes.Status400BadRequest
                                     ? exception?.Message ?? "请求参数无效"
-                                    : "服务器处理请求时发生错误"
+                                    : (exception?.Message != null && exception.Message.Contains("Access to the path")
+                                        ? "服务器存储目录权限异常，请联系管理员检查上传目录权限"
+                                        : "服务器处理请求时发生错误")
                     }));
                 }));
             }

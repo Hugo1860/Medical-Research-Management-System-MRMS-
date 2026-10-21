@@ -179,11 +179,12 @@ async function handleSubmitImport() {
     clearInterval(timer)
     uploadProgress.value = 100
 
-    ElMessage.success('批量数据导入已完成并入库！')
+    const successMsg = res?.说明 || (res?.导入数量 != null ? `导入完成，成功入库 ${res.导入数量} 篇数据` : '批量数据导入已完成并入库！')
+    ElMessage.success(successMsg)
     emit('success', res)
     emit('update:modelValue', false)
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.error || err.message || '导入解析失败')
+    ElMessage.error(err.response?.data?.error || err.error || err.message || '导入解析失败')
   } finally {
     importing.value = false
   }

@@ -97,81 +97,115 @@ namespace ScientificResearch.Controllers
         [HttpPost]
         async public Task<object> 导入知网论文()
         {
+            if (Request.Form.Files == null || Request.Form.Files.Count == 0)
+            {
+                return BadRequest(new { error = "请选取待导入的知网论文文件" });
+            }
+
             var filesNameList = await MyLib.UploadFile.Upload(
                Request.Form.Files,
                Env.WebRootPath,
                "upload/成果/论文/导入知网论文",
                config.GetValue<int>("uploadFileMaxSize"));
 
-            //var f = "C:\\Users\\Administrator\\Desktop\\123.xlsx";
+            var relativePath = filesNameList[0].TrimStart('/', '\\');
+            var localPath = Path.Combine(Env.WebRootPath, relativePath);
 
-            var result = MyXls.Import<论文导入>(
-                Path.Combine(Env.WebRootPath, filesNameList[0]),
-                config.GetValue<string>("知网论文excel文件worksheet名"));
-            //var result = MyXls.Import<论文导入>(f, config.GetValue<string>("知网论文excel文件worksheet名"));
-            var rows = result.Where(i => !string.IsNullOrWhiteSpace(i.刊物名称)).ToList();
-
-            foreach (var item in rows)
+            List<论文导入> rows;
+            try
             {
-                var authors = item.作者.Split(";");
-                item.作者 = authors.FirstOrDefault();
-                item.作者人数 = authors.Count();
-                var pageFromTo = item.页码范围.Split("-");
-                if (pageFromTo.Count() > 1)
-                {
-                    int from = 0;
-                    int to = 0;
-                    item.页码范围起 = int.TryParse(pageFromTo[0], out from) ? (int?)from : null;
-                    item.页码范围止 = int.TryParse(pageFromTo[1], out to) ? (int?)to : null;
-
-                }
+                rows = CnkiPaperParser.Parse(localPath, config.GetValue<string>("知网论文excel文件worksheet名"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = $"知网导出文件解析失败: {ex.Message}" });
             }
 
-            TryValidateModel(rows);
-            await Db.ExecuteSpAsync(new sp_导入论文() { tt = rows.ToDataTable() });
+            var validRows = rows.Where(i => !string.IsNullOrWhiteSpace(i.论文标题)).ToList();
+            if (validRows.Count == 0)
+            {
+                return BadRequest(new { error = "未在上传文件中解析到有效的论文数据，请确认是否为中国知网导出的文件" });
+            }
+
+            int importedCount = 0;
+            try
+            {
+                importedCount = await Db.ExecuteSpAsync(new sp_导入论文() { tt = validRows.ToDataTable() });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"论文入库保存异常: {ex.Message}" });
+            }
+
             return new
             {
                 来源 = "CNKI导出文件",
                 实时接口 = false,
-                导入数量 = rows.Count,
-                说明 = "已解析用户上传的 CNKI 导出文件；系统未调用 CNKI 实时接口。万方接口尚未接入。"
+                解析数量 = validRows.Count,
+                导入数量 = importedCount,
+                说明 = $"成功解析知网文件共 {validRows.Count} 篇论文，实际成功导入入库 {importedCount} 篇（重复论文已自动跳过）；系统未调用 CNKI 实时接口。万方接口尚未接入。"
             };
         }
 
         [HttpPost]
-        async public Task 导入自定义论文()
+        async public Task<object> 导入自定义论文()
         {
+            if (Request.Form.Files == null || Request.Form.Files.Count == 0)
+            {
+                return BadRequest(new { error = "请选取待导入的自定义论文文件" });
+            }
+
             var filesNameList = await MyLib.UploadFile.Upload(
                Request.Form.Files,
                Env.WebRootPath,
                "upload/成果/论文/导入自定义论文",
                config.GetValue<int>("uploadFileMaxSize"));
 
-            //var f = "C:\\Users\\Administrator\\Desktop\\导入论文成果模板.xlsx";
+            var relativePath = filesNameList[0].TrimStart('/', '\\');
+            var localPath = Path.Combine(Env.WebRootPath, relativePath);
 
-            var result = MyXls.Import<论文自定义导入>(Path.Combine(Env.WebRootPath, filesNameList[0]));
-            //var result = MyXls.Import<论文自定义导入>(f);
-            result = result.Where(i => !string.IsNullOrWhiteSpace(i.刊物名称));
-
-            foreach (var item in result)
+            IEnumerable<论文自定义导入> result;
+            try
             {
-                var pageFromTo = item.页码范围.Split("-");
-                if (pageFromTo.Count() > 1)
-                {
-                    int from = 0;
-                    int to = 0;
-                    item.页码范围起 = int.TryParse(pageFromTo[0], out from) ? (int?)from : null;
-                    item.页码范围止 = int.TryParse(pageFromTo[1], out to) ? (int?)to : null;
+                result = MyXls.Import<论文自定义导入>(localPath);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = $"自定义论文表格解析失败: {ex.Message}" });
+            }
 
+            var rows = result.Where(i => !string.IsNullOrWhiteSpace(i.刊物名称) && !string.IsNullOrWhiteSpace(i.论文标题)).ToList();
+
+            foreach (var item in rows)
+            {
+                if (!string.IsNullOrWhiteSpace(item.页码范围))
+                {
+                    var pageFromTo = item.页码范围.Split('-');
+                    if (pageFromTo.Length > 1)
+                    {
+                        item.页码范围起 = int.TryParse(pageFromTo[0].Trim(), out var from) ? (int?)from : null;
+                        item.页码范围止 = int.TryParse(pageFromTo[1].Trim(), out var to) ? (int?)to : null;
+                    }
                 }
             }
 
-            TryValidateModel(result);
-            await Db.ExecuteSpAsync(new sp_导入自定义论文() { tt = result.ToDataTable() });
-            //await Db.ExecuteAsync(
-            //    "sp_导入自定义论文",
-            //    PredefinedSpExtention.GetMergeSpParamByModel<论文自定义导入>(result),
-            //    commandType: CommandType.StoredProcedure);
+            int importedCount = 0;
+            try
+            {
+                importedCount = await Db.ExecuteSpAsync(new sp_导入自定义论文() { tt = rows.ToDataTable() });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"自定义论文入库保存异常: {ex.Message}" });
+            }
+
+            return new
+            {
+                来源 = "自定义格式文件",
+                解析数量 = rows.Count,
+                导入数量 = importedCount,
+                说明 = $"成功解析自定义格式共 {rows.Count} 篇论文，实际成功导入入库 {importedCount} 篇（重复论文已自动跳过）。"
+            };
         }
 
         /// <summary>
