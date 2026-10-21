@@ -20,8 +20,7 @@ CREATE TABLE IF NOT EXISTS "系统附件" (
     "建立时间" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "有效状态" BOOLEAN NOT NULL DEFAULT FALSE,
     "引用计数" INTEGER NOT NULL DEFAULT 1,
-    "备注" TEXT,
-    CONSTRAINT "uq_系统附件_桶_键名" UNIQUE ("存储桶", "对象键名")
+    "备注" TEXT
 );
 
 CREATE INDEX IF NOT EXISTS "ix_系统附件_业务" ON "系统附件"("业务类型", "业务主键");

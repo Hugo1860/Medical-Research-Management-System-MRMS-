@@ -88,6 +88,25 @@ VALUES
             public string? ContentType { get; set; }
         }
 
+        private static string ToSafeStorageFolder(string businessType)
+        {
+            if (string.IsNullOrWhiteSpace(businessType)) return "general";
+            return businessType switch
+            {
+                "纵向项目" => "y_project",
+                "横向项目" => "x_project",
+                "院级项目" => "internal_project",
+                "科研伦理" or "伦理审查" => "ethics",
+                "成果管理" or "成果" or "论文" or "专利" or "著作" => "fruits",
+                "经费管理" or "经费报销" or "到款认领" => "finance",
+                "学术活动" or "学术交流" => "academic",
+                "科研平台" or "仪器设备" => "platform",
+                "进修培训" or "继续教育" => "education",
+                "系统管理" or "文档中心" => "system",
+                _ => "general"
+            };
+        }
+
         /// <summary>
         /// 申请上传：校验格式大小，检查秒传(SHA256去重)，生成预签名上传凭证
         /// </summary>
@@ -170,7 +189,8 @@ UPDATE ""系统附件"" SET ""引用计数"" = ""引用计数"" + 1 WHERE ""编�
             // 2. 未命中秒传，生成新对象键名并签发预签名上传凭证
             var sha = string.IsNullOrWhiteSpace(model.Sha256) ? Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N") : model.Sha256.ToLowerInvariant();
             var dateFolder = DateTime.UtcNow.ToString("yyyyMM");
-            var objectKey = $"{cleanBusinessType}/{dateFolder}/{Guid.NewGuid():N}{ext}";
+            var objectFolder = ToSafeStorageFolder(model.BusinessType);
+            var objectKey = $"{objectFolder}/{dateFolder}/{Guid.NewGuid():N}{ext}";
 
             var bucket = _storageProvider.DefaultBucket;
             var driver = _storageProvider.ProviderName;

@@ -72,10 +72,11 @@ namespace ScientificResearch.Infrastucture.Storage
             }
         }
 
-        public Task<PresignedUploadResult> GeneratePresignedUploadUrlAsync(
+        public async Task<PresignedUploadResult> GeneratePresignedUploadUrlAsync(
             string objectKey, string contentType, TimeSpan expiry, string? bucket = null)
         {
             var targetBucket = bucket ?? _config.BucketName;
+            await EnsureBucketExistsAsync(targetBucket);
             var externalBase = GetExternalEndpointBase();
             var url = S3Signer.GeneratePresignedUrl(
                 "PUT",
@@ -97,7 +98,7 @@ namespace ScientificResearch.Infrastucture.Storage
             {
                 result.Headers["Content-Type"] = contentType;
             }
-            return Task.FromResult(result);
+            return result;
         }
 
         public Task<string> GeneratePresignedDownloadUrlAsync(

@@ -147,7 +147,7 @@ namespace ScientificResearch.Infrastucture.Storage
         {
             if (string.IsNullOrEmpty(path)) return "/";
             var segments = path.Split('/');
-            var encodedSegments = segments.Select(s => Uri.EscapeDataString(s));
+            var encodedSegments = segments.Select(s => Uri.EscapeDataString(Uri.UnescapeDataString(s)));
             return string.Join("/", encodedSegments);
         }
 
