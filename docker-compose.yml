@@ -46,7 +46,7 @@ services:
       connectionString__ScientificResearch_Release: >-
         Host=db;Port=5432;Database={0};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD};SSL Mode=Disable
       allowedDatabaseKeys__0: ${POSTGRES_DB:-ScientificResearch_Model}
-      Postgres__ExpectedSchemaVersion: ${POSTGRES_EXPECTED_SCHEMA_VERSION:-108}
+      Postgres__ExpectedSchemaVersion: ${POSTGRES_EXPECTED_SCHEMA_VERSION:-109}
       Storage__Provider: ${STORAGE_PROVIDER:-Minio}
       Storage__Minio__Endpoint: ${MINIO_ENDPOINT:-minio:9000}
       Storage__Minio__ExternalEndpoint: ${MINIO_EXTERNAL_ENDPOINT:-http://127.0.0.1:19000}
