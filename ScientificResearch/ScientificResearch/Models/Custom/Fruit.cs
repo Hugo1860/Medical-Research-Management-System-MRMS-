@@ -214,6 +214,10 @@ namespace ScientificResearch.Models
         [DisplayName("Author")]
         public string 作者 { get; set; }
 
+        public string 第一作者 { get; set; }
+        public string 所有作者 { get; set; }
+        public string 通讯作者 { get; set; }
+
         public int 作者人数 { get; set; }
 
         /// <summary>
