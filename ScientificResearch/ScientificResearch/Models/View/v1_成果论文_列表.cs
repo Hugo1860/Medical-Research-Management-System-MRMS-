@@ -46,6 +46,15 @@ namespace ScientificResearch.Models
 		/// 
 		/// </summary>
 		//public string 第一作者 { get; set; }
+        public string 通讯作者 { get; set; }
+        public string 所有作者 { get; set; }
+        public int? 年度 { get; set; }
+        public int? 卷号 { get; set; }
+        public int? 期号 { get; set; }
+        public string 页码范围 { get; set; }
+        public int? 作者人数 { get; set; }
+        public string DOI { get; set; }
+        public string PMID { get; set; }
         public string 第一作者 { get; set; }
         
           

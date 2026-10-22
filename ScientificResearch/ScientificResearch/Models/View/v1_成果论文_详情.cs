@@ -271,6 +271,12 @@ namespace ScientificResearch.Models
 		/// 
 		/// </summary>
 		//public string CN号 { get; set; }
+        public string 第一作者 { get; set; }
+        public string 通讯作者 { get; set; }
+        public string 所有作者 { get; set; }
+        public string 页码范围 { get; set; }
+        public string DOI { get; set; }
+        public string PMID { get; set; }
         public string CN号 { get; set; }
         
           

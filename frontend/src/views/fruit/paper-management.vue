@@ -139,9 +139,14 @@
             <div v-if="row.ISSN号" class="text-xs text-muted">ISSN: {{ row.ISSN号 }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="第一作者" label="第一作者" width="110">
+        <el-table-column prop="第一作者" label="第一作者 / 署名团队" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.第一作者 || '-' }}</el-tag>
+            <div>
+              <el-tag size="small" effect="plain">{{ row.第一作者 || '-' }}</el-tag>
+            </div>
+            <div v-if="row.所有作者 && row.所有作者 !== row.第一作者" class="text-xs text-muted" :title="row.所有作者" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; margin-top: 3px;">
+              {{ row.所有作者 }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="通讯作者" label="通讯作者" width="110">
@@ -398,6 +403,9 @@
             </el-descriptions-item>
             <el-descriptions-item label="通讯作者">
               {{ detailItem.通讯作者 || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="全部作者">
+              {{ detailItem.所有作者 || '-' }}
             </el-descriptions-item>
             <el-descriptions-item label="出版周期">
               {{ formatDate(detailItem.论文正式出版日期 || detailItem.论文Online日期) }}

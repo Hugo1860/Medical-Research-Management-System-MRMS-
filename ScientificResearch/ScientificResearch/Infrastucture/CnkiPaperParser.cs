@@ -229,18 +229,22 @@ namespace ScientificResearch.Infrastucture
             if (!string.IsNullOrWhiteSpace(rawAuthor))
             {
                 // 去除结尾句点、逗号、分号等标点
-                var cleaned = rawAuthor.TrimEnd('.', '。', ';', '；', ',', '，');
+                var cleaned = rawAuthor.Trim().TrimEnd('.', '。', ';', '；', ',', '，');
                 var parts = Regex.Split(cleaned, @"[;,，；\r\n]+")
-                                 .Select(p => p.Trim())
+                                 .Select(p => Regex.Replace(p.Trim(), @"\s+", ""))
                                  .Where(p => !string.IsNullOrEmpty(p))
                                  .ToList();
 
-                item.作者 = parts.FirstOrDefault() ?? string.Empty;
+                item.第一作者 = parts.FirstOrDefault() ?? string.Empty;
+                item.作者 = item.第一作者;
+                item.所有作者 = string.Join("、", parts);
                 item.作者人数 = Math.Max(1, parts.Count);
             }
             else
             {
+                item.第一作者 = string.Empty;
                 item.作者 = string.Empty;
+                item.所有作者 = string.Empty;
                 item.作者人数 = 1;
             }
 
@@ -249,6 +253,19 @@ namespace ScientificResearch.Infrastucture
             if (!string.IsNullOrWhiteSpace(yearStr) && int.TryParse(yearStr, out var yr))
             {
                 item.年度 = yr;
+            }
+            else
+            {
+                var abs = dict.TryGetValue("摘要", out var aVal) ? aVal : "";
+                var yearMatch = Regex.Match(abs ?? "", @"20\d{2}年");
+                if (yearMatch.Success && int.TryParse(yearMatch.Value.Replace("年", ""), out var extractedYr))
+                {
+                    item.年度 = extractedYr;
+                }
+                else
+                {
+                    item.年度 = DateTime.Now.Year;
+                }
             }
 
             // 5. 卷号

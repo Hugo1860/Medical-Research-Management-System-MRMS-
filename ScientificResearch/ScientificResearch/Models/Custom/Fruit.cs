@@ -23,6 +23,9 @@ namespace ScientificResearch.Models
     {
         public int? 编号 { get; set; }
         public string Like论文标题 { get; set; }
+        public string Like第一作者 { get; set; }
+        public string Like刊物名称 { get; set; }
+        public int? 年度 { get; set; }
         public bool? Null认领人编号 { get; set; }
     }
 
@@ -51,6 +54,9 @@ namespace ScientificResearch.Models
         public long 外部系统编号 { get; set; }
         public string 关键词 { get; set; }
         public string 作者 { get; set; }
+        public string 第一作者 { get; set; }
+        public string 所有作者 { get; set; }
+        public string 通讯作者 { get; set; }
         public DateTime? 从日期 { get; set; }
         public DateTime? 到日期 { get; set; }
         public int 行数 { get; set; } = 20;
@@ -282,6 +288,9 @@ namespace ScientificResearch.Models
 		/// </summary>
         [DisplayName("第一作者")]
         public string 作者 { get; set; }
+        public string 第一作者 { get; set; }
+        public string 所有作者 { get; set; }
+        public string 通讯作者 { get; set; }
         [DisplayName("作者人数")]
         public int? 作者人数 { get; set; }
         [DisplayName("他引次数")]
