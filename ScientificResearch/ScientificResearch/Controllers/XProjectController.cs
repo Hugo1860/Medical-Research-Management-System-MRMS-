@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -351,7 +351,7 @@ SELECT p.""合同结束时间"", EXISTS (SELECT 1 FROM ""横向项目结题"" c 
   FROM ""横向项目"" p WHERE p.""编号"" = @项目编号;", new { 项目编号 = model.横向项目编号 });
             if (state == null) return NotFound(new { error = "横向项目不存在" });
             if ((bool)state.closed || (string)state.current_status == "终止") throw new ArgumentException("项目已结题或终止，不能再申请生命周期变更");
-            var currentEndDate = SafeToDateTime(state.合同结束时间)?.Date;
+            DateTime? currentEndDate = SafeToDateTime((object)state.合同结束时间)?.Date;
             if (eventType == "延期" && (!model.新合同结束日期.HasValue || (currentEndDate.HasValue && model.新合同结束日期.Value.Date <= currentEndDate.Value)))
                 throw new ArgumentException("延期后的合同结束日期必须晚于当前合同结束日期");
             var pending = await Db.QuerySingleAsync<bool>(@"
@@ -394,10 +394,10 @@ UPDATE ""横向项目生命周期申请""
             }, transaction);
             if (model.通过 && (string)request.事件类型 == "延期")
             {
-                var newDate = SafeToDateTime(request.新合同结束日期);
+                DateTime? newDate = SafeToDateTime((object)request.新合同结束日期);
                 await connection.ExecuteAsync(@"
 UPDATE ""横向项目"" SET ""合同结束时间""=@新合同结束日期 WHERE ""编号""=@项目编号;",
-                    new { 新合同结束日期 = newDate, 项目编号 = SafeToInt32(request.横向项目编号) }, transaction);
+                    new { 新合同结束日期 = newDate, 项目编号 = SafeToInt32((object)request.横向项目编号) }, transaction);
             }
             transaction.Commit();
             return new { 编号 = model.编号, 状态 = status };

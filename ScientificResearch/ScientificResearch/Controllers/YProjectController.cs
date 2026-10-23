@@ -312,10 +312,11 @@ SELECT EXISTS (
                 var plan = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
 SELECT ""申报类别"", ""状态"", ""发布开始日期"", ""截止日期""
   FROM ""纵向项目申报计划"" WHERE ""编号""=@编号;", new { 编号 = planId.Value });
-                var planStart = SafeToDateTime(plan?.发布开始日期)?.Date;
-                var planEnd = SafeToDateTime(plan?.截止日期)?.Date;
-                var planCategory = plan != null ? SafeToInt32(plan.申报类别) : 0;
-                var planReady = plan != null && (string)plan.状态 == "发布"
+                DateTime? planStart = SafeToDateTime((object)plan?.发布开始日期)?.Date;
+                DateTime? planEnd = SafeToDateTime((object)plan?.截止日期)?.Date;
+                int planCategory = plan != null ? SafeToInt32((object)plan.申报类别) : 0;
+                string planStatus = Convert.ToString((object)plan?.状态);
+                bool planReady = plan != null && planStatus == "发布"
                     && planStart.HasValue && DateTime.Today >= planStart.Value
                     && planEnd.HasValue && DateTime.Today <= planEnd.Value
                     && planCategory == basic.分类;
@@ -332,10 +333,11 @@ SELECT ""申报类别"", ""状态"", ""发布开始日期"", ""截止日期""
                 var batch = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
 SELECT ""计划年度"",""发布开始日期"",""截止日期"",""个人申报限额"",""批次总限额"",""资格规则"",""状态""
   FROM ""院级项目申报批次"" WHERE ""编号""=@编号;", new { 编号 = internalBatchId.Value });
-                var batchStart = SafeToDateTime(batch?.发布开始日期)?.Date;
-                var batchEnd = SafeToDateTime(batch?.截止日期)?.Date;
-                var batchYear = batch != null ? SafeToInt32(batch.计划年度) : 0;
-                var batchReady = batch != null && (string)batch.状态 == "发布"
+                DateTime? batchStart = SafeToDateTime((object)batch?.发布开始日期)?.Date;
+                DateTime? batchEnd = SafeToDateTime((object)batch?.截止日期)?.Date;
+                int batchYear = batch != null ? SafeToInt32((object)batch.计划年度) : 0;
+                string batchStatus = Convert.ToString((object)batch?.状态);
+                bool batchReady = batch != null && batchStatus == "发布"
                     && batchStart.HasValue && DateTime.Today >= batchStart.Value
                     && batchEnd.HasValue && DateTime.Today <= batchEnd.Value
                     && batchYear == basic.申报年度;
@@ -356,19 +358,19 @@ SELECT ""计划年度"",""发布开始日期"",""截止日期"",""个人申报�
                         qualification = new JObject();
                     }
 
-                    var personLimit = SafeToInt32(batch.个人申报限额, 3);
+                    int personLimit = SafeToInt32((object)batch.个人申报限额, 3);
                     var applicantApplications = await Db.QuerySingleAsync<int>(@"
 SELECT count(*)::integer FROM ""纵向项目申报"" WHERE ""院级批次编号""=@批次编号 AND ""申报人编号""=@申报人编号
   AND ""编号""<>COALESCE(@项目编号,0) AND COALESCE(""是否立项"",FALSE)=FALSE;", new { 批次编号 = internalBatchId.Value, 申报人编号 = applicantId, 项目编号 = basic.编号 });
-                    var personQuota = applicantApplications < personLimit;
+                    bool personQuota = applicantApplications < personLimit;
                     Add("INTERNAL_BATCH_PERSON_QUOTA", "院级批次个人限额", personQuota, true,
                         personQuota ? $"本批次已有 {applicantApplications} 项未立项申报，未超过 {personLimit} 项限制" : "本批次个人申报已达到限额");
                     if (batch.批次总限额 != null && !(batch.批次总限额 is DBNull))
                     {
-                        var totalLimit = SafeToInt32(batch.批次总限额);
+                        int totalLimit = SafeToInt32((object)batch.批次总限额);
                         var totalApplications = await Db.QuerySingleAsync<int>(@"
 SELECT count(*)::integer FROM ""纵向项目申报"" WHERE ""院级批次编号""=@批次编号 AND ""编号""<>COALESCE(@项目编号,0);", new { 批次编号 = internalBatchId.Value, 项目编号 = basic.编号 });
-                        var totalQuota = totalApplications < totalLimit;
+                        bool totalQuota = totalApplications < totalLimit;
                         Add("INTERNAL_BATCH_TOTAL_QUOTA", "院级批次总限额", totalQuota, true,
                             totalQuota ? $"批次已有 {totalApplications} 项申报，未超过 {totalLimit} 项限制" : "院级批次申报总数已达到限额");
                     }
@@ -1421,7 +1423,7 @@ SELECT p.""计划完成日期"", EXISTS (SELECT 1 FROM ""纵向项目结题"" c 
   FROM ""纵向项目立项"" p WHERE p.""编号"" = @项目编号;", new { 项目编号 = model.纵向项目立项编号 });
             if (state == null) return NotFound(new { error = "纵向项目不存在" });
             if ((bool)state.closed || (string)state.current_status == "终止") throw new ArgumentException("项目已结题或终止，不能再申请生命周期变更");
-            var currentEndDate = SafeToDateTime(state.计划完成日期)?.Date;
+            DateTime? currentEndDate = SafeToDateTime((object)state.计划完成日期)?.Date;
             if (eventType == "延期" && (!model.新计划完成日期.HasValue || (currentEndDate.HasValue && model.新计划完成日期.Value.Date <= currentEndDate.Value)))
                 throw new ArgumentException("延期后的完成日期必须晚于当前计划完成日期");
             var pending = await Db.QuerySingleAsync<bool>(@"
@@ -1464,10 +1466,10 @@ UPDATE ""纵向项目生命周期申请""
             }, transaction);
             if (model.通过 && (string)request.事件类型 == "延期")
             {
-                var newDate = SafeToDateTime(request.新计划完成日期)?.Date;
+                DateTime? newDate = SafeToDateTime((object)request.新计划完成日期)?.Date;
                 await connection.ExecuteAsync(@"
 UPDATE ""纵向项目立项"" SET ""计划完成日期""=@新计划完成日期 WHERE ""编号""=@项目编号;",
-                    new { 新计划完成日期 = newDate, 项目编号 = SafeToInt32(request.纵向项目立项编号) }, transaction);
+                    new { 新计划完成日期 = newDate, 项目编号 = SafeToInt32((object)request.纵向项目立项编号) }, transaction);
             }
             transaction.Commit();
             return new { 编号 = model.编号, 状态 = status };
