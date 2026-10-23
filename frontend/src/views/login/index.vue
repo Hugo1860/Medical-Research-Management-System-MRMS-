@@ -79,8 +79,19 @@
           使用您的科研人员工号与密码，或通过医院统一身份认证授权访问。
         </p>
 
-        <!-- 登录方式分段选项卡 -->
+        <!-- 登录方式分段选项卡：默认优先统一人员身份认证 -->
         <div class="auth-tabs-nav" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === 'oidc'"
+            :class="['tab-btn', { active: activeTab === 'oidc' }]"
+            @click="activeTab = 'oidc'"
+          >
+            <el-icon><Connection /></el-icon>
+            <span>统一身份认证 (推荐)</span>
+            <span v-if="oidcConfig?.enabled" class="online-dot" title="统一认证中心已就绪"></span>
+          </button>
           <button
             type="button"
             role="tab"
@@ -91,20 +102,69 @@
             <el-icon><User /></el-icon>
             <span>工号密码登录</span>
           </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="activeTab === 'oidc'"
-            :class="['tab-btn', { active: activeTab === 'oidc' }]"
-            @click="activeTab = 'oidc'"
-          >
-            <el-icon><Connection /></el-icon>
-            <span>统一身份认证</span>
-            <span v-if="oidcConfig?.enabled" class="online-dot" title="统一认证中心已就绪"></span>
-          </button>
         </div>
 
-        <!-- 选项卡 1：本地工号密码登录 -->
+        <!-- 选项卡 1：统一人员身份认证 (Keycloak OIDC SSO - 默认优先) -->
+        <div v-show="activeTab === 'oidc'" class="tab-panel oidc-tab">
+          <div class="welcome-account-note">
+            <el-icon :size="18" style="color: #27765f;"><Avatar /></el-icon>
+            <span>院内统一人员与身份认证平台 · Keycloak / OIDC 权威单点登录</span>
+          </div>
+
+          <div v-if="oidcConfig?.enabled" class="sso-status-card">
+            <div class="status-row">
+              <span class="status-badge connected"></span>
+              <span class="status-title">认证中心已就绪</span>
+            </div>
+            <div class="status-endpoint">
+              <span>权威节点：</span>
+              <code>{{ oidcAuthorityClean }}</code>
+            </div>
+            <div class="status-meta">
+              已同步人事档案，权限与科室角色自动打通
+            </div>
+          </div>
+
+          <div v-else class="sso-status-card offline">
+            <div class="status-row">
+              <span class="status-badge standby"></span>
+              <span class="status-title">统一认证配置中</span>
+            </div>
+            <div class="status-meta">
+              服务端统一人员配置正在接入，您可切换至工号密码登录先行验证
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="welcome-submit oidc-action-btn"
+            :disabled="!oidcConfig?.enabled || oidcLoading"
+            @click="startOidcLogin"
+          >
+            <el-icon v-if="oidcLoading" class="welcome-spinner"><Loading /></el-icon>
+            <span>{{ oidcLoading ? '正在连接统一认证中心…' : oidcConfig?.enabled ? '使用统一身份认证登录' : '统一认证中心连线中…' }}</span>
+            <el-icon v-if="oidcConfig?.enabled && !oidcLoading"><Right /></el-icon>
+          </button>
+
+          <!-- 统一人员账号就绪提示 -->
+          <div class="quick-accounts">
+            <div class="quick-title">统一人员库已就绪账号：</div>
+            <div class="account-chips">
+              <span class="acc-chip tag-green">111 (李世伟 · 临床专病)</span>
+              <span class="acc-chip tag-blue">222 (胡英豪 · 科室主任)</span>
+              <span class="acc-chip tag-gray">111aa (李四 · 助理研究员)</span>
+            </div>
+          </div>
+
+          <div class="tab-switch-hint">
+            <span>需要使用应急系统管理员或本地调试账号？</span>
+            <button type="button" class="switch-link" @click="activeTab = 'local'">
+              切换至工号密码登录
+            </button>
+          </div>
+        </div>
+
+        <!-- 选项卡 2：本地工号密码登录 -->
         <div v-show="activeTab === 'local'" class="tab-panel local-tab">
           <el-form
             ref="loginFormRef"
@@ -159,60 +219,14 @@
               <span>{{ loading ? '正在验证登录…' : '立即登录' }}</span>
               <el-icon v-if="!loading"><Right /></el-icon>
             </button>
+
+            <div class="tab-switch-hint">
+              <span>优先使用医院统一单点登录？</span>
+              <button type="button" class="switch-link" @click="activeTab = 'oidc'">
+                返回统一身份认证登录
+              </button>
+            </div>
           </el-form>
-        </div>
-
-        <!-- 选项卡 2：统一人员身份认证 (Keycloak OIDC SSO) -->
-        <div v-show="activeTab === 'oidc'" class="tab-panel oidc-tab">
-          <div class="welcome-account-note">
-            <el-icon :size="18" style="color: #27765f;"><Avatar /></el-icon>
-            <span>院内统一人员与身份认证平台 · Keycloak / OIDC 权威单点登录</span>
-          </div>
-
-          <div v-if="oidcConfig?.enabled" class="sso-status-card">
-            <div class="status-row">
-              <span class="status-badge connected"></span>
-              <span class="status-title">认证中心已就绪</span>
-            </div>
-            <div class="status-endpoint">
-              <span>权威节点：</span>
-              <code>{{ oidcAuthorityClean }}</code>
-            </div>
-            <div class="status-meta">
-              已同步人事档案，权限与科室角色自动打通
-            </div>
-          </div>
-
-          <div v-else class="sso-status-card offline">
-            <div class="status-row">
-              <span class="status-badge standby"></span>
-              <span class="status-title">统一认证配置中</span>
-            </div>
-            <div class="status-meta">
-              服务端统一人员配置正在接入，您可切换至工号密码登录先行验证
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="welcome-submit oidc-action-btn"
-            :disabled="!oidcConfig?.enabled || oidcLoading"
-            @click="startOidcLogin"
-          >
-            <el-icon v-if="oidcLoading" class="welcome-spinner"><Loading /></el-icon>
-            <span>{{ oidcLoading ? '正在连接统一认证中心…' : oidcConfig?.enabled ? '进入统一人员认证登录' : '统一认证中心连线中…' }}</span>
-            <el-icon v-if="oidcConfig?.enabled && !oidcLoading"><Right /></el-icon>
-          </button>
-
-          <!-- 统一人员账号就绪提示 -->
-          <div class="quick-accounts">
-            <div class="quick-title">统一人员库已就绪账号：</div>
-            <div class="account-chips">
-              <span class="acc-chip tag-green">111 (李世伟 · 临床专病)</span>
-              <span class="acc-chip tag-blue">222 (胡英豪 · 科室主任)</span>
-              <span class="acc-chip tag-gray">111aa (李四 · 助理研究员)</span>
-            </div>
-          </div>
         </div>
 
         <!-- 底部求助与授权提示 -->
@@ -253,7 +267,7 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const activeTab = ref<'local' | 'oidc'>('local')
+const activeTab = ref<'local' | 'oidc'>('oidc')
 const loading = ref(false)
 const oidcLoading = ref(false)
 const oidcConfig = ref<OidcConfigResponse | null>(null)
@@ -413,8 +427,12 @@ onMounted(async () => {
     if (route.query.code) {
       activeTab.value = 'oidc'
       await handleOidcCallback()
-    } else if (oidcConfig.value?.enabled) {
-      // 保持当前默认 local，避免用户因 oidc 环境无感知产生困惑，若开启可同时在 tab 上提示
+    } else if (oidcConfig.value && !oidcConfig.value.enabled) {
+      // 若服务端显式未开启统一认证，则优雅降级至工号密码登录
+      activeTab.value = 'local'
+    } else {
+      // 默认优先统一人员身份认证
+      activeTab.value = 'oidc'
     }
   } catch (err) {
     console.debug('Failed to load OidcConfig:', err)
@@ -920,6 +938,35 @@ onMounted(async () => {
 
     .welcome-spinner {
       animation: welcome-spin 1s linear infinite;
+    }
+  }
+
+  /* 登录方式切换提示 */
+  .tab-switch-hint {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 12px;
+    color: #657b71;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    .switch-link {
+      border: none;
+      background: transparent;
+      color: #236e57;
+      font-size: 12px;
+      font-weight: 550;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      padding: 0;
+      transition: color 0.15s ease;
+
+      &:hover {
+        color: #154d3d;
+      }
     }
   }
 
