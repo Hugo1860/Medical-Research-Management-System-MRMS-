@@ -39,6 +39,7 @@ export const modernRouteMap: Record<string, string> = {
 
   // 扩展科研办公与专项治理模块
   '科研办公/科研办公/科研平台与服务目录.html': '/office/research-platform',
+  '科研办公/科研办公/网上科研服务.html': '/office/research-platform',
   '科研办公/科研办公/院级项目批次.html': '/project/vertical-application?tab=plans',
   '科研办公/科研办公/教育部科研统计.html': '/office/education-statistics',
   '科研办公/科研办公/成果与知识产权.html': '/fruit/achievement-ip-awards',

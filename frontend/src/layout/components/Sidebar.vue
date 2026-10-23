@@ -282,7 +282,7 @@
           >
             <template #title>
               <el-icon><component :is="getMenuIcon(item.菜单.名称)" /></el-icon>
-              <span class="sub-menu-label" :title="item.菜单.名称">{{ item.菜单.名称 }}</span>
+              <span class="sub-menu-label" :title="getMenuDisplayName(item.菜单)">{{ getMenuDisplayName(item.菜单) }}</span>
             </template>
 
             <template v-for="sub in item.子级菜单" :key="sub.菜单.编号">
@@ -293,7 +293,7 @@
               >
                 <template #title>
                   <el-icon><Folder /></el-icon>
-                  <span class="sub-menu-label" :title="sub.菜单.名称">{{ sub.菜单.名称 }}</span>
+                  <span class="sub-menu-label" :title="getMenuDisplayName(sub.菜单)">{{ getMenuDisplayName(sub.菜单) }}</span>
                 </template>
                 <el-menu-item
                   v-for="third in sub.子级菜单"
@@ -303,13 +303,13 @@
                 >
                   <el-icon><Document /></el-icon>
                   <template #title>
-                    <div class="tree-menu-title-row" :title="third.菜单.名称">
-                      <span class="menu-item-text">{{ third.菜单.名称 }}</span>
+                    <div class="tree-menu-title-row" :title="getMenuDisplayName(third.菜单)">
+                      <span class="menu-item-text">{{ getMenuDisplayName(third.菜单) }}</span>
                       <el-icon
                         class="tree-star-icon"
                         :class="{ starred: favoritesStore.isFavorite(getMenuRoute(third.菜单)) }"
                         :title="favoritesStore.isFavorite(getMenuRoute(third.菜单)) ? '取消常用' : '设为常用'"
-                        @click.stop="favoritesStore.toggleFavorite({ name: third.菜单.名称, path: getMenuRoute(third.菜单), category: sub.菜单.名称 })"
+                        @click.stop="favoritesStore.toggleFavorite({ name: getMenuDisplayName(third.菜单), path: getMenuRoute(third.菜单), category: getMenuDisplayName(sub.菜单) })"
                       >
                         <StarFilled v-if="favoritesStore.isFavorite(getMenuRoute(third.菜单))" />
                         <Star v-else />
@@ -327,13 +327,13 @@
               >
                 <el-icon><Document /></el-icon>
                 <template #title>
-                  <div class="tree-menu-title-row" :title="sub.菜单.名称">
-                    <span class="menu-item-text">{{ sub.菜单.名称 }}</span>
+                  <div class="tree-menu-title-row" :title="getMenuDisplayName(sub.菜单)">
+                    <span class="menu-item-text">{{ getMenuDisplayName(sub.菜单) }}</span>
                     <el-icon
                       class="tree-star-icon"
                       :class="{ starred: favoritesStore.isFavorite(getMenuRoute(sub.菜单)) }"
                       :title="favoritesStore.isFavorite(getMenuRoute(sub.菜单)) ? '取消常用' : '设为常用'"
-                      @click.stop="favoritesStore.toggleFavorite({ name: sub.菜单.名称, path: getMenuRoute(sub.菜单), category: item.菜单.名称 })"
+                    @click.stop="favoritesStore.toggleFavorite({ name: getMenuDisplayName(sub.菜单), path: getMenuRoute(sub.菜单), category: getMenuDisplayName(item.菜单) })"
                     >
                       <StarFilled v-if="favoritesStore.isFavorite(getMenuRoute(sub.菜单))" />
                       <Star v-else />
@@ -352,12 +352,12 @@
           >
             <el-icon><component :is="getMenuIcon(item.菜单.名称)" /></el-icon>
             <template #title>
-              <div class="tree-menu-title-row" :title="item.菜单.名称">
-                <span class="menu-item-text">{{ item.菜单.名称 }}</span>
+              <div class="tree-menu-title-row" :title="getMenuDisplayName(item.菜单)">
+                <span class="menu-item-text">{{ getMenuDisplayName(item.菜单) }}</span>
                 <el-icon
                   class="tree-star-icon"
                   :class="{ starred: favoritesStore.isFavorite(getMenuRoute(item.菜单)) }"
-                  @click.stop="favoritesStore.toggleFavorite({ name: item.菜单.名称, path: getMenuRoute(item.菜单) })"
+                  @click.stop="favoritesStore.toggleFavorite({ name: getMenuDisplayName(item.菜单), path: getMenuRoute(item.菜单) })"
                 >
                   <StarFilled v-if="favoritesStore.isFavorite(getMenuRoute(item.菜单))" />
                   <Star v-else />
@@ -499,7 +499,7 @@ const defaultCatalogLeafMenus: LeafMenuItem[] = [
   { id: 'log', name: '等保三级登录审计日志', route: '/system/login-logs', categoryPath: '系统管理 / 等保审计', icon: Document },
   { id: 'dict', name: '科研基础字典规范', route: '/base-info/dictionary', categoryPath: '基础信息 / 标准字典', icon: Files },
   { id: 'cfg', name: '科研基础信息标准配置', route: '/base-info/system-configs', categoryPath: '基础信息 / 系统配置', icon: Setting },
-  { id: 'research-platform', name: '科研平台与服务目录', route: '/office/research-platform', categoryPath: '科研平台 / 平台服务', icon: Briefcase },
+  { id: 'research-platform', name: '网上科研服务', route: '/office/research-platform', categoryPath: '科研平台 / 网上科研服务', icon: Briefcase },
   { id: 'edu-stat', name: '教育部科研统计', route: '/office/education-statistics', categoryPath: '统计决策 / 教育部统计', icon: Histogram },
   { id: 'ach-ip', name: '成果与知识产权', route: '/fruit/achievement-ip-awards', categoryPath: '学术成果 / 知识产权', icon: Medal },
   { id: 'doc-share', name: '科研文档共享与消息中心', route: '/office/document-sharing', categoryPath: '科研办公 / 文档消息', icon: Files },
@@ -561,7 +561,8 @@ const allLeafMenus = computed<LeafMenuItem[]>(() => {
     if (!Array.isArray(nodes)) return
     for (const node of nodes) {
       const menu = node.菜单 || node
-      const currentPath = parentPath ? `${parentPath} / ${menu.名称}` : menu.名称
+      const displayName = getMenuDisplayName(menu)
+      const currentPath = parentPath ? `${parentPath} / ${displayName}` : displayName
       const children = node.子级菜单 || []
 
       if (children.length === 0) {
@@ -569,7 +570,7 @@ const allLeafMenus = computed<LeafMenuItem[]>(() => {
         if (targetRoute && targetRoute !== '#') {
           result.push({
             id: menu.编号 || targetRoute,
-            name: menu.名称,
+            name: displayName,
             route: targetRoute,
             categoryPath: parentPath || '全局功能',
             icon: getMenuIcon(menu.名称)
@@ -789,6 +790,10 @@ function getMenuIcon(name: string) {
 }
 
 // 格式化菜单路径，全面接管转换为现代路由
+function getMenuDisplayName(menu: MenuItem): string {
+  return getMenuRoute(menu) === '/office/research-platform' ? '网上科研服务' : menu.名称
+}
+
 function getMenuRoute(menu: MenuItem): string {
   if (!menu.路径) return '#'
 

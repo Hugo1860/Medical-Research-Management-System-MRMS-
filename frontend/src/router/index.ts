@@ -217,7 +217,7 @@ const routes: RouteRecordRaw[] = [
         path: 'office/research-platform',
         name: 'ResearchPlatform',
         component: () => import('@/views/office/research-platform.vue'),
-        meta: { title: '科研平台与服务目录', icon: 'Service' }
+        meta: { title: '网上科研服务', icon: 'Service' }
       },
       {
         path: 'office/education-statistics',

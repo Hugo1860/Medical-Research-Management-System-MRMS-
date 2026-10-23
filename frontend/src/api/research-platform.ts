@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request, { upload } from '@/utils/request'
 
 export interface ResearchPlatform {
   编号?: number
@@ -25,7 +25,11 @@ export interface ResearchService {
   服务分类?: string
   服务说明?: string
   所需材料模板路径?: string
+  材料模板文件名?: string
   办理角色?: string
+  办理人员编号?: number
+  办理人员?: string
+  办理人员姓名?: string
   办理时限天数?: number
   咨询电话?: string
   是否启用?: boolean
@@ -39,6 +43,8 @@ export interface ResearchServiceApplication {
   服务名称?: string
   服务分类?: string
   办理角色?: string
+  办理人员编号?: number
+  办理人员姓名?: string
   关联业务类型?: string
   关联业务编号?: number
   申请说明?: string
@@ -73,6 +79,13 @@ export function listResearchServices(params: { 服务分类?: string; 仅启用?
 
 export function saveResearchService(data: ResearchService) {
   return request.post<{ 编号: number }>('/ResearchPlatform/保存科研服务事项', data)
+}
+
+/**
+ * 管理员上传服务事项材料模板，返回系统生成的访问路径。
+ */
+export function uploadResearchServiceTemplate(file: File) {
+  return upload<string[]>('/ResearchPlatform/上传科研服务材料模板', file, 'fileUpload')
 }
 
 export function createResearchServiceApplication(data: {

@@ -103,9 +103,10 @@ VALUES (@平台编号,@人员编号,@成员角色,@加入时间,@退出时间,@�
         {
             return await Db.QueryAsync<object>(@"
 SELECT s.""编号"",s.""服务编码"",s.""服务名称"",s.""服务分类"",s.""服务说明"",s.""所需材料模板路径"",
-       s.""办理角色"",s.""办理时限天数"",s.""咨询电话"",s.""是否启用"",s.""创建时间"",s.""更新时间"",
+       s.""办理角色"",s.""办理人员编号"",handler.""姓名"" AS ""办理人员姓名"",s.""办理时限天数"",s.""咨询电话"",s.""是否启用"",s.""创建时间"",s.""更新时间"",
        (SELECT count(*) FROM ""科研服务申请"" a WHERE a.""服务事项编号""=s.""编号"") AS ""申请总数""
   FROM ""科研服务事项"" s
+  LEFT JOIN ""人员"" handler ON handler.""编号""=s.""办理人员编号""
  WHERE (@服务分类 IS NULL OR s.""服务分类""=@服务分类) AND (@仅启用 IS NULL OR s.""是否启用""=@仅启用)
  ORDER BY s.""是否启用"" DESC,s.""服务分类"",s.""服务名称"";", new { 服务分类 = 空值(服务分类), 仅启用 });
         }
@@ -119,21 +120,34 @@ SELECT s.""编号"",s.""服务编码"",s.""服务名称"",s.""服务分类"",s."
             var args = new
             {
                 model.服务编码, model.服务名称, 服务分类 = string.IsNullOrWhiteSpace(model.服务分类) ? "科研公共服务" : model.服务分类.Trim(),
-                model.服务说明, model.所需材料模板路径, model.办理角色, 办理时限天数 = model.办理时限天数 is > 0 and <= 365 ? model.办理时限天数 : 5,
+                model.服务说明, model.所需材料模板路径, model.办理角色, 办理人员编号 = model.办理人员编号 is > 0 ? model.办理人员编号 : null,
+                办理时限天数 = model.办理时限天数 is > 0 and <= 365 ? model.办理时限天数 : 5,
                 model.咨询电话, model.是否启用, 创建人编号 = CurrentUser.编号, model.编号
             };
             if (model.编号.HasValue)
             {
                 var changed = await Db.ExecuteAsync(@"
 UPDATE ""科研服务事项"" SET ""服务编码""=@服务编码,""服务名称""=@服务名称,""服务分类""=@服务分类,""服务说明""=@服务说明,""所需材料模板路径""=@所需材料模板路径,
-""办理角色""=@办理角色,""办理时限天数""=@办理时限天数,""咨询电话""=@咨询电话,""是否启用""=@是否启用,""更新时间""=CURRENT_TIMESTAMP WHERE ""编号""=@编号;", args);
+""办理角色""=@办理角色,""办理人员编号""=@办理人员编号,""办理时限天数""=@办理时限天数,""咨询电话""=@咨询电话,""是否启用""=@是否启用,""更新时间""=CURRENT_TIMESTAMP WHERE ""编号""=@编号;", args);
                 if (changed == 0) return NotFound(new { error = "服务事项不存在" });
                 return new { 编号 = model.编号.Value };
             }
             var id = await Db.QuerySingleAsync<long>(@"
-INSERT INTO ""科研服务事项"" (""服务编码"",""服务名称"",""服务分类"",""服务说明"",""所需材料模板路径"",""办理角色"",""办理时限天数"",""咨询电话"",""是否启用"",""创建人编号"")
-VALUES (@服务编码,@服务名称,@服务分类,@服务说明,@所需材料模板路径,@办理角色,@办理时限天数,@咨询电话,@是否启用,@创建人编号) RETURNING ""编号"";", args);
+INSERT INTO ""科研服务事项"" (""服务编码"",""服务名称"",""服务分类"",""服务说明"",""所需材料模板路径"",""办理角色"",""办理人员编号"",""办理时限天数"",""咨询电话"",""是否启用"",""创建人编号"")
+VALUES (@服务编码,@服务名称,@服务分类,@服务说明,@所需材料模板路径,@办理角色,@办理人员编号,@办理时限天数,@咨询电话,@是否启用,@创建人编号) RETURNING ""编号"";", args);
             return new { 编号 = id };
+        }
+
+        [HttpPost]
+        public async Task<object> 上传科研服务材料模板()
+        {
+            if (!await IsManager()) return StatusCode(403, new { error = "无权上传科研服务材料模板" });
+            var filesNameList = await MyLib.UploadFile.Upload(
+                Request.Form.Files,
+                Env.WebRootPath,
+                "upload/科研平台/服务材料模板",
+                config.GetValue<int>("uploadFileMaxSize"));
+            return filesNameList;
         }
 
         [HttpPost]
@@ -141,8 +155,8 @@ VALUES (@服务编码,@服务名称,@服务分类,@服务说明,@所需材料模
         {
             if (model == null || model.服务事项编号 <= 0) throw new ArgumentException("服务事项不能为空");
             var id = await Db.QuerySingleOrDefaultAsync<long?>(@"
-INSERT INTO ""科研服务申请"" (""服务事项编号"",""申请人编号"",""关联业务类型"",""关联业务编号"",""申请说明"",""附件路径"",""当前处理角色"",""办理期限"")
-SELECT s.""编号"",@申请人编号,@关联业务类型,@关联业务编号,@申请说明,@附件路径,s.""办理角色"",
+INSERT INTO ""科研服务申请"" (""服务事项编号"",""申请人编号"",""关联业务类型"",""关联业务编号"",""申请说明"",""附件路径"",""当前处理人编号"",""当前处理角色"",""办理期限"")
+SELECT s.""编号"",@申请人编号,@关联业务类型,@关联业务编号,@申请说明,@附件路径,s.""办理人员编号"",s.""办理角色"",
        CURRENT_TIMESTAMP + (s.""办理时限天数"" || ' days')::interval
   FROM ""科研服务事项"" s WHERE s.""编号""=@服务事项编号 AND s.""是否启用""=TRUE
 RETURNING ""编号"";", new { model.服务事项编号, 申请人编号 = CurrentUser.编号, model.关联业务类型, model.关联业务编号, model.申请说明, model.附件路径 });
@@ -154,12 +168,13 @@ RETURNING ""编号"";", new { model.服务事项编号, 申请人编号 = Curren
         public async Task<object> 查询我的科研服务申请(string 状态 = null)
         {
             return await Db.QueryAsync<object>(@"
-SELECT a.""编号"",a.""服务事项编号"",s.""服务编码"",s.""服务名称"",s.""服务分类"",s.""办理角色"",
+SELECT a.""编号"",a.""服务事项编号"",s.""服务编码"",s.""服务名称"",s.""服务分类"",s.""办理角色"",s.""办理人员编号"",handler.""姓名"" AS ""办理人员姓名"",
        a.""关联业务类型"",a.""关联业务编号"",a.""申请说明"",a.""附件路径"",a.""状态"",a.""当前处理人编号"",p.""姓名"" AS ""当前处理人姓名"",
        a.""当前处理角色"",a.""受理时间"",a.""完成时间"",a.""办理期限"",a.""处理意见"",a.""创建时间"",a.""更新时间"",
        f.""评价星级"",f.""反馈内容""
   FROM ""科研服务申请"" a JOIN ""科研服务事项"" s ON s.""编号""=a.""服务事项编号""
   LEFT JOIN ""人员"" p ON p.""编号""=a.""当前处理人编号""
+  LEFT JOIN ""人员"" handler ON handler.""编号""=s.""办理人员编号""
   LEFT JOIN ""科研服务反馈"" f ON f.""服务申请编号""=a.""编号"" AND f.""评价人编号""=@申请人编号
  WHERE a.""申请人编号""=@申请人编号 AND (@状态 IS NULL OR a.""状态""=@状态)
  ORDER BY a.""更新时间"" DESC,a.""编号"" DESC;", new { 申请人编号 = CurrentUser.编号, 状态 = 空值(状态) });
@@ -170,10 +185,12 @@ SELECT a.""编号"",a.""服务事项编号"",s.""服务编码"",s.""服务名称
         {
             if (!await IsManager()) return StatusCode(403, new { error = "无权查看科研服务待办" });
             return await Db.QueryAsync<object>(@"
-SELECT a.""编号"",a.""服务事项编号"",s.""服务编码"",s.""服务名称"",s.""服务分类"",s.""办理角色"",a.""申请人编号"",p.""姓名"" AS ""申请人姓名"",
-       a.""状态"",a.""当前处理人编号"",a.""当前处理角色"",a.""申请说明"",a.""附件路径"",a.""办理期限"",a.""创建时间"",a.""更新时间""
+SELECT a.""编号"",a.""服务事项编号"",s.""服务编码"",s.""服务名称"",s.""服务分类"",s.""办理角色"",s.""办理人员编号"",handler.""姓名"" AS ""办理人员姓名"",a.""申请人编号"",p.""姓名"" AS ""申请人姓名"",
+       a.""状态"",a.""当前处理人编号"",current_handler.""姓名"" AS ""当前处理人姓名"",a.""当前处理角色"",a.""申请说明"",a.""附件路径"",a.""办理期限"",a.""创建时间"",a.""更新时间""
   FROM ""科研服务申请"" a JOIN ""科研服务事项"" s ON s.""编号""=a.""服务事项编号""
   JOIN ""人员"" p ON p.""编号""=a.""申请人编号""
+  LEFT JOIN ""人员"" handler ON handler.""编号""=s.""办理人员编号""
+  LEFT JOIN ""人员"" current_handler ON current_handler.""编号""=a.""当前处理人编号""
  WHERE (@状态 IS NULL OR a.""状态""=@状态)
  ORDER BY a.""办理期限"" NULLS LAST,a.""创建时间"";", new { 状态 = 空值(状态) });
         }
@@ -270,6 +287,7 @@ SELECT l.""编号"",l.""模块"",l.""操作类型"",l.""文件名称"",l.""文�
         public string 服务说明 { get; set; }
         public string 所需材料模板路径 { get; set; }
         public string 办理角色 { get; set; }
+        public int? 办理人员编号 { get; set; }
         public int 办理时限天数 { get; set; } = 5;
         public string 咨询电话 { get; set; }
         public bool 是否启用 { get; set; } = true;
