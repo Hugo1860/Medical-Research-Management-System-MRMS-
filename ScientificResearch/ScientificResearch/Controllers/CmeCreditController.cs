@@ -552,7 +552,7 @@ namespace ScientificResearch.Controllers
                     p.""工号"",
                     COALESCE(d.""名称"", '未分配科室') AS ""部门名称"",
                     p.""部门编号"",
-                    COALESCE(p.""职位"", '医护人员') AS ""职称"",
+                    COALESCE(p.""技术职称"", p.""职务名称"", '医护人员') AS ""职称"",
                     COALESCE(uc.""总分"", 0) AS ""总分"",
                     COALESCE(uc.""I类分"", 0) AS ""I类分"",
                     COALESCE(uc.""II类分"", 0) AS ""II类分"",
@@ -671,7 +671,7 @@ namespace ScientificResearch.Controllers
                     GROUP BY r.""人员编号""
                 )
                 SELECT 
-                    p.""工号"", p.""姓名"", COALESCE(d.""名称"", '未分配') AS ""部门"", COALESCE(p.""职位"", '卫技人员') AS ""职称"",
+                    p.""工号"", p.""姓名"", COALESCE(d.""名称"", '未分配') AS ""部门"", COALESCE(p.""技术职称"", p.""职务名称"", '卫技人员') AS ""职称"",
                     COALESCE(uc.""I类分"", 0) AS ""I类分"", COALESCE(uc.""II类分"", 0) AS ""II类分"", COALESCE(uc.""总分"", 0) AS ""总分""
                 FROM ""人员"" p
                 LEFT JOIN ""部门"" d ON p.""部门编号"" = d.""编号""
