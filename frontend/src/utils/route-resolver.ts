@@ -52,6 +52,8 @@ export const modernRouteMap: Record<string, string> = {
   '科研办公/科研办公/仪器设备与开放预约.html': '/office/research-platform?tab=instruments',
   '科研办公/科研办公/学术交流治理.html': '/activities/academic-exchange',
   '科研办公/科研办公/期刊分区库.html': '/fruit/journal-partition',
+  '科研办公/科研办公/论文投稿备案.html': '/fruit/paper-submission',
+  '科研办公/科研办公/继续医学教育学分.html': '/office/cme-credits',
 
   // 统一业务台账参数化接管
   '科研办公/科研办公/科研业务台账.html': '/project/vertical-lifecycle',

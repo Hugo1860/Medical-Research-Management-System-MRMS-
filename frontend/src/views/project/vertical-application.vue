@@ -277,16 +277,28 @@
             </el-form-item>
             <el-row :gutter="12">
               <el-col :span="12">
-                <el-form-item label="申请经费(元)" required>
+                <el-form-item label="资助类型" required>
+                  <el-select v-model="appForm.资助类型" style="width: 100%;">
+                    <el-option label="财政资助" value="财政资助" />
+                    <el-option label="院内配套" value="院内配套" />
+                    <el-option label="自筹经费 (简易通道)" value="自筹经费" />
+                    <el-option label="立项不资助 (简易通道)" value="立项不资助" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="申请经费(元)" :required="appForm.资助类型 !== '自筹经费' && appForm.资助类型 !== '立项不资助'">
                   <el-input-number
                     v-model="appForm.申请经费"
-                    :min="10000"
+                    :min="0"
                     :max="50000000"
-                    :step="50000"
+                    :step="10000"
                     style="width: 100%;"
                   />
                 </el-form-item>
               </el-col>
+            </el-row>
+            <el-row :gutter="12">
               <el-col :span="12">
                 <el-form-item label="申报年度" required>
                   <el-input-number v-model="appForm.申报年度" :min="2020" :max="2030" style="width: 100%;" />
@@ -309,6 +321,15 @@
 
         <!-- Step 1: 团队与预算分解 -->
         <div v-show="currentStep === 1" class="step-body">
+          <el-alert
+            v-if="appForm.资助类型 === '自筹经费' || appForm.资助类型 === '立项不资助'"
+            title="【无资助/自筹课题简易通道】"
+            type="success"
+            description="本课题属于无资助或院内自筹立项，免除繁琐预算科目细化分解与财务建卡，课题结题时按立项任务书成果验收即可。"
+            show-icon
+            :closable="false"
+            style="margin-bottom: 16px;"
+          />
           <div class="section-title">
             <span>预算明细分解（单位：万元）</span>
             <el-tag size="small" type="success">总预算：{{ (appForm.申请经费 / 10000).toFixed(2) }} 万元</el-tag>
@@ -687,6 +708,7 @@ const reviewOpinions = ref<ReviewOpinionItem[]>([])
 const versionSnapshots = ref<any[]>([])
 
 const appForm = reactive({
+  资助类型: "财政资助",
   名称: '肺腺癌脑转移靶向耐药微环境机制与联合治疗新策略',
   学科门类: '医学',
   项目级别: '国家级重点',

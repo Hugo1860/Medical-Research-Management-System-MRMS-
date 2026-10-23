@@ -908,6 +908,15 @@ SELECT EXISTS (
 
         private bool 验证纵向项目立项增改数据(纵向项目立项增改 model)
         {
+            var 资助类型 = model.基本资料.资助类型;
+            if (资助类型 == "自筹经费" || 资助类型 == "立项不资助")
+            {
+                // 无资助/自筹经费简易通道：免强制预算拆分；若未填预算明细直接放行
+                if (model.经费预算列表 == null || !model.经费预算列表.Any())
+                {
+                    return true;
+                }
+            }
             return model.基本资料.批准经费 == model.经费预算列表.Sum(i => i.批准经费) &&
                    model.基本资料.配套经费 == model.经费预算列表.Sum(i => i.配套经费)
                    ? true : false;

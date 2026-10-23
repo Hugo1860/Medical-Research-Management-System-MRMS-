@@ -126,6 +126,7 @@ namespace ScientificResearch.Models
 		public bool? 是否立项 { get; set; }
         
         
+        public string 资助类型 { get; set; } = "财政资助";
         #endregion
 	}
 }

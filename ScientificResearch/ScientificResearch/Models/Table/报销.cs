@@ -70,6 +70,7 @@ namespace ScientificResearch.Models
 		public string 报销经费用途 { get; set; }
         
         
+        public string 投稿备案编号 { get; set; }
         #endregion
 	}
 }

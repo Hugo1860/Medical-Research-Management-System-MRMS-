@@ -370,6 +370,53 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+        <!-- 标签 7：医院运营模式（三级综合 / 二级·基层科教精简版） -->
+        <el-tab-pane label="医院运营模式" name="hospitalMode">
+          <div style="max-width: 800px; padding: 12px 0;">
+            <el-alert
+              title="模式说明"
+              type="info"
+              :closable="false"
+              description="三级综合版适合大型三甲教学医院（包含生物样本库、教育部统计、平台仪器计费、外拨经费等重型模块）；二级·基层精简版针对二级甲/乙等医院与县域医共体，聚焦临床科研、论文事前风控、继教学分与自筹课题简易立项通道，精简重型模块干扰。"
+              style="margin-bottom: 20px;"
+            />
+
+            <el-form label-width="120px">
+              <el-form-item label="运营版本模式">
+                <el-radio-group v-model="hospitalModeForm.运营模式" size="large">
+                  <el-radio-button label="三级综合">三级综合版 (全功能)</el-radio-button>
+                  <el-radio-button label="二级精简">二级·基层科教精简版</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="精简隐藏菜单">
+                <div style="width: 100%;">
+                  <div style="margin-bottom: 8px;">
+                    <el-button size="small" @click="resetToGrassrootsPreset">重置为二级精简推荐项</el-button>
+                    <el-button size="small" @click="resetToFullPreset">全部显示 (清空隐藏)</el-button>
+                  </div>
+                  <el-checkbox-group v-model="hospitalModeForm.隐藏菜单">
+                    <el-row :gutter="12">
+                      <el-col :span="12" v-for="opt in hiddenMenuOptions" :key="opt.path">
+                        <el-checkbox :label="opt.path">{{ opt.name }}</el-checkbox>
+                      </el-col>
+                    </el-row>
+                  </el-checkbox-group>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="模式配置说明">
+                <el-input v-model="hospitalModeForm.说明" placeholder="填写医院科教运行模式说明..." />
+              </el-form-item>
+
+              <el-form-item>
+                <el-button type="primary" :loading="savingHospitalMode" @click="handleSaveHospitalMode">
+                  保存运营模式配置
+                </el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
 
@@ -554,6 +601,9 @@
 </template>
 
 <script setup lang="ts">
+import { getHospitalModeConfig, type HospitalModeConfig } from "@/api/hospital-mode"
+import { useHospitalModeStore, DEFAULT_GRASSROOTS_HIDDEN_ROUTES } from "@/stores/hospitalMode"
+
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -1179,7 +1229,60 @@ watch(() => route.query, () => {
   refreshCurrentTab()
 })
 
+
+// 医院运营模式配置
+const hospitalModeStore = useHospitalModeStore()
+const savingHospitalMode = ref(false)
+const hospitalModeForm = reactive<HospitalModeConfig>({
+  运营模式: "三级综合",
+  隐藏菜单: [],
+  说明: ""
+})
+
+const hiddenMenuOptions = [
+  { name: "临床生物样本库 (Biobank) 台账", path: "/fruit/biobank-ledger" },
+  { name: "教育部科研统计", path: "/office/education-statistics" },
+  { name: "经费执行治理", path: "/finance/fund-execution" },
+  { name: "纵向计划书批量导入", path: "/project/vertical-import" },
+  { name: "代理对账与核算治理", path: "/governance/proxy-reconciliation" },
+  { name: "外部系统异步同步", path: "/operations/external-sync" }
+]
+
+async function loadHospitalMode() {
+  try {
+    const res: any = await getHospitalModeConfig()
+    if (res) {
+      hospitalModeForm.运营模式 = res.运营模式 || "三级综合"
+      hospitalModeForm.隐藏菜单 = Array.isArray(res.隐藏菜单) ? res.隐藏菜单 : []
+      hospitalModeForm.说明 = res.说明 || ""
+    }
+  } catch {}
+}
+
+function resetToGrassrootsPreset() {
+  hospitalModeForm.运营模式 = "二级精简"
+  hospitalModeForm.隐藏菜单 = [...DEFAULT_GRASSROOTS_HIDDEN_ROUTES]
+  hospitalModeForm.说明 = "二级/基层科教精简模式（聚焦临床科研、论文事前风控、继教学分与自筹课题简易通道）"
+}
+
+function resetToFullPreset() {
+  hospitalModeForm.运营模式 = "三级综合"
+  hospitalModeForm.隐藏菜单 = []
+  hospitalModeForm.说明 = "三级医院全功能综合模式"
+}
+
+async function handleSaveHospitalMode() {
+  savingHospitalMode.value = true
+  try {
+    await hospitalModeStore.updateConfig(hospitalModeForm)
+    ElMessage.success("医院运营模式配置已保存，侧边栏与业务功能已即时生效！")
+  } finally {
+    savingHospitalMode.value = false
+  }
+}
+
 onMounted(() => {
+  loadHospitalMode()
   syncTabAndAction()
   fetchCategories()
   fetchTemplates()

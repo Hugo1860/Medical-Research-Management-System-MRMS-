@@ -174,6 +174,7 @@ namespace ScientificResearch.Models
 		public DateTime? 建立时间 { get; set; }
         
         
+        public string 资助类型 { get; set; } = "财政资助";
         #endregion
 	}
 }

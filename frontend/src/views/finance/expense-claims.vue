@@ -516,6 +516,23 @@
           <span class="sum-val">¥{{ formatMoney(calcClaimSum) }}</span>
         </div>
 
+        <el-form-item label="投稿备案号">
+          <el-select
+            v-model="claimForm.投稿备案编号"
+            placeholder="报销版面费/论文发表费时请选择有效备案号"
+            clearable
+            filterable
+            style="width: 100%;"
+          >
+            <el-option
+              v-for="sub in reimbursableFilingList"
+              :key="sub.备案号"
+              :label="`${sub.备案号} - ${sub.论文题目} (${sub.拟投期刊名称})`"
+              :value="sub.备案号"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="发票附件说明">
           <el-input
             v-model="claimForm.相关文件路径"
@@ -646,6 +663,7 @@
 </template>
 
 <script setup lang="ts">
+import { getReimbursableSubmissions } from "@/api/paper-submission"
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -711,7 +729,16 @@ const singleExpenseDetails = ref<ExpenseDetailItem[]>([])
 // 申报弹窗状态
 const expenseDialogVisible = ref(false)
 const submitLoading = ref(false)
+const reimbursableFilingList = ref<any[]>([])
+async function loadReimbursableFilings() {
+  try {
+    const res: any = await getReimbursableSubmissions()
+    if (res) reimbursableFilingList.value = res
+  } catch {}
+}
+
 const claimForm = reactive({
+  投稿备案编号: "",
   projectType: '纵向',
   项目编号: 0,
   报销方式: '公务卡',
@@ -926,6 +953,8 @@ async function viewSingleExpenseDetail(expenseId: number) {
 
 // 快速去报销
 function handleFastClaim(row: any, type: string) {
+  loadReimbursableFilings()
+  claimForm.投稿备案编号 = ""
   claimForm.projectType = type
   claimForm.项目编号 = row.编号
   claimForm.报销方式 = '公务卡'
@@ -938,6 +967,8 @@ function handleFastClaim(row: any, type: string) {
 }
 
 function openExpenseDialog() {
+  loadReimbursableFilings()
+  claimForm.投稿备案编号 = ""
   claimForm.projectType = activeTab.value === 'x-expense' ? '横向' : '纵向'
   claimForm.项目编号 = 0
   claimForm.details = [
@@ -981,9 +1012,19 @@ async function submitExpenseClaim() {
 
   submitLoading.value = true
   try {
+    const hasPublicationFee = claimForm.details.some((d: any) => 
+      (d.项目支出内容 && (d.项目支出内容.includes("版面") || d.项目支出内容.includes("论文") || d.项目支出内容.includes("出版"))) ||
+      (d.项目支出类型 && d.项目支出类型.includes("版面"))
+    )
+    if (hasPublicationFee && !claimForm.投稿备案编号) {
+      ElMessage.warning("检测到报销内容包含版面费/论文发表费，请在上方【投稿备案号】中关联已通过审核的有效备案号！")
+      return
+    }
+
     const payload = {
       基本资料: {
         项目编号: claimForm.项目编号,
+        投稿备案编号: claimForm.投稿备案编号 || undefined,
         报销金额: calcClaimSum.value,
         报销方式: claimForm.报销方式,
         公务卡号: claimForm.报销方式 === '公务卡' ? claimForm.公务卡号 : undefined,

@@ -262,6 +262,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '期刊分区库与匹配', icon: 'Notebook' }
       },
       {
+        path: 'fruit/paper-submission',
+        name: 'PaperSubmission',
+        component: () => import('@/views/fruit/paper-submission.vue'),
+        meta: { title: '论文投稿备案与期刊风控', icon: 'Document' }
+      },
+      {
+        path: 'office/cme-credits',
+        name: 'CmeCredits',
+        component: () => import('@/views/office/cme-credits.vue'),
+        meta: { title: '继续医学教育学分', icon: 'Medal' }
+      },
+      {
         path: 'ethics/review-workflow',
         name: 'EthicsReviewWorkflow',
         component: () => import('@/views/ethics/review-workflow.vue'),

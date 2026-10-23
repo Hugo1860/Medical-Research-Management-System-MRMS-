@@ -42,6 +42,7 @@ namespace ScientificResearch.Models
 		public string 备注 { get; set; }
         
         
+        public string 投稿备案编号 { get; set; }
         #endregion
 	}
 }

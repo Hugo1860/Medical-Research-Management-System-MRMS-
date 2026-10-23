@@ -4,6 +4,15 @@
     <div class="logo">
       <el-icon :size="24" class="logo-icon"><Management /></el-icon>
       <span v-show="!isCollapse" class="logo-title">科研管理系统</span>
+      <el-tag
+        v-if="!isCollapse && hospitalModeStore.isGrassroots"
+        size="small"
+        type="success"
+        effect="dark"
+        style="margin-left: 8px; font-size: 11px; padding: 0 6px;"
+      >
+        精简版
+      </el-tag>
     </div>
 
     <!-- 展开状态下的效率操作工具栏 (搜索、全部展开/折叠、平铺/树形切换、全景地图) -->
@@ -391,6 +400,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useFavoritesStore } from '@/stores/favorites'
 import { useMenuOrderStore } from '@/stores/menuOrder'
+import { useHospitalModeStore } from '@/stores/hospitalMode'
 import type { MenuItem, PermissionNode } from '@/api/auth'
 import MegaMapDrawer from './MegaMapDrawer.vue'
 import MenuSortDialog from './MenuSortDialog.vue'
@@ -437,6 +447,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const favoritesStore = useFavoritesStore()
 const menuOrderStore = useMenuOrderStore()
+const hospitalModeStore = useHospitalModeStore()
 
 // 1. 状态与配置
 const searchKeyword = ref('')
@@ -543,11 +554,36 @@ const defaultTreePermissions = computed<PermissionNode[]>(() => {
   return tree
 })
 
+function filterTreeByHospitalMode(nodes: PermissionNode[]): PermissionNode[] {
+  if (!hospitalModeStore.isGrassroots) return nodes
+  return nodes
+    .map((node) => {
+      const children = node.子级菜单 || []
+      if (children.length > 0) {
+        const filtered = filterTreeByHospitalMode(children)
+        return { ...node, 子级菜单: filtered }
+      } else {
+        const route = getMenuRoute(node.菜单)
+        if (hospitalModeStore.isRouteHidden(route)) {
+          return null
+        }
+        return node
+      }
+    })
+    .filter((n): n is PermissionNode => {
+      if (!n) return false
+      if (n.子级菜单 && n.子级菜单.length === 0 && !getMenuRoute(n.菜单)) {
+        return false
+      }
+      return true
+    })
+}
+
 const rawPermissionsList = computed<PermissionNode[]>(() => {
-  if (Array.isArray(userStore.permissions) && userStore.permissions.length > 0) {
-    return userStore.permissions
-  }
-  return defaultTreePermissions.value
+  const base = Array.isArray(userStore.permissions) && userStore.permissions.length > 0
+    ? userStore.permissions
+    : defaultTreePermissions.value
+  return filterTreeByHospitalMode(base)
 })
 
 const effectivePermissions = computed<PermissionNode[]>(() => {
@@ -598,8 +634,8 @@ const allLeafMenus = computed<LeafMenuItem[]>(() => {
       merged.push(item)
     }
   }
-  return merged
-})
+  return merged.filter((item) => !hospitalModeStore.isRouteHidden(item.route))
+  })
 
 const filteredLeafMenus = computed(() => {
   const q = searchKeyword.value.trim().toLowerCase()
@@ -830,6 +866,7 @@ function onToggleFavorite(item: any) {
 }
 
 onMounted(() => {
+  hospitalModeStore.loadConfig()
   // Refresh the server-filtered permission tree whenever the main layout is
   // mounted.  A role/menu grant can change while an OIDC session remains in
   // sessionStorage; only refreshing when the tree is empty would leave a
