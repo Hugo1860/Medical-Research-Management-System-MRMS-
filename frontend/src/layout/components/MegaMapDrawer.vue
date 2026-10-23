@@ -128,7 +128,8 @@ import {
   Setting,
   Key,
   Lock,
-  House
+  House,
+  School
 } from '@element-plus/icons-vue'
 
 export interface MegaFunctionItem {
@@ -205,6 +206,7 @@ const megaCategories: MegaCategory[] = [
     items: [
       { name: '论文成果主动网推认领中心', path: '/fruit/paper-claim', icon: Reading, tag: '智能网推', tagType: 'danger', keywords: '论文 认领 网推 消歧 中科院 分区 影响因子' },
       { name: '学术论文全生命周期管理', path: '/fruit/paper-management', icon: Document, tag: '成果', tagType: 'primary', keywords: '论文 SCI 期刊 crossref pubmed' },
+      { name: '论文投稿事前备案与期刊风控', path: '/fruit/paper-submission', icon: Document, tag: '风控闭环', tagType: 'danger', keywords: '论文 投稿 备案 期刊 预警 黑名单 风控 诚信 版面费' },
       { name: '成果综合业务台账 (专利/著作/奖励)', path: '/fruit/achievement-ledger', icon: Reading, tag: '综合台账', tagType: 'success', keywords: '专利 著作 奖励 成果 转化 知识产权' },
       { name: '临床生物样本库 (Biobank) 资产台账', path: '/fruit/biobank-ledger', icon: Reading, tag: 'Biobank', tagType: 'warning', keywords: '生物样本 样本库 冻存 标本 队列 biobank' },
       { name: '生物样本借还与实验消耗核销', path: '/fruit/biobank-ledger?tab=ledger', icon: Files, tag: '样本借还', tagType: 'info', keywords: '借还 出库 消耗 核销 伦理' },
@@ -218,6 +220,7 @@ const megaCategories: MegaCategory[] = [
     items: [
       { name: '专家匿名盲审工作台', path: '/evaluation/expert-workbench', icon: Medal, tag: '双盲脱敏', tagType: 'danger', keywords: '专家 评审 盲审 回避 脱敏 打分' },
       { name: '学术活动与会议讲座管理', path: '/activities/academic-activities', icon: Reading, tag: '学术活动', tagType: 'primary', keywords: '讲座 会议 反馈 专家 继教' },
+      { name: '继续医学教育 (CME) 学分', path: '/office/cme-credits', icon: School, tag: 'CME授分', tagType: 'success', keywords: '继续医学教育 CME 学分 继教 达标 讲座 签到 催办' },
       { name: '学术任职与专家人才中心', path: '/organization/academic-appointments', icon: Medal, tag: '任职遴选', tagType: 'success', keywords: '任职 专家 遴选 人才 学会' },
       { name: '部门人员与课题团队维护', path: '/organization/people', icon: User, tag: '组织架构', tagType: 'info', keywords: '组织 部门 人员 员工 架构' }
     ]
@@ -239,7 +242,8 @@ const megaCategories: MegaCategory[] = [
       { name: '角色授权与数据脱敏规则配置', path: '/system/roles', icon: Lock, tag: '角色权限', tagType: 'info', keywords: '角色 权限 字段 授权 脱敏' },
       { name: '等保三级登录审计日志', path: '/system/login-logs', icon: Document, tag: '等保审计', tagType: 'info', keywords: '日志 登录 审计 安全 ip' },
       { name: '科研基础字典规范', path: '/base-info/dictionary', icon: Files, tag: '标准字典', tagType: 'info', keywords: '字典 编码 规范 国标' },
-      { name: '科研基础信息标准配置', path: '/base-info/system-configs', icon: Setting, tag: '系统配置', tagType: 'info', keywords: '分类 模版 期刊 行业 学科 配置' }
+      { name: '科研基础信息标准配置', path: '/base-info/system-configs', icon: Setting, tag: '系统配置', tagType: 'info', keywords: '分类 模版 期刊 行业 学科 配置' },
+      { name: '医院运营模式（三级综合/二级精简）', path: '/base-info/system-configs?tab=hospitalMode', icon: Setting, tag: '模式切换', tagType: 'primary', keywords: '医院 运营模式 三级 综合 二级 精简 模式 基层' }
     ]
   }
 ]

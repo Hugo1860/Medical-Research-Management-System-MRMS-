@@ -520,7 +520,10 @@ const defaultCatalogLeafMenus: LeafMenuItem[] = [
   { id: 'fund-exec', name: '经费执行治理', route: '/finance/fund-execution', categoryPath: '经费管理 / 执行治理', icon: Money },
   { id: 'inst-book', name: '仪器设备与开放预约', route: '/office/research-platform?tab=instruments', categoryPath: '科研平台 / 仪器预约', icon: Briefcase },
   { id: 'acad-exch', name: '学术交流治理', route: '/activities/academic-exchange', categoryPath: '学术活动 / 交流治理', icon: Reading },
-  { id: 'jour-part', name: '期刊分区库', route: '/fruit/journal-partition', categoryPath: '学术成果 / 期刊分区', icon: Document }
+  { id: 'jour-part', name: '期刊分区库', route: '/fruit/journal-partition', categoryPath: '学术成果 / 期刊分区', icon: Document },
+  { id: 'paper-sub', name: '论文投稿事前备案', route: '/fruit/paper-submission', categoryPath: '学术成果 / 投稿备案', icon: Document },
+  { id: 'cme-credit', name: '继续医学教育学分', route: '/office/cme-credits', categoryPath: '科研办公 / 继教学分', icon: School },
+  { id: 'hosp-mode', name: '医院运营模式配置', route: '/base-info/system-configs?tab=hospitalMode', categoryPath: '基础信息 / 运营模式', icon: Setting }
 ]
 
 const defaultTreePermissions = computed<PermissionNode[]>(() => {
