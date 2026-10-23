@@ -241,6 +241,34 @@ SELECT EXISTS (
 );", new { 人员编号 = CurrentUser.编号, 资源 = resource, 字段 = field, 写入 = write });
         }
 
+        /// <summary>
+        /// 安全提取日期，兼容 PostgreSQL date 暴露为 DateOnly 以及普通 DateTime / 字符串。
+        /// </summary>
+        protected static DateTime? SafeToDateTime(object value)
+        {
+            if (value == null || value is DBNull) return null;
+            if (value is DateTime dt) return dt;
+            if (value is DateOnly d) return d.ToDateTime(TimeOnly.MinValue);
+            if (DateTime.TryParse(Convert.ToString(value), out var parsed)) return parsed;
+            return null;
+        }
+
+        /// <summary>
+        /// 安全转换为整型，避免 dynamic 装箱及不同整型之间的类型转换异常。
+        /// </summary>
+        protected static int SafeToInt32(object value, int defaultValue = 0)
+        {
+            if (value == null || value is DBNull) return defaultValue;
+            try
+            {
+                return Convert.ToInt32(value);
+            }
+            catch
+            {
+                return defaultValue;
+            }
+        }
+
         ///// <summary>
         ///// redis服务的db对象 
         ///// </summary>

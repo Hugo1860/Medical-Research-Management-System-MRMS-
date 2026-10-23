@@ -111,9 +111,12 @@ export function buildApplicationPayload(data: any, isHold: boolean = false) {
   }
 
   const [start, end] = data.dateRange || ['2026-01-01', '2028-12-31']
+  const planId = data.申报计划编号 != null ? Number(data.申报计划编号) : null
+  const batchId = data.院级批次编号 != null ? Number(data.院级批次编号) : null
   return {
     基本资料: {
       编号: data.编号 || 0,
+      分类: data.分类 || 1,
       项目名称: data.项目名称 || data.名称,
       学科门类: data.学科门类 || '医学',
       学科类型: data.学科类型 || '基础医学',
@@ -134,8 +137,9 @@ export function buildApplicationPayload(data: any, isHold: boolean = false) {
       伦理批文编号: data.伦理批文编号 || '',
       伦理批文路径: data.伦理批文路径 || '',
       项目申报书路径: data.项目申报书路径 || '/upload/纵向项目/项目申报书/application.pdf',
-      申报计划编号: data.申报计划编号 != null ? Number(data.申报计划编号) : null,
-      院级批次编号: data.院级批次编号 != null ? Number(data.院级批次编号) : null,
+      申报计划编号: planId,
+      院级批次编号: batchId,
+      资助类型: data.资助类型 || '财政资助',
       备注: data.备注 || ''
     },
     参与人列表: Array.isArray(data.参与人列表) && data.参与人列表.length > 0
@@ -147,6 +151,8 @@ export function buildApplicationPayload(data: any, isHold: boolean = false) {
             备注: '项目负责人'
           }
         ],
+    申报计划编号: planId,
+    院级批次编号: batchId,
     IsHold: isHold
   }
 }
