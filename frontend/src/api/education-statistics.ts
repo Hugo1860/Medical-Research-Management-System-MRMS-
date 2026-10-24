@@ -107,3 +107,11 @@ export function listEducationStatisticsExports(params: { 任务编号?: number; 
 export function listEducationStatisticsAudit(params: { 任务编号?: number; 数据包编号?: number; 数量?: number } = {}) {
   return request.get('/EducationStatistics/查询统计操作审计', { params })
 }
+
+export function getHealthCommissionReport(params: { 年度?: number } = {}) {
+  return request.get<any>('/EducationStatistics/获取卫健委科技统计年报', { params })
+}
+
+export function getSecondaryHospitalEvidenceDossier(params: { 年度?: number } = {}) {
+  return request.get<any>('/EducationStatistics/获取二级公立医院国考与等级评审佐证包', { params })
+}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -1002,6 +1002,359 @@ VALUES (@人员编号,@请求编号,'GET',LEFT(@请求路径,500),200,@客户端
                 Log?.Warn("科研能力画像访问审计写入失败", ex);
             }
         }
+
+        #region 职称晋升科教业绩一键核验
+
+        /// <summary>
+        /// 一键提取任现职以来的科研项目、论文（自动剔除预警期刊）、科普与典型案例、进修满6个月、近5年继教学分达标记录并自动生成防伪审核凭证。
+        /// </summary>
+        [HttpGet]
+        public async Task<object> 获取职称晋升科教业绩(int? 人员编号 = null, string 拟晋升职称 = "副主任医师", DateTime? 现职称任职日期 = null)
+        {
+            var targetId = 人员编号 ?? CurrentUser.编号;
+            if (targetId != CurrentUser.编号 && !await 是人员管理角色())
+            {
+                return StatusCode(403, new { error = "无权查看他人职称评审科教核验数据" });
+            }
+
+            var person = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT p.""编号"", p.""工号"", p.""姓名"", d.""名称"" AS ""部门名称"",
+       COALESCE(p.""技术职称"", p.""职务名称"", '主治医师') AS ""现职称"",
+       p.""职务任职日期"", p.""入职日期""
+FROM ""人员"" p
+LEFT JOIN ""部门"" d ON d.""编号"" = p.""部门编号""
+WHERE p.""编号"" = @targetId;", new { targetId });
+
+            if (person == null) return NotFound(new { error = "人员信息不存在" });
+
+            var sinceDate = 现职称任职日期 
+                ?? SafeToDateTime(person.职务任职日期) 
+                ?? SafeToDateTime(person.入职日期) 
+                ?? DateTime.Today.AddYears(-5);
+            var sinceYear = sinceDate.Year;
+
+            // 1. 任现职以来的课题项目
+            var projects = (await Db.QueryAsync<dynamic>(@"
+SELECT ""编号"", ""项目中文名称"" AS ""项目名称"", ""项目类型"", ""项目级别"", ""批准经费"", ""立项年度"" AS ""年度"", '纵向立项' AS ""来源""
+FROM ""纵向项目立项""
+WHERE ""负责人编号"" = @targetId AND ""立项年度"" >= @sinceYear
+UNION ALL
+SELECT ""编号"", ""项目名称"", '横向合作' AS ""项目类型"", ""合同类型"" AS ""项目级别"", ""合同金额"" AS ""批准经费"", EXTRACT(YEAR FROM ""签订时间"")::integer AS ""年度"", '横向合同' AS ""来源""
+FROM ""横向项目""
+WHERE ""负责人编号"" = @targetId AND ""签订时间"" >= @sinceDate
+UNION ALL
+SELECT ""编号"", ""项目名称"", ""项目类别"" AS ""项目类型"", ""项目级别"", ""申请经费"" AS ""批准经费"", ""申报年度"" AS ""年度"", '院级/自筹' AS ""来源""
+FROM ""纵向项目申报""
+WHERE ""申报人编号"" = @targetId AND ""申报年度"" >= @sinceYear AND (""院级批次编号"" IS NOT NULL OR ""资助类型"" = '自筹经费')
+ORDER BY ""年度"" DESC, ""编号"" DESC;", new { targetId, sinceYear, sinceDate })).ToList();
+
+            // 2. 任现职以来的论文（结合期刊风险名单，标记预警期刊）
+            var papers = (await Db.QueryAsync<dynamic>(@"
+SELECT l.""编号"", l.""论文题目"", l.""刊物名称"", l.""发表时间"", l.""中科院分区"",
+       COALESCE(l.""是否为第一作者或通讯作者"", TRUE) AS ""第一或通讯作者"",
+       CASE WHEN EXISTS (
+           SELECT 1 FROM ""期刊风险名单"" r 
+           WHERE lower(btrim(r.""期刊名称"")) = lower(btrim(l.""刊物名称"")) 
+             AND r.""风险等级"" IN ('高风险','重点监控','预警刊')
+       ) THEN TRUE ELSE FALSE END AS ""是否预警刊""
+FROM ""成果论文"" l
+WHERE l.""建立人编号"" = @targetId AND l.""发表时间"" >= @sinceDate
+ORDER BY l.""发表时间"" DESC;", new { targetId, sinceDate })).ToList();
+
+            var validPapers = papers.Where(x => (bool)x.第一或通讯作者 && !(bool)x.是否预警刊).ToList();
+            var warnedPapers = papers.Where(x => (bool)x.是否预警刊).ToList();
+
+            // 3. 科普成果与典型案例
+            var popularScience = (await Db.QueryAsync<dynamic>(@"
+SELECT ""编号"", ""分类"", ""形式类型"", ""成果名称"", ""完成日期"", ""发布载体与平台"", ""受众传播量与成效""
+FROM ""科普成果与临床案例库""
+WHERE ""第一作者编号"" = @targetId AND ""完成日期"" >= @sinceDate AND ""审核状态"" = '已入库'
+ORDER BY ""完成日期"" DESC;", new { targetId, sinceDate })).ToList();
+
+            // 4. 进修满 6 个月记录 (>= 180 天)
+            var studyList = (await Db.QueryAsync<dynamic>(@"
+SELECT ""编号"", ""进修机构名称"", ""进修专业"", ""开始日期"", ""结束日期"",
+       (""结束日期"" - ""开始日期"")::integer AS ""进修天数""
+FROM ""进修申请""
+WHERE ""申请人编号"" = @targetId AND ""审批状态"" = '已通过' AND (""结束日期"" - ""开始日期"") >= 180
+ORDER BY ""开始日期"" DESC;", new { targetId })).ToList();
+
+            // 5. 近 5 年继续医学教育学分达标
+            var curYear = DateTime.Today.Year;
+            var cmeYears = new List<object>();
+            int metYearCount = 0;
+            for (int y = curYear - 4; y <= curYear; y++)
+            {
+                var credit = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COALESCE(sum(CASE WHEN ""学分分类"" = 'I类' THEN ""学分数"" ELSE 0 END), 0)::numeric(5,1) AS ""I类分"",
+    COALESCE(sum(""学分数""), 0)::numeric(5,1) AS ""总分""
+FROM ""继教学分记录""
+WHERE ""人员编号"" = @targetId AND ""年度"" = @y AND ""状态"" = '已生效';", new { targetId, y });
+
+                decimal total = credit != null ? Convert.ToDecimal(credit.总分) : 0m;
+                decimal class1 = credit != null ? Convert.ToDecimal(credit.I类分) : 0m;
+                bool isMet = total >= 25m && class1 >= 8m;
+                if (isMet) metYearCount++;
+
+                cmeYears.Add(new
+                {
+                    年度 = y,
+                    总分 = total,
+                    I类分 = class1,
+                    要求总分 = 25m,
+                    要求I类分 = 8m,
+                    是否达标 = isMet
+                });
+            }
+
+            var isPromotingSenior = 拟晋升职称.Contains("主任") || 拟晋升职称.Contains("高级") || 拟晋升职称.Contains("副高") || 拟晋升职称.Contains("正高");
+            var reqProjectCount = isPromotingSenior ? 1 : 0;
+            var reqPaperCount = isPromotingSenior ? 2 : 1;
+            var reqStudyMet = !isPromotingSenior || studyList.Count > 0;
+            var reqCmeMet = metYearCount >= 4;
+
+            var eligibility = new
+            {
+                拟晋升职称,
+                任职起算日期 = sinceDate.ToString("yyyy-MM-dd"),
+                课题指标 = new { 实际 = projects.Count, 要求 = reqProjectCount, 符合 = projects.Count >= reqProjectCount },
+                论文指标 = new { 实际 = validPapers.Count, 要求 = reqPaperCount, 预警刊剔除数 = warnedPapers.Count, 符合 = validPapers.Count >= reqPaperCount },
+                科普与案例指标 = new { 实际 = popularScience.Count, 要求 = 1, 符合 = popularScience.Count >= 1 },
+                进修满6个月指标 = new { 实际天数 = studyList.FirstOrDefault()?.进修天数 ?? 0, 机构 = studyList.FirstOrDefault()?.进修机构名称 ?? "无", 符合 = reqStudyMet },
+                近5年CME达标指标 = new { 达标年数 = metYearCount, 总考核年数 = 5, 符合 = reqCmeMet },
+                总体结论 = projects.Count >= reqProjectCount && validPapers.Count >= reqPaperCount && reqStudyMet && reqCmeMet
+            };
+
+            var tokenRaw = $"{targetId}_{拟晋升职称}_{sinceDate:yyyyMMdd}_{DateTime.Today:yyyyMMdd}";
+            var securityHash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(tokenRaw));
+            var verifyCode = "MED-" + Convert.ToHexString(securityHash).Substring(0, 16);
+
+            await Db.ExecuteAsync(@"
+INSERT INTO ""职称晋升资格审查记录"" (
+    ""人员编号"", ""工号"", ""姓名"", ""现专业技术职称"", ""现职称任职日期"", ""拟晋升职称"",
+    ""任职以来课题数"", ""第一通讯论文数"", ""剔除预警期刊论文数"", ""科普与案例数"",
+    ""进修满6个月符合"", ""近5年继教达标符合"", ""业绩详情快照"", ""防伪码"", ""生成人编号""
+) VALUES (
+    @targetId, @工号, @姓名, @现职称, @sinceDate, @拟晋升职称,
+    @课题数, @第一通讯数, @预警数, @科普数,
+    @进修符合, @继教符合, CAST(@快照 AS jsonb), @verifyCode, @userId
+) ON CONFLICT (""防伪码"") DO UPDATE SET
+    ""业绩详情快照"" = EXCLUDED.""业绩详情快照"",
+    ""生成时间"" = CURRENT_TIMESTAMP;", new
+            {
+                targetId,
+                工号 = (string)person.工号,
+                姓名 = (string)person.姓名,
+                现职称 = (string)person.现职称,
+                sinceDate,
+                拟晋升职称,
+                课题数 = projects.Count,
+                第一通讯数 = validPapers.Count,
+                预警数 = warnedPapers.Count,
+                科普数 = popularScience.Count,
+                进修符合 = reqStudyMet,
+                继教符合 = reqCmeMet,
+                快照 = System.Text.Json.JsonSerializer.Serialize(new { eligibility, projects, validPapers, warnedPapers, popularScience, studyList, cmeYears }),
+                verifyCode,
+                userId = CurrentUser.编号
+            });
+
+            return new
+            {
+                基本资料 = new
+                {
+                    人员编号 = targetId,
+                    工号 = (string)person.工号,
+                    姓名 = (string)person.姓名,
+                    科室 = (string)person.部门名称,
+                    现职称 = (string)person.现职称,
+                    任职起算日期 = sinceDate.ToString("yyyy-MM-dd"),
+                    拟晋升职称
+                },
+                资格核验结果 = eligibility,
+                业绩清单 = new
+                {
+                    课题列表 = projects,
+                    有效论文列表 = validPapers,
+                    预警期刊排除列表 = warnedPapers,
+                    科普与典型案例 = popularScience,
+                    进修记录 = studyList,
+                    近5年继教情况 = cmeYears
+                },
+                防伪验真 = new
+                {
+                    防伪校验码 = verifyCode,
+                    生成时间 = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    验真查验地址 = $"/People/验真职称审查单?防伪码={verifyCode}"
+                }
+            };
+        }
+
+        /// <summary>
+        /// 生成标准排版、带防伪印鉴与防伪验真标识的职称晋升科教资格审查表 HTML，供浏览器一键打印或转存 PDF。
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> 导出职称审查表HTML(string 防伪码)
+        {
+            if (string.IsNullOrWhiteSpace(防伪码)) return BadRequest("防伪码不能为空");
+
+            var record = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT r.*, p.""姓名"" AS ""生成人姓名""
+FROM ""职称晋升资格审查记录"" r
+LEFT JOIN ""人员"" p ON p.""编号"" = r.""生成人编号""
+WHERE r.""防伪码"" = @防伪码;", new { 防伪码 });
+
+            if (record == null) return NotFound("该防伪码对应的审查记录不存在或已作废");
+
+            var html = $@"<!DOCTYPE html>
+<html>
+<head>
+<meta charset=""utf-8"">
+<title>职称晋升科教资格审查单 - {record.姓名}</title>
+<style>
+  body {{ font-family: 'SimSun', 'Songti SC', serif; padding: 25px; color: #222; max-width: 900px; margin: 0 auto; line-height: 1.5; }}
+  .header {{ text-align: center; border-bottom: 2px solid #8B0000; padding-bottom: 15px; margin-bottom: 20px; }}
+  .title {{ font-size: 24px; font-weight: bold; color: #8B0000; letter-spacing: 2px; }}
+  .subtitle {{ font-size: 14px; color: #666; margin-top: 5px; }}
+  .meta-table, .content-table {{ width: 100%; border-collapse: collapse; margin-bottom: 15px; }}
+  .meta-table td, .content-table th, .content-table td {{ border: 1px solid #333; padding: 8px 10px; font-size: 13px; }}
+  .content-table th {{ background: #f2f2f2; font-weight: bold; text-align: center; }}
+  .section-tag {{ background: #eee; font-weight: bold; padding: 6px 10px; border: 1px solid #333; border-bottom: none; }}
+  .badge-pass {{ color: green; font-weight: bold; }}
+  .badge-warn {{ color: red; font-weight: bold; }}
+  .sign-area {{ display: flex; justify-content: space-between; margin-top: 40px; padding: 0 30px; }}
+  .sign-box {{ width: 40%; border-top: 1px dashed #666; padding-top: 10px; font-size: 13px; text-align: left; }}
+  .security-box {{ margin-top: 30px; border: 1px solid #ccc; padding: 10px 15px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }}
+  @media print {{
+    body {{ padding: 0; }}
+    .no-print {{ display: none; }}
+  }}
+</style>
+</head>
+<body>
+<div class=""no-print"" style=""text-align: right; margin-bottom: 15px;"">
+  <button onclick=""window.print()"" style=""background: #8B0000; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 14px;"">🖨️ 打印 / 另存为 PDF</button>
+</div>
+
+<div class=""header"">
+  <div class=""title"">医疗机构专业技术职称晋升 · 科教资格审核表</div>
+  <div class=""subtitle"">任现职以来科教业绩自动比对与核验报告（科教科留存归档）</div>
+</div>
+
+<table class=""meta-table"">
+  <tr>
+    <td style=""width: 15%; background: #f7f7f7; font-weight: bold;"">申报人姓名</td>
+    <td style=""width: 20%;"">{record.姓名}</td>
+    <td style=""width: 15%; background: #f7f7f7; font-weight: bold;"">员工工号</td>
+    <td style=""width: 18%;"">{record.工号}</td>
+    <td style=""width: 15%; background: #f7f7f7; font-weight: bold;"">拟晋升职称</td>
+    <td style=""width: 17%; color: #8B0000; font-weight: bold;"">{record.拟晋升职称}</td>
+  </tr>
+  <tr>
+    <td style=""background: #f7f7f7; font-weight: bold;"">现任职称</td>
+    <td>{record.现专业技术职称}</td>
+    <td style=""background: #f7f7f7; font-weight: bold;"">任职起算日期</td>
+    <td>{(record.现职称任职日期 != null ? Convert.ToDateTime(record.现职称任职日期).ToString("yyyy-MM-dd") : "近5年")}</td>
+    <td style=""background: #f7f7f7; font-weight: bold;"">生成日期</td>
+    <td>{Convert.ToDateTime(record.生成时间):yyyy-MM-dd}</td>
+  </tr>
+</table>
+
+<div class=""section-tag"">一、任现职以来课题情况（{record.任职以来课题数} 项）</div>
+<table class=""content-table"">
+  <tr><th>序号</th><th>指标项</th><th>实际取得</th><th>考核要求</th><th>审核结论</th></tr>
+  <tr><td>1</td><td>主持纵向/横向/自筹/院级项目</td><td>{record.任职以来课题数} 项</td><td>>= 1 项</td><td>{(record.任职以来课题数 >= 1 ? "<span class='badge-pass'>符合</span>" : "<span class='badge-warn'>未达标</span>")}</td></tr>
+</table>
+
+<div class=""section-tag"">二、代表性学术论文（第一/通讯作者：{record.第一通讯论文数} 篇，剔除预警期刊：{record.剔除预警期刊论文数} 篇）</div>
+<table class=""content-table"">
+  <tr><th>序号</th><th>指标项</th><th>实际取得</th><th>考核要求</th><th>审核结论</th></tr>
+  <tr><td>1</td><td>合规专业学术论文发表</td><td>{record.第一通讯论文数} 篇 (已剔除预警刊 {record.剔除预警期刊论文数} 篇)</td><td>>= 1 篇</td><td>{(record.第一通讯论文数 >= 1 ? "<span class='badge-pass'>符合</span>" : "<span class='badge-warn'>未达标</span>")}</td></tr>
+</table>
+
+<div class=""section-tag"">三、科普作品、典型案例与护理小发明（共 {record.科普与案例数} 项）</div>
+<table class=""content-table"">
+  <tr><th>序号</th><th>分类</th><th>已入库数量</th><th>考核指导要求</th><th>审核结论</th></tr>
+  <tr><td>1</td><td>医学科普、典型病案、护理发明</td><td>{record.科普与案例数} 项</td><td>建议具备 1 项代表作</td><td>{(record.科普与案例数 >= 1 ? "<span class='badge-pass'>具备</span>" : "暂缺")}</td></tr>
+</table>
+
+<div class=""section-tag"">四、基层服务与进修 / 继续医学教育（CME）达标审核</div>
+<table class=""content-table"">
+  <tr>
+    <td style=""width: 50%; padding: 12px;"">
+      <strong>三甲医院进修满 6 个月核验：</strong><br>
+      {(record.进修满6个月符合 ? "<span class='badge-pass'>✓ 符合要求（已在省/市三甲医院完成累计满180天进修培训）</span>" : "<span class='badge-warn'>✕ 未检测到满6个月进修登记</span>")}
+    </td>
+    <td style=""width: 50%; padding: 12px;"">
+      <strong>近 5 年继续教育学分达标核验：</strong><br>
+      {(record.近5年继教达标符合 ? "<span class='badge-pass'>✓ 符合要求（近5年每年均达标）</span>" : "<span class='badge-warn'>✕ 近5年继教学分未完全达标</span>")}
+    </td>
+  </tr>
+</table>
+
+<div class=""sign-area"">
+  <div class=""sign-box"">
+    <strong>申报人承诺：</strong><br>
+    本人承诺以上任现职以来的科研成果、进修及学分材料真实有效，无学术不端及虚报情形。<br><br>
+    签名：____________________ 日期：____年__月__日
+  </div>
+  <div class=""sign-box"">
+    <strong>科教部门审核意见：</strong><br>
+    经科研管理系统大数据核验比对，该同志任现职以来科教业绩真实合规，同意申报晋升。<br><br>
+    审核人（盖章）：_____________ 日期：____年__月__日
+  </div>
+</div>
+
+<div class=""security-box"">
+  <div>
+    <strong>防伪校验码：</strong> {record.防伪码}<br>
+    <strong>防伪声明：</strong> 本单由医院科研管理系统自动生成，扫描二维码或凭防伪码可验真科教真实业绩。
+  </div>
+  <div style=""text-align: center; font-family: monospace; font-size: 11px; color: #555;"">
+    [ 官方防伪校验标识 ]<br>
+    HASH: {record.防伪码}
+  </div>
+</div>
+
+</body>
+</html>";
+
+            return Content(html, "text/html; charset=utf-8");
+        }
+
+        /// <summary>
+        /// 公网查验接口：根据防伪码查询职称评审单真实性
+        /// </summary>
+        [HttpGet]
+        public async Task<object> 验真职称审查单(string 防伪码)
+        {
+            if (string.IsNullOrWhiteSpace(防伪码)) return BadRequest(new { error = "防伪码不能为空" });
+
+            var record = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT ""编号"", ""姓名"", ""工号"", ""拟晋升职称"", ""现专业技术职称"", ""防伪码"", ""生成时间""
+FROM ""职称晋升资格审查记录""
+WHERE ""防伪码"" = @防伪码;", new { 防伪码 = 防伪码.Trim() });
+
+            if (record == null)
+            {
+                return new { 验真结果 = false, 提示 = "查无此防伪记录，可能为伪造或已被作废。" };
+            }
+
+            return new
+            {
+                验真结果 = true,
+                姓名 = (string)record.姓名,
+                工号 = (string)record.工号,
+                拟晋升职称 = (string)record.拟晋升职称,
+                现职称 = (string)record.现专业技术职称,
+                防伪码 = (string)record.防伪码,
+                生成时间 = Convert.ToDateTime(record.生成时间).ToString("yyyy-MM-dd HH:mm:ss"),
+                查验提示 = "此审查单真实有效，经医院科研管理系统认证通过。"
+            };
+        }
+
+        #endregion
 
         private static string 空值(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

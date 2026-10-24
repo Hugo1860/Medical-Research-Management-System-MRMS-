@@ -6,7 +6,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 migration_dir="$root/database/postgresql/migrations"
 settings="$root/ScientificResearch/ScientificResearch/appsettings.json"
-expected=115
+expected=116
 
 python3 - "$root" "$expected" <<'PY'
 import json, re, sys
@@ -69,6 +69,7 @@ markers = {
     113: ('继教学分标准', '讲座学分设置', '院内讲座签到', '继教学分记录', '继教催办记录'),
     114: ('医院运营模式', '基础信息维护/医院运营模式.html', '角色权限'),
     115: ('sp_纵向项目申报_增改', '资助类型'),
+    116: ('医疗新技术新项目', '医疗新技术临床应用随访', '医共体适宜技术推广', '科普成果与临床案例库', '职称晋升资格审查记录', '医共体合作单位'),
 }
 for number, required in markers.items():
     path = next((p for p in files if int(p.name[:3]) == number), None)

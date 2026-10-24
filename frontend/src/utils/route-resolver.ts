@@ -55,6 +55,12 @@ export const modernRouteMap: Record<string, string> = {
   '科研办公/科研办公/论文投稿备案.html': '/fruit/paper-submission',
   '成果管理/论文/论文投稿备案.html': '/fruit/paper-submission',
   '科研办公/科研办公/继续医学教育学分.html': '/office/cme-credits',
+  '科研办公/科研办公/医疗新技术新项目.html': '/office/new-technology',
+  '科研办公/科研办公/医疗新技术与适宜技术.html': '/office/new-technology',
+  '成果管理/成果管理/科普与案例成果库.html': '/fruit/popular-science',
+  '成果管理/成果管理/科普成果与临床案例.html': '/fruit/popular-science',
+  '科研办公/科研办公/医共体科教协同.html': '/office/community-healthcare',
+  '科研办公/科研办公/县域医共体协同.html': '/office/community-healthcare',
   '基础信息维护/医院运营模式.html': '/base-info/system-configs?tab=hospitalMode',
 
   // 统一业务台账参数化接管

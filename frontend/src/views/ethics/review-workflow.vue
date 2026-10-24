@@ -8,6 +8,9 @@
         </div>
         <div class="header-actions">
           <el-button :icon="Refresh" @click="refresh">刷新</el-button>
+          <el-button v-if="canCreateApplication" type="success" plain :icon="MagicStick" @click="openSimplifiedWizard">
+            简易快审 / 免除知情向导
+          </el-button>
           <el-button v-if="canCreateApplication" type="primary" :icon="Plus" @click="openCreate">新建伦理申请</el-button>
           <el-tag v-else type="info" effect="plain">当前角色只读</el-tag>
         </div>
@@ -393,13 +396,90 @@
       </el-form>
       <template #footer><el-button @click="agendaVisible = false">取消</el-button><el-button type="primary" :loading="meetingSaving" @click="saveAgendaForm">保存议程</el-button></template>
     </el-dialog>
+
+    <!-- 简易伦理快审与免除知情向导对话框 -->
+    <el-dialog v-model="wizardVisible" title="医学伦理简易快审与免除知情同意向导（二级医院极简版）" width="760px" destroy-on-close>
+      <el-alert
+        type="success"
+        :closable="false"
+        title="二级医院90%以上研究属于回顾性病历、调查问卷或体外残余标本，通过本向导可自动填充标准化法定免除知情理由与脱敏保护承诺，极速生成标准申请文书或一键报送快审。"
+        style="margin-bottom: 14px"
+      />
+
+      <el-form ref="wizardFormRef" :model="wizardForm" label-width="120px">
+        <el-form-item label="研究场景预设" required>
+          <el-radio-group v-model="wizardForm.场景类型" @change="onWizardSceneChange">
+            <el-radio label="回顾性病历分析">回顾性病历分析</el-radio>
+            <el-radio label="无创临床观察与残余标本">无创临床观察/残余标本</el-radio>
+            <el-radio label="问卷调查与认知度调研">问卷调查/认知度调研</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="关联流程模板" required>
+              <el-select v-model="wizardForm.流程模板编号" style="width: 100%">
+                <el-option label="纵向项目立项 (模板2)" :value="2" />
+                <el-option label="纵向项目申报 (模板1)" :value="1" />
+                <el-option label="横向项目申请 (模板3)" :value="3" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="关联项目编号" required>
+              <el-input-number v-model="wizardForm.项目编号" :min="1" placeholder="填入项目编号" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="伦理申请标题" required>
+          <el-input v-model="wizardForm.申请标题" placeholder="如：某疾病回顾性诊疗规律分析伦理审查申请" />
+        </el-form-item>
+
+        <el-form-item label="研究背景与目的">
+          <el-input v-model="wizardForm.研究目的" type="textarea" :rows="2" placeholder="简述研究目的" />
+        </el-form-item>
+
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="预期样本量">
+              <el-input v-model="wizardForm.预期样本量" placeholder="如：100例" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="提取数据项">
+              <el-input v-model="wizardForm.观察指标与数据项" placeholder="如：年龄、主诉、检验化验值、转归" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="纳入排除标准">
+          <el-input v-model="wizardForm.样本纳入与排除标准" type="textarea" :rows="2" placeholder="纳入与排除条件" />
+        </el-form-item>
+
+        <el-form-item label="免除知情依据">
+          <el-input v-model="wizardForm.免除知情同意依据" type="textarea" :rows="3" />
+        </el-form-item>
+
+        <el-form-item label="隐私脱敏措施">
+          <el-input v-model="wizardForm.隐私与去标识化措施" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="wizardVisible = false">取消</el-button>
+        <el-button type="info" @click="previewWizardDoc">预览申请文书 (Word/HTML)</el-button>
+        <el-button type="warning" :loading="wizardSubmitting" @click="submitWizardForm(false)">保存为草稿</el-button>
+        <el-button type="primary" :loading="wizardSubmitting" @click="submitWizardForm(true)">一键报送快审</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { DocumentChecked, Plus, Refresh } from '@element-plus/icons-vue'
+import { DocumentChecked, Plus, Refresh, MagicStick } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import {
   acceptEthicsApplication,
@@ -419,7 +499,10 @@ import {
   confirmEthicsMinutes,
   getEthicsAnonymousVote,
   archiveEthicsMaterial,
-  submitEthicsApplication
+  submitEthicsApplication,
+  getSimplifiedEthicsTemplates,
+  generateSimplifiedEthicsDocHtml,
+  submitSimplifiedEthicsApplication
 } from '@/api/ethics'
 import type { EthicsApplication, EthicsMeeting } from '@/api/ethics'
 
@@ -489,6 +572,78 @@ const archive = reactive<any>({ 申请编号: undefined, 会议编号: undefined
 const archiveVerification = ref<any>(null)
 const agendaVisible = ref(false)
 const agenda = reactive<any>({ 会议编号: 0, 申请编号: 0, 排序号: 1, 议题说明: '', 状态: '已排期' })
+
+const wizardVisible = ref(false)
+const wizardSubmitting = ref(false)
+const wizardForm = reactive<any>({
+  场景类型: '回顾性病历分析',
+  流程模板编号: 2,
+  项目编号: 1,
+  申请标题: '',
+  研究目的: '',
+  样本纳入与排除标准: '',
+  预期样本量: '100例',
+  观察指标与数据项: '',
+  免除知情同意依据: '',
+  隐私与去标识化措施: ''
+})
+
+async function openSimplifiedWizard() {
+  wizardVisible.value = true
+  await onWizardSceneChange(wizardForm.场景类型)
+}
+
+async function onWizardSceneChange(scene: string) {
+  try {
+    const res: any = await getSimplifiedEthicsTemplates({ 场景类型: scene })
+    const data = res?.data || res
+    if (data) {
+      wizardForm.申请标题 = `${data.场景类型}简易伦理快审与免除知情申请`
+      wizardForm.研究目的 = data.默认研究目的 || ''
+      wizardForm.样本纳入与排除标准 = `【纳入标准】${data.默认纳入标准 || ''}\n【排除标准】${data.默认排除标准 || ''}`
+      wizardForm.观察指标与数据项 = data.默认数据项 || ''
+      wizardForm.免除知情同意依据 = data.免除知情同意依据 || ''
+      wizardForm.隐私与去标识化措施 = data.隐私与去标识化措施 || ''
+    }
+  } catch {}
+}
+
+async function previewWizardDoc() {
+  try {
+    const res: any = await generateSimplifiedEthicsDocHtml(wizardForm)
+    const data = res?.data || res
+    const printWin = window.open('', '_blank')
+    if (printWin) {
+      printWin.document.write(data.html || '<h3>无内容</h3>')
+      printWin.document.close()
+      printWin.focus()
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '生成预览失败')
+  }
+}
+
+async function submitWizardForm(directSubmit: boolean) {
+  if (!wizardForm.申请标题 || !wizardForm.项目编号) {
+    ElMessage.warning('请填写项目编号与申请标题')
+    return
+  }
+  wizardSubmitting.value = true
+  try {
+    const res: any = await submitSimplifiedEthicsApplication({
+      ...wizardForm,
+      直接提交审批: directSubmit
+    })
+    const data = res?.data || res
+    ElMessage.success(data.message || '操作成功')
+    wizardVisible.value = false
+    await loadApplications()
+  } catch (err: any) {
+    ElMessage.error(err.message || '提交失败')
+  } finally {
+    wizardSubmitting.value = false
+  }
+}
 
 function materialCheck(value: Partial<EthicsApplication> | null | undefined) {
   const missing: string[] = []

@@ -94,6 +94,255 @@ RETURNING ""编号"";", new
         return new { 编号 = id, 状态 = "草稿", message = "伦理申请草稿已创建，请提交后进入委员会受理" };
     }
 
+    /// <summary>获取免除知情同意与简易快审向导的推荐配置与预设文本模板。</summary>
+    [HttpGet]
+    public object 获取免除知情同意与快审向导配置(string 场景类型 = null)
+    {
+        var templates = new List<object>
+        {
+            new
+            {
+                场景类型 = "回顾性病历分析",
+                适用范围 = "利用既往临床诊疗中已记录的病历资料、化验数据、影像学检查结果开展的回顾性总结，不增加患者额外检查或干预风险（二级医院占比超80%）。",
+                建议审查类型 = "简易快审",
+                建议风险等级 = "低风险",
+                默认研究目的 = "通过对既往临床确诊病例的诊疗过程及随访数据进行回顾性整理分析，探讨临床疗效、危险因素与预后指标，为临床规范化诊疗提供现实数据支持。",
+                默认纳入标准 = "符合临床诊断标准；于本院接受规范诊治并具备完整出院病案及随访记录者。",
+                默认排除标准 = "病历资料严重缺失、随访失访或无法核实关键临床转归指标者。",
+                默认数据项 = "年龄、性别、主诉病程、既往史、入院检验化验指标、影像学特征、治疗方案、出院转归及并发症随访记录。",
+                免除知情同意依据 = "依据国家卫健委《涉及人的生命科学和医学研究伦理审查办法》第三十二条规定：本研究仅使用既往临床诊疗中获得的病史数据与医疗记录开展回顾性研究；研究不大于最小风险；免除知情同意不会对受试者合法权益造成不利影响；因受试者已出院或流动性大，无法逐一重新取得书面知情同意，故申请免除知情同意。",
+                隐私与去标识化措施 = "1. 从病案系统调取数据后，立即剥离姓名、身份证号、联系电话、家庭住址等直接个人标识符，使用唯一科研代号（如 Case-001）替换；\n2. 仅在医院内网局域网封闭电脑上进行脱敏统计，严禁上传公网云盘；\n3. 研究报告与发表论文仅展现汇总统计指标（百分比、均值、相关系数等），任何第三方均无法反向识别受试者个体。"
+            },
+            new
+            {
+                场景类型 = "无创临床观察与残余标本",
+                适用范围 = "利用临床已完成常规诊疗检验后即将废弃的残余血液/体液/组织标本进行体外补充检测，未额外采集或伤害受试者身体。",
+                建议审查类型 = "简易快审",
+                建议风险等级 = "低风险",
+                默认研究目的 = "利用临床常规诊疗后残留的生物样本，开展新型生物标志物体外检测评价与辅助诊断效能分析。",
+                默认纳入标准 = "临床常规诊疗留样且检验后剩余满足实验要求的生物样本。",
+                默认排除标准 = "标本溶血、污染、量不足或临床原检验项目未完成者。",
+                默认数据项 = "样本检测指标数值、标本采集时间、患者年龄段及基本临床分型。",
+                免除知情同意依据 = "标本均为临床常规检验后拟废弃的剩余样本，未对受试者增加任何额外的侵入性创伤或健康风险；样本检测结果不直接用于临床诊疗计费或改变既定治疗方案，符合伦理法规中残余标本研究豁免知情同意的法定条件。",
+                隐私与去标识化措施 = "1. 实验室接收样本时进行双盲编码，实验操作人员接触不到受试者身份信息；\n2. 剩余样本检测完毕后按医疗废物规范集中销毁，不作他用；\n3. 实验数据以组群汇总统计，不披露受试者个体关联映射表。"
+            },
+            new
+            {
+                场景类型 = "问卷调查与认知度调研",
+                适用范围 = "面向门诊/住院患者或基层医务人员开展的无创满意度调查、疾病知晓度与健康素养测评，不涉及敏感疾病隐私或个人财产利益。",
+                建议审查类型 = "简易快审",
+                建议风险等级 = "低风险",
+                默认研究目的 = "评估患者对疾病防治知识的认知水平、健康宣教接受度及诊疗依从性，为优化临床医患沟通与科室服务流程提供参考。",
+                默认纳入标准 = "自愿参与问卷调研的门诊/住院患者、家属或医护人员，具备基本理解与表述能力。",
+                默认排除标准 = "存在认知障碍、意识不清或拒绝参与问卷填写者。",
+                默认数据项 = "问卷题目得分、宣教认知评分、满意度评价及一般人口学基本特征（年龄段、文化程度）。",
+                免除知情同意依据 = "调查问卷首页明确告知研究目的、自愿参与原则及随时退出权利；问卷全程采取不记名自填形式，被调查人填写并提交问卷即视为同意参与，申请豁免签署书面知情同意书。",
+                隐私与去标识化措施 = "1. 问卷不收集姓名、电话、工号及IP网络定位信息；\n2. 问卷纸质件或电子端汇总后统一归档加密存储，仅供本项目课题组统计分析；\n3. 公开发表的成果仅展现总体分布规律，不泄露特定人员回答记录。"
+            }
+        };
+
+        if (!string.IsNullOrWhiteSpace(场景类型))
+        {
+            var match = templates.FirstOrDefault(t => ((dynamic)t).场景类型 == 场景类型.Trim());
+            if (match != null) return match;
+        }
+
+        return templates;
+    }
+
+    /// <summary>生成符合二级医院规范的免除知情同意与简易快审审查材料 HTML（可直接打印或转为 Word 存档）。</summary>
+    [HttpPost]
+    public async Task<object> 生成简易伦理申请文档HTML([FromBody] 简易伦理向导申请 request)
+    {
+        if (request == null) throw new ArgumentException("申请向导参数不能为空");
+        var user = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT p.""姓名"", p.""工号"", d.""部门名称"" AS ""科室名称"", p.""技术职称"", p.""电话""
+  FROM ""人员"" p
+  LEFT JOIN ""部门"" d ON d.""编号""=p.""部门编号""
+ WHERE p.""编号""=@编号;", new { 编号 = CurrentUser.编号 });
+
+        var authorName = user?.姓名 ?? "申请人";
+        var deptName = user?.科室名称 ?? "临床科室";
+        var title = string.IsNullOrWhiteSpace(request.申请标题) ? $"{deptName}{request.场景类型}伦理快审申请" : request.申请标题.Trim();
+        var scene = string.IsNullOrWhiteSpace(request.场景类型) ? "回顾性病历分析" : request.场景类型.Trim();
+        var docNo = $"EC-FAST-{DateTime.Now:yyyyMMdd}-{Math.Abs((title + CurrentUser.编号).GetHashCode()) % 9000 + 1000}";
+
+        var html = $@"<!DOCTYPE html>
+<html lang=""zh-CN"">
+<head>
+<meta charset=""utf-8"">
+<title>{title} - 简易伦理快审与免除知情同意申请表</title>
+<style>
+  body {{ font-family: SimSun, 'Songti SC', serif; margin: 40px; color: #222; line-height: 1.8; }}
+  h1 {{ text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 4px; }}
+  h2 {{ text-align: center; font-size: 16px; font-weight: normal; margin-bottom: 25px; color: #555; }}
+  table {{ width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }}
+  th, td {{ border: 1px solid #333; padding: 8px 12px; font-size: 13.5px; vertical-align: middle; }}
+  th {{ background-color: #f7f9fa; font-weight: bold; width: 22%; }}
+  .section-title {{ font-weight: bold; font-size: 15px; margin-top: 20px; margin-bottom: 8px; border-left: 4px solid #1677ff; padding-left: 8px; }}
+  .sign-box {{ margin-top: 30px; display: flex; justify-content: space-between; }}
+  .sign-item {{ width: 45%; border-top: 1px solid #333; padding-top: 8px; font-size: 13.5px; }}
+  .highlight {{ background-color: #f0f7ff; padding: 10px; border: 1px dashed #91caff; border-radius: 4px; margin: 10px 0; }}
+</style>
+</head>
+<body>
+  <h1>医学伦理委员会简易审查（快审）与免除知情同意申请表</h1>
+  <h2>文书编号：{docNo} &nbsp;&nbsp;|&nbsp;&nbsp; 申请日期：{DateTime.Now:yyyy年MM月dd日}</h2>
+
+  <div class=""section-title"">一、研究基本信息</div>
+  <table>
+    <tr>
+      <th>研究项目名称</th>
+      <td colspan=""3""><strong>{title}</strong></td>
+    </tr>
+    <tr>
+      <th>主要研究者 (PI)</th>
+      <td>{authorName} ({user?.技术职称 ?? "医师"})</td>
+      <th>所在科室</th>
+      <td>{deptName}</td>
+    </tr>
+    <tr>
+      <th>联系电话</th>
+      <td>{user?.电话 ?? "医院内线"}</td>
+      <th>研究场景分类</th>
+      <td><span style=""color:#0958d9;font-weight:bold;"">{scene}</span></td>
+    </tr>
+    <tr>
+      <th>建议审查方式</th>
+      <td><strong>简易快审（主任委员/主审委员快审）</strong></td>
+      <th>受试者风险等级</th>
+      <td><span style=""color:#389e0d;font-weight:bold;"">低风险（不大于最小风险）</span></td>
+    </tr>
+  </table>
+
+  <div class=""section-title"">二、研究方案简要说明</div>
+  <table>
+    <tr>
+      <th>研究目的与背景</th>
+      <td colspan=""3"">{(string.IsNullOrWhiteSpace(request.研究目的) ? "详见课题设计方案" : request.研究目的.Trim())}</td>
+    </tr>
+    <tr>
+      <th>纳入与排除标准</th>
+      <td colspan=""3"">{(string.IsNullOrWhiteSpace(request.样本纳入与排除标准) ? "符合临床诊断指标者纳入，资料缺失者排除" : request.样本纳入与排除标准.Trim())}</td>
+    </tr>
+    <tr>
+      <th>预期样本例数</th>
+      <td>{(string.IsNullOrWhiteSpace(request.预期样本量) ? "拟调取 50~200 例" : request.预期样本量.Trim())}</td>
+      <th>主要提取数据项</th>
+      <td>{(string.IsNullOrWhiteSpace(request.观察指标与数据项) ? "常规病史、辅助化验指标及转归" : request.观察指标与数据项.Trim())}</td>
+    </tr>
+  </table>
+
+  <div class=""section-title"">三、免除知情同意理由与法律法规依据</div>
+  <div class=""highlight"">
+    <p><strong>申请免除知情同意之法定依据：</strong></p>
+    <p>{(string.IsNullOrWhiteSpace(request.免除知情同意依据) ? "符合《涉及人的生命科学和医学研究伦理审查办法》第三十二条免除知情同意规定。" : request.免除知情同意依据.Trim())}</p>
+  </div>
+
+  <div class=""section-title"">四、受试者隐私保护与去标识化措施</div>
+  <table>
+    <tr>
+      <th>数据安全与脱敏承诺</th>
+      <td colspan=""3"">{(string.IsNullOrWhiteSpace(request.隐私与去标识化措施) ? "严格执行医院数据安全规范，数据去标识化后脱敏留存于局域网电脑。" : request.隐私与去标识化措施.Trim())}</td>
+    </tr>
+  </table>
+
+  <div class=""section-title"">五、主审委员与伦理委员会快审决定（委员会填写）</div>
+  <table>
+    <tr>
+      <th style=""height: 80px;"">主审委员意见</th>
+      <td colspan=""3"">
+        [ &nbsp; ] 同意免除知情同意，批准开展研究 &nbsp;&nbsp;&nbsp;&nbsp;
+        [ &nbsp; ] 建议修改后重报 &nbsp;&nbsp;&nbsp;&nbsp;
+        [ &nbsp; ] 建议转入全委员会会议审查<br/><br/>
+        主审委员签名：____________________ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 日期：_______年____月____日
+      </td>
+    </tr>
+    <tr>
+      <th style=""height: 60px;"">伦理委员会盖章</th>
+      <td colspan=""3"">
+        医学伦理委员会（签章）： &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 批件签发日期：_______年____月____日
+      </td>
+    </tr>
+  </table>
+
+  <div class=""sign-box"">
+    <div class=""sign-item"">
+      主要研究者 (PI) 承诺签名：____________________<br/>
+      日期：{DateTime.Now:yyyy年MM月dd日}
+    </div>
+    <div class=""sign-item"">
+      科室主任审核意见：&nbsp;同意申报 [ &nbsp; ]<br/>
+      科主任签名：____________________
+    </div>
+  </div>
+</body>
+</html>";
+
+        return new
+        {
+            文书编号 = docNo,
+            项目名称 = title,
+            主要研究者 = authorName,
+            科室 = deptName,
+            html
+        };
+    }
+
+    /// <summary>一键将简易向导填报内容创建为伦理快审申请（低风险、免除知情），并支持直接递交委员会待受理队列。</summary>
+    [HttpPost]
+    public async Task<object> 提交简易快审申请([FromBody] 简易伦理向导申请 request)
+    {
+        if (request == null) throw new ArgumentException("简易快审向导参数不能为空");
+        if (request.流程模板编号 <= 0 || request.项目编号 <= 0) throw new ArgumentException("必须指定关联的纵向/横向项目编号");
+        if (!await CanAccessProjectAsync(request.流程模板编号, request.项目编号)) return ProjectAccessDenied();
+
+        var title = string.IsNullOrWhiteSpace(request.申请标题) ? $"{request.场景类型}简易伦理快审申请" : request.申请标题.Trim();
+        var scene = string.IsNullOrWhiteSpace(request.场景类型) ? "回顾性病历分析" : request.场景类型.Trim();
+
+        var schemeSummary = $@"【研究场景】{scene}（简易快审/免除知情同意向导生成）
+【研究目的】{(string.IsNullOrWhiteSpace(request.研究目的) ? "回顾性临床数据分析与规律探讨" : request.研究目的.Trim())}
+【纳入与排除标准】{(string.IsNullOrWhiteSpace(request.样本纳入与排除标准) ? "符合临床诊断指标者纳入，数据缺失严重者排除" : request.样本纳入与排除标准.Trim())}
+【预期样本量】{(string.IsNullOrWhiteSpace(request.预期样本量) ? "约50~200例" : request.预期样本量.Trim())}
+【提取指标项】{(string.IsNullOrWhiteSpace(request.观察指标与数据项) ? "常规临床病案指标" : request.观察指标与数据项.Trim())}
+【隐私脱敏与保密】{(string.IsNullOrWhiteSpace(request.隐私与去标识化措施) ? "去标识化科研编码，局域网离线统计" : request.隐私与去标识化措施.Trim())}";
+
+        var waiverRation = string.IsNullOrWhiteSpace(request.免除知情同意依据)
+            ? "符合《涉及人的生命科学和医学研究伦理审查办法》第三十二条免除知情同意规定，不大于最小风险，申请豁免知情同意签署。"
+            : request.免除知情同意依据.Trim();
+
+        var initialStatus = request.直接提交审批 ? "待受理" : "草稿";
+
+        var id = await Db.QuerySingleAsync<long>(@"
+INSERT INTO ""伦理审查申请"" (""流程模板编号"",""项目编号"",""申请人编号"",""申请类型"",""申请标题"",""研究方案摘要"",""受试者风险等级"",""知情同意说明"",""状态"",""提交时间"",""建立人编号"")
+VALUES (@流程模板编号,@项目编号,@申请人编号,'初始审查',@申请标题,@研究方案摘要,'低风险',@知情同意说明,@状态,CASE WHEN @直接提交 THEN CURRENT_TIMESTAMP ELSE NULL END,@建立人编号)
+RETURNING ""编号"";", new
+        {
+            request.流程模板编号, request.项目编号, 申请人编号 = CurrentUser.编号,
+            申请标题 = title, 研究方案摘要 = schemeSummary,
+            知情同意说明 = waiverRation, 状态 = initialStatus,
+            直接提交 = request.直接提交审批, 建立人编号 = CurrentUser.编号
+        });
+
+        if (request.直接提交审批)
+        {
+            await 记录伦理审计(id, null, null, null, "简易快审向导一键提交", "草稿", "待受理", new
+            {
+                场景 = scene,
+                受试者风险等级 = "低风险",
+                向导生成 = true
+            });
+        }
+
+        return new
+        {
+            编号 = id,
+            状态 = initialStatus,
+            申请标题 = title,
+            message = request.直接提交审批 ? "简易伦理快审已成功提交，进入伦理委员会待受理队列" : "简易伦理申请草稿已生成，可继续完善或上传附件"
+        };
+    }
+
     /// <summary>将草稿提交到委员会受理队列，提交后申请人不可直接修改。</summary>
     [HttpPost]
     public async Task<object> 提交伦理审查([FromBody] long 申请编号)

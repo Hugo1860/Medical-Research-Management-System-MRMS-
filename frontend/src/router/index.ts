@@ -274,6 +274,24 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '继续医学教育学分', icon: 'Medal' }
       },
       {
+        path: 'office/new-technology',
+        name: 'OfficeNewTechnology',
+        component: () => import('@/views/office/new-technology.vue'),
+        meta: { title: '医疗新技术与适宜技术', icon: 'TrendCharts' }
+      },
+      {
+        path: 'fruit/popular-science',
+        name: 'FruitPopularScience',
+        component: () => import('@/views/fruit/popular-science.vue'),
+        meta: { title: '科普成果与案例库', icon: 'Reading' }
+      },
+      {
+        path: 'office/community-healthcare',
+        name: 'OfficeCommunityHealthcare',
+        component: () => import('@/views/office/community-healthcare.vue'),
+        meta: { title: '医共体科教协同', icon: 'Share' }
+      },
+      {
         path: 'ethics/review-workflow',
         name: 'EthicsReviewWorkflow',
         component: () => import('@/views/ethics/review-workflow.vue'),

@@ -19,6 +19,349 @@ public sealed class EducationStatisticsController : BaseController
 
     private Task<bool> IsManager() => HasAnyRoleAsync(管理角色);
 
+    /// <summary>获取符合国家卫健委《全国卫生健康科技统计年报》标准的科技数据汇总大盘（支持二级医院科技填报）。</summary>
+    [HttpGet]
+    public async Task<object> 获取卫健委科技统计年报(int? 年度 = null)
+    {
+        var targetYear = 年度 ?? DateTime.Now.Year;
+
+        // 1. 卫生技术人力资源概况
+        var personnelSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*) AS 总人数,
+    COUNT(*) FILTER (WHERE ""技术职称"" LIKE '%主任医师%' OR ""技术职称"" LIKE '%主任护师%' OR ""技术职称"" LIKE '%正高%') AS 正高人数,
+    COUNT(*) FILTER (WHERE ""技术职称"" LIKE '%副主任%' OR ""技术职称"" LIKE '%副高%') AS 副高人数,
+    COUNT(*) FILTER (WHERE ""技术职称"" LIKE '%主治%' OR ""技术职称"" LIKE '%主管%' OR ""技术职称"" LIKE '%中级%') AS 中级人数,
+    COUNT(*) FILTER (WHERE ""技术职称"" LIKE '%住院%' OR ""技术职称"" LIKE '%初级%' OR ""技术职称"" LIKE '%护士%' OR ""技术职称"" LIKE '%医师%') AS 初级人数
+FROM ""人员"";");
+
+        // 2. 纵向课题立项情况
+        var projectRows = await Db.QueryAsync<dynamic>(@"
+SELECT 
+    COALESCE(""项目级别"", '其他') AS 项目级别,
+    COUNT(*) AS 项目数,
+    COALESCE(SUM(""批准经费""), 0) AS 经费总额
+FROM ""纵向项目立项""
+WHERE ""立项年度"" = @targetYear
+GROUP BY ""项目级别"";", new { targetYear });
+
+        // 3. 横向协作与技术服务
+        var horizontalSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*) AS 项目数,
+    COALESCE(SUM(""合同金额""), 0) AS 合同金额
+FROM ""横向项目""
+WHERE EXTRACT(YEAR FROM COALESCE(""签订时间"", ""建立时间"")) = @targetYear;", new { targetYear });
+
+        // 4. 医疗新技术新项目（三新）与适宜技术推广
+        var techSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    (SELECT COUNT(*) FROM ""医疗新技术新项目"" WHERE ""申报年度"" = @targetYear) AS 新技术立项数,
+    (SELECT COUNT(*) FROM ""医疗新技术临床应用随访"" WHERE EXTRACT(YEAR FROM ""应用日期"") = @targetYear) AS 临床应用例数,
+    (SELECT COUNT(*) FROM ""医疗新技术临床应用随访"" WHERE EXTRACT(YEAR FROM ""应用日期"") = @targetYear AND ""是否发生不良反应"" = true) AS 不良反应例数,
+    (SELECT COUNT(*) FROM ""医疗新技术转常规与评奖"" WHERE ""审批状态"" = '已批准' AND EXTRACT(YEAR FROM ""创建时间"") = @targetYear) AS 转常规与获奖数;");
+
+        // 5. 适宜技术下乡与医共体协同
+        var appropriateTechSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*) AS 推广项目数,
+    COALESCE(SUM(""培训场次""), 0) AS 培训总场次,
+    COALESCE(SUM(""受益医务人员数""), 0) AS 培训基层医护数,
+    COALESCE(SUM(""受益患者人次""), 0) AS 受益患者人次
+FROM ""医共体适宜技术推广""
+WHERE EXTRACT(YEAR FROM ""推广日期"") = @targetYear;", new { targetYear });
+
+        // 6. 论文与科研成果
+        var paperSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*) AS 论文总数,
+    COUNT(*) FILTER (WHERE ""是否Top期刊"" = true OR ""中科院分区"" IN ('1区', '2区', 'SCI')) AS 高水平论著数,
+    COUNT(*) FILTER (WHERE ""第一作者"" IS NOT NULL OR ""通讯作者"" IS NOT NULL) AS 第一或通讯作者数
+FROM ""成果论文""
+WHERE ""年度"" = @targetYear OR EXTRACT(YEAR FROM ""论文正式出版日期"") = @targetYear;");
+
+        // 7. 科普成果、典型案例与护理小发明
+        var popularScienceSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*) FILTER (WHERE ""分类"" = '医学科普作品') AS 科普作品数,
+    COUNT(*) FILTER (WHERE ""分类"" = '临床典型案例') AS 典型案例数,
+    COUNT(*) FILTER (WHERE ""分类"" = '护理小发明') AS 护理小发明数,
+    COALESCE(SUM(""受众传播量与成效""), 0) AS 累计受益与传播量
+FROM ""科普成果与临床案例库""
+WHERE EXTRACT(YEAR FROM ""完成日期"") = @targetYear;");
+
+        // 8. 成果专利与知识产权
+        var patentCount = await Db.QuerySingleAsync<int>(@"
+SELECT COUNT(*) FROM ""成果专利""
+WHERE ""年度"" = @targetYear OR EXTRACT(YEAR FROM ""申请日期"") = @targetYear;");
+
+        // 9. 伦理审查全覆盖情况
+        var ethicsSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*) AS 审查总件数,
+    COUNT(*) FILTER (WHERE ""受试者风险等级"" = '低风险') AS 简易快审或免除知情数,
+    COUNT(*) FILTER (WHERE ""状态"" = '已同意') AS 审查批准数
+FROM ""伦理审查申请""
+WHERE EXTRACT(YEAR FROM ""建立时间"") = @targetYear;");
+
+        // 10. 医共体进修与帮扶
+        var communityTraining = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*) FILTER (WHERE ""业务类型"" = '基层来院进修') AS 接收基层进修人数,
+    COUNT(*) FILTER (WHERE ""业务类型"" = '总院下乡帮扶') AS 下乡帮扶人次
+FROM ""医共体人员进修帮扶记录""
+WHERE EXTRACT(YEAR FROM ""开始日期"") = @targetYear;");
+
+        return new
+        {
+            统计年度 = targetYear,
+            生成时间 = DateTime.Now,
+            报表类型 = "国家卫生健康科技统计年报（二级公立医院适配版）",
+            人力资源 = personnelSummary,
+            纵向课题 = projectRows,
+            横向协作 = horizontalSummary,
+            医疗新技术 = techSummary,
+            适宜技术推广 = appropriateTechSummary,
+            论文成果 = paperSummary,
+            科普与案例 = popularScienceSummary,
+            知识产权 = patentCount,
+            伦理合规 = ethicsSummary,
+            医共体协同 = communityTraining
+        };
+    }
+
+    /// <summary>生成二级公立医院绩效考核（国考）与等级医院评审（二甲/二优）科教专项佐证材料包数据与打印HTML。</summary>
+    [HttpGet]
+    public async Task<object> 获取二级公立医院国考与等级评审佐证包(int? 年度 = null)
+    {
+        var targetYear = 年度 ?? DateTime.Now.Year;
+
+        // 国考与等级评审核心佐证指标提取
+        var techProjects = await Db.QueryAsync<dynamic>(@"
+SELECT ""编号"", ""项目名称"", ""申报类别"", ""技术难度等级"", ""审批状态"", ""临床开展总例数"", ""申报年度""
+FROM ""医疗新技术新项目""
+WHERE ""申报年度"" = @targetYear
+ORDER BY ""编号"" DESC LIMIT 30;", new { targetYear });
+
+        var appropriateTechs = await Db.QueryAsync<dynamic>(@"
+SELECT t.""编号"", t.""技术名称"", t.""受援基层单位"", t.""推广形式"", t.""推广日期"", t.""培训场次"", t.""受益医务人员数"", t.""受益患者人次""
+FROM ""医共体适宜技术推广"" t
+WHERE EXTRACT(YEAR FROM t.""推广日期"") = @targetYear
+ORDER BY t.""推广日期"" DESC LIMIT 30;", new { targetYear });
+
+        var popularSciences = await Db.QueryAsync<dynamic>(@"
+SELECT ""编号"", ""分类"", ""成果名称"", ""第一作者姓名"", ""发布载体与平台"", ""受众传播量与成效"", ""审核状态""
+FROM ""科普成果与临床案例库""
+WHERE EXTRACT(YEAR FROM ""完成日期"") = @targetYear
+ORDER BY ""编号"" DESC LIMIT 30;", new { targetYear });
+
+        var communityRecords = await Db.QueryAsync<dynamic>(@"
+SELECT r.""编号"", r.""业务类型"", u.""单位名称"" AS ""合作单位"", r.""人员姓名"", r.""人员职称"", r.""专业学科"", r.""开始日期"", r.""结束日期"", r.""考核鉴定结果""
+FROM ""医共体人员进修帮扶记录"" r
+LEFT JOIN ""医共体合作单位"" u ON u.""编号"" = r.""合作单位编号""
+WHERE EXTRACT(YEAR FROM r.""开始日期"") = @targetYear
+ORDER BY r.""开始日期"" DESC LIMIT 30;", new { targetYear });
+
+        // 生成规范的排版文档 HTML
+        var reportHtml = $@"<!DOCTYPE html>
+<html lang=""zh-CN"">
+<head>
+<meta charset=""utf-8"">
+<title>{targetYear}年度 二级公立医院绩效考核与等级评审科教佐证材料包</title>
+<style>
+  body {{ font-family: SimSun, 'Songti SC', serif; margin: 30px 40px; color: #111; line-height: 1.6; }}
+  h1 {{ text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 6px; }}
+  .sub-title {{ text-align: center; font-size: 14px; color: #666; margin-bottom: 25px; }}
+  .box {{ border: 1px solid #333; padding: 12px 18px; margin-bottom: 20px; border-radius: 4px; }}
+  .box-title {{ font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #003a8c; }}
+  table {{ width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }}
+  th, td {{ border: 1px solid #444; padding: 6px 10px; font-size: 13px; text-align: left; }}
+  th {{ background-color: #f2f4f6; font-weight: bold; }}
+  .badge {{ display: inline-block; padding: 2px 6px; font-size: 11px; border-radius: 3px; font-weight: normal; }}
+  .badge-success {{ background-color: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }}
+  .badge-primary {{ background-color: #e6f7ff; border: 1px solid #91d5ff; color: #1890ff; }}
+  .summary-grid {{ display: flex; justify-content: space-between; margin-bottom: 20px; }}
+  .summary-card {{ width: 23%; border: 1px solid #d9d9d9; padding: 10px; text-align: center; border-radius: 4px; background: #fafafa; }}
+  .summary-num {{ font-size: 22px; font-weight: bold; color: #1890ff; margin-top: 4px; }}
+  .stamp-area {{ margin-top: 40px; display: flex; justify-content: space-between; font-size: 14px; }}
+  .stamp-col {{ width: 45%; border-top: 1px dashed #666; padding-top: 10px; }}
+</style>
+</head>
+<body>
+  <h1>{targetYear}年度 二级公立医院绩效考核与等级评审</h1>
+  <h2 style=""text-align:center;font-size:18px;font-weight:normal;margin-top:0;"">科教工作成效专项佐证材料档案包</h2>
+  <div class=""sub-title"">生成日期：{DateTime.Now:yyyy年MM月dd日} &nbsp;|&nbsp; 编制单位：医院科教科 / 科技处</div>
+
+  <div class=""summary-grid"">
+    <div class=""summary-card"">
+      <div>三新医疗新技术</div>
+      <div class=""summary-num"">{techProjects.Count()} 项</div>
+    </div>
+    <div class=""summary-card"">
+      <div>适宜技术下乡推广</div>
+      <div class=""summary-num"">{appropriateTechs.Count()} 项</div>
+    </div>
+    <div class=""summary-card"">
+      <div>科普/典型案例/小发明</div>
+      <div class=""summary-num"">{popularSciences.Count()} 项</div>
+    </div>
+    <div class=""summary-card"">
+      <div>基层进修与帮扶</div>
+      <div class=""summary-num"">{communityRecords.Count()} 人次</div>
+    </div>
+  </div>
+
+  <div class=""box"">
+    <div class=""box-title"">【国考指标 48 / 等级评审条款 4.8】临床医疗新技术新项目准入与常规转化佐证清单</div>
+    <table>
+      <thead>
+        <tr>
+          <th>序号</th><th>技术新项目名称</th><th>申报类别</th><th>难度等级</th><th>准入状态</th><th>临床开展例数</th>
+        </tr>
+      </thead>
+      <tbody>";
+
+        int idx = 1;
+        foreach (var t in techProjects)
+        {
+            reportHtml += $@"
+        <tr>
+          <td>{idx++}</td>
+          <td><strong>{t.项目名称}</strong></td>
+          <td>{t.申报类别}</td>
+          <td>{t.技术难度等级}</td>
+          <td><span class=""badge badge-success"">{t.审批状态}</span></td>
+          <td>{t.临床开展总例数} 例</td>
+        </tr>";
+        }
+        if (!techProjects.Any()) reportHtml += "<tr><td colspan=\"6\" style=\"text-align:center;color:#999;\">本年度暂无新技术新项目登记记录</td></tr>";
+
+        reportHtml += $@"
+      </tbody>
+    </table>
+  </div>
+
+  <div class=""box"">
+    <div class=""box-title"">【国考指标 49 / 医共体协同】面向基层乡镇卫生院适宜技术推广与对口培训佐证清单</div>
+    <table>
+      <thead>
+        <tr>
+          <th>序号</th><th>适宜技术名称</th><th>受援基层单位</th><th>推广形式</th><th>推广日期</th><th>培训场次</th><th>培训基层医护</th><th>受益患者</th>
+        </tr>
+      </thead>
+      <tbody>";
+
+        idx = 1;
+        foreach (var a in appropriateTechs)
+        {
+            var pDate = a.推广日期 != null ? ((DateTime)a.推广日期).ToString("yyyy-MM-dd") : "-";
+            reportHtml += $@"
+        <tr>
+          <td>{idx++}</td>
+          <td><strong>{a.技术名称}</strong></td>
+          <td>{a.受援基层单位}</td>
+          <td>{a.推广形式}</td>
+          <td>{pDate}</td>
+          <td>{a.培训场次} 场</td>
+          <td>{a.受益医务人员数} 人</td>
+          <td>{a.受益患者人次} 人次</td>
+        </tr>";
+        }
+        if (!appropriateTechs.Any()) reportHtml += "<tr><td colspan=\"8\" style=\"text-align:center;color:#999;\">本年度暂无适宜技术下乡推广记录</td></tr>";
+
+        reportHtml += $@"
+      </tbody>
+    </table>
+  </div>
+
+  <div class=""box"">
+    <div class=""box-title"">【特色加分项】医学科普作品、临床典型案例库与护理小发明转化佐证</div>
+    <table>
+      <thead>
+        <tr>
+          <th>序号</th><th>分类</th><th>成果名称</th><th>第一作者</th><th>发布载体与平台</th><th>受众传播量与成效</th><th>审核状态</th>
+        </tr>
+      </thead>
+      <tbody>";
+
+        idx = 1;
+        foreach (var p in popularSciences)
+        {
+            reportHtml += $@"
+        <tr>
+          <td>{idx++}</td>
+          <td><span class=""badge badge-primary"">{p.分类}</span></td>
+          <td><strong>{p.成果名称}</strong></td>
+          <td>{p.第一作者姓名}</td>
+          <td>{p.发布载体与平台}</td>
+          <td>{p.受众传播量与成效}</td>
+          <td>{p.审核状态}</td>
+        </tr>";
+        }
+        if (!popularSciences.Any()) reportHtml += "<tr><td colspan=\"7\" style=\"text-align:center;color:#999;\">本年度暂无科普与案例记录</td></tr>";
+
+        reportHtml += $@"
+      </tbody>
+    </table>
+  </div>
+
+  <div class=""box"">
+    <div class=""box-title"">【等级评审人才培养】县域医共体人员来院进修与总院下乡帮扶佐证清单</div>
+    <table>
+      <thead>
+        <tr>
+          <th>序号</th><th>业务类型</th><th>合作医疗单位</th><th>进修/帮扶人员</th><th>职称/学科</th><th>起止周期</th><th>考核鉴定</th>
+        </tr>
+      </thead>
+      <tbody>";
+
+        idx = 1;
+        foreach (var c in communityRecords)
+        {
+            var sDate = c.开始日期 != null ? ((DateTime)c.开始日期).ToString("yyyy-MM-dd") : "-";
+            var eDate = c.结束日期 != null ? ((DateTime)c.结束日期).ToString("yyyy-MM-dd") : "-";
+            reportHtml += $@"
+        <tr>
+          <td>{idx++}</td>
+          <td>{c.业务类型}</td>
+          <td>{c.合作单位 ?? "基层卫生院"}</td>
+          <td><strong>{c.人员姓名}</strong></td>
+          <td>{c.人员职称} / {c.专业学科}</td>
+          <td>{sDate} 至 {eDate}</td>
+          <td><span class=""badge badge-success"">{c.考核鉴定结果}</span></td>
+        </tr>";
+        }
+        if (!communityRecords.Any()) reportHtml += "<tr><td colspan=\"7\" style=\"text-align:center;color:#999;\">本年度暂无医共体进修与帮扶记录</td></tr>";
+
+        reportHtml += $@"
+      </tbody>
+    </table>
+  </div>
+
+  <div class=""stamp-area"">
+    <div class=""stamp-col"">
+      科教科负责人审核（签名）：___________________<br/>
+      日期：{DateTime.Now:yyyy年MM月dd日}
+    </div>
+    <div class=""stamp-col"">
+      分管院领导审定（签章）：___________________<br/>
+      日期：______年___月___日
+    </div>
+  </div>
+</body>
+</html>";
+
+        return new
+        {
+            年度 = targetYear,
+            新技术清单 = techProjects,
+            适宜技术清单 = appropriateTechs,
+            科普案例清单 = popularSciences,
+            进修帮扶清单 = communityRecords,
+            佐证包Html = reportHtml
+        };
+    }
+
     [HttpGet]
     public async Task<object> 查询统计任务(int? 统计年度 = null, string 状态 = null)
     {

@@ -216,3 +216,49 @@ export function archiveEthicsMaterial(data: { 申请编号?: number; 会议编�
     校验错误?: string
   }>('/Ethics/归档伦理电子材料', data)
 }
+
+export function getSimplifiedEthicsTemplates(params?: { 场景类型?: string }) {
+  return get<any>('/Ethics/获取免除知情同意与快审向导配置', params)
+}
+
+export function generateSimplifiedEthicsDocHtml(data: {
+  流程模板编号?: number
+  项目编号?: number
+  场景类型: string
+  申请标题?: string
+  研究目的?: string
+  样本纳入与排除标准?: string
+  预期样本量?: string
+  观察指标与数据项?: string
+  免除知情同意依据?: string
+  隐私与去标识化措施?: string
+}) {
+  return post<{
+    文书编号: string
+    项目名称: string
+    主要研究者: string
+    科室: string
+    html: string
+  }>('/Ethics/生成简易伦理申请文档HTML', data)
+}
+
+export function submitSimplifiedEthicsApplication(data: {
+  流程模板编号: number
+  项目编号: number
+  场景类型: string
+  申请标题?: string
+  研究目的?: string
+  样本纳入与排除标准?: string
+  预期样本量?: string
+  观察指标与数据项?: string
+  免除知情同意依据?: string
+  隐私与去标识化措施?: string
+  直接提交审批?: boolean
+}) {
+  return post<{
+    编号: number
+    状态: string
+    申请标题: string
+    message: string
+  }>('/Ethics/提交简易快审申请', data)
+}

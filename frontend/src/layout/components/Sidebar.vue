@@ -435,7 +435,8 @@ import {
   Download,
   Lock,
   CaretBottom,
-  School
+  School,
+  Share
 } from '@element-plus/icons-vue'
 
 defineProps<{
@@ -523,6 +524,9 @@ const defaultCatalogLeafMenus: LeafMenuItem[] = [
   { id: 'jour-part', name: '期刊分区库', route: '/fruit/journal-partition', categoryPath: '学术成果 / 期刊分区', icon: Document },
   { id: 'paper-sub', name: '论文投稿事前备案', route: '/fruit/paper-submission', categoryPath: '学术成果 / 投稿备案', icon: Document },
   { id: 'cme-credit', name: '继续医学教育学分', route: '/office/cme-credits', categoryPath: '科研办公 / 继教学分', icon: School },
+  { id: 'new-tech', name: '医疗新技术与适宜技术', route: '/office/new-technology', categoryPath: '科研办公 / 新技术新项目', icon: TrendCharts },
+  { id: 'popular-sci', name: '科普成果与案例库', route: '/fruit/popular-science', categoryPath: '成果管理 / 科普与案例', icon: Reading },
+  { id: 'community-health', name: '医共体科教协同', route: '/office/community-healthcare', categoryPath: '科研办公 / 医共体', icon: Share },
   { id: 'hosp-mode', name: '医院运营模式配置', route: '/base-info/system-configs?tab=hospitalMode', categoryPath: '基础信息 / 运营模式', icon: Setting }
 ]
 

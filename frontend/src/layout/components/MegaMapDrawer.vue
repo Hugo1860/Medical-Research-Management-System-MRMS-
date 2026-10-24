@@ -129,7 +129,8 @@ import {
   Key,
   Lock,
   House,
-  School
+  School,
+  Share
 } from '@element-plus/icons-vue'
 
 export interface MegaFunctionItem {
@@ -177,6 +178,7 @@ const megaCategories: MegaCategory[] = [
     description: '国家自然科学基金、省市级纵向申报向导，横向产学研合同，2秒一键配套与结余基金管理',
     items: [
       { name: '纵向项目申报向导', path: '/project/vertical-application', icon: TrendCharts, tag: '向导', tagType: 'primary', keywords: '纵向 申报 立项 国自然 基金 课题' },
+      { name: '医疗新技术新项目与适宜技术', path: '/office/new-technology', icon: TrendCharts, tag: '三新/适宜', tagType: 'warning', keywords: '新技术 新项目 三新 适宜技术 准入 随访 不良反应 转常规 评奖 等级评审' },
       { name: '纵向课题全生命周期治理', path: '/project/vertical-lifecycle', icon: Files, tag: '合规中枢', tagType: 'danger', keywords: '纵向 课题 治理 中检 变更 结题 验收' },
       { name: '纵向项目申报计划发布', path: '/project/vertical-application?tab=plans', icon: TrendCharts, tag: '计划', tagType: 'info', keywords: '计划 申报批次 申报指南' },
       { name: '院级项目批次与评审方案', path: '/project/vertical-application?tab=plans', icon: TrendCharts, tag: '院级', tagType: 'warning', keywords: '院级项目 批次 限额 资格 评审方案' },
@@ -208,6 +210,7 @@ const megaCategories: MegaCategory[] = [
       { name: '学术论文全生命周期管理', path: '/fruit/paper-management', icon: Document, tag: '成果', tagType: 'primary', keywords: '论文 SCI 期刊 crossref pubmed' },
       { name: '论文投稿事前备案与期刊风控', path: '/fruit/paper-submission', icon: Document, tag: '风控闭环', tagType: 'danger', keywords: '论文 投稿 备案 期刊 预警 黑名单 风控 诚信 版面费' },
       { name: '成果综合业务台账 (专利/著作/奖励)', path: '/fruit/achievement-ledger', icon: Reading, tag: '综合台账', tagType: 'success', keywords: '专利 著作 奖励 成果 转化 知识产权' },
+      { name: '科普成果与临床典型案例库', path: '/fruit/popular-science', icon: Reading, tag: '科普案例', tagType: 'success', keywords: '科普 典型案例 护理小发明 实用新型 短视频 讲座 职称成果' },
       { name: '临床生物样本库 (Biobank) 资产台账', path: '/fruit/biobank-ledger', icon: Reading, tag: 'Biobank', tagType: 'warning', keywords: '生物样本 样本库 冻存 标本 队列 biobank' },
       { name: '生物样本借还与实验消耗核销', path: '/fruit/biobank-ledger?tab=ledger', icon: Files, tag: '样本借还', tagType: 'info', keywords: '借还 出库 消耗 核销 伦理' },
       { name: '我的科研全景档案与数字名片', path: '/office/research-portfolio', icon: User, tag: '个人画卷', tagType: 'primary', keywords: '档案 个人 资产 名片 成果盘点' }
@@ -221,6 +224,7 @@ const megaCategories: MegaCategory[] = [
       { name: '专家匿名盲审工作台', path: '/evaluation/expert-workbench', icon: Medal, tag: '双盲脱敏', tagType: 'danger', keywords: '专家 评审 盲审 回避 脱敏 打分' },
       { name: '学术活动与会议讲座管理', path: '/activities/academic-activities', icon: Reading, tag: '学术活动', tagType: 'primary', keywords: '讲座 会议 反馈 专家 继教' },
       { name: '继续医学教育 (CME) 学分', path: '/office/cme-credits', icon: School, tag: 'CME授分', tagType: 'success', keywords: '继续医学教育 CME 学分 继教 达标 讲座 签到 催办' },
+      { name: '县域医共体科教协同', path: '/office/community-healthcare', icon: Share, tag: '医共体', tagType: 'primary', keywords: '医共体 进修 下乡 帮扶 卫生院 基层 协同' },
       { name: '学术任职与专家人才中心', path: '/organization/academic-appointments', icon: Medal, tag: '任职遴选', tagType: 'success', keywords: '任职 专家 遴选 人才 学会' },
       { name: '部门人员与课题团队维护', path: '/organization/people', icon: User, tag: '组织架构', tagType: 'info', keywords: '组织 部门 人员 员工 架构' }
     ]
@@ -233,6 +237,7 @@ const megaCategories: MegaCategory[] = [
       { name: '科研绩效评价与奖励兑现', path: '/evaluation/performance-evaluation', icon: Medal, tag: '动态算分', tagType: 'danger', keywords: '绩效 评价 积分 奖励 考核 算分' },
       { name: '动态绩效公式与多作者位次拆分', path: '/evaluation/performance-evaluation?tab=formula_designer', icon: Setting, tag: '公式引擎', tagType: 'warning', keywords: '公式 位次 一作 通讯 拆分' },
       { name: '自定义多维科研报表与卫健委国考年报', path: '/evaluation/performance-evaluation?tab=custom_reports', icon: Histogram, tag: '国考直报', tagType: 'success', keywords: '报表 自定义 国考 卫健委 年报 统计' },
+      { name: '全国卫健委科技年报与国考佐证包', path: '/office/education-statistics', icon: Histogram, tag: '国考佐证', tagType: 'danger', keywords: '卫健委 统计 年报 国考 二甲 等级评审 佐证材料包 教育部' },
       { name: '科研待办流转审核中心', path: '/workflow/todo-approvals', icon: Files, tag: '待办中心', tagType: 'danger', keywords: '待办 审核 流程 批注 审批' },
       { name: '移动科研协同工作台与推送网关', path: '/office/mobile-workbench', icon: House, tag: '企业微信/钉钉', tagType: 'primary', keywords: '移动 手机 工作台 企业微信 钉钉 推送' },
       { name: '科研统计决策分析大屏', path: '/analytics/statistics', icon: Histogram, tag: '决策大屏', tagType: 'primary', keywords: '统计 分析 大屏 报表 看板 态势' },

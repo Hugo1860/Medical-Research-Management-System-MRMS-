@@ -61,6 +61,14 @@
           查看我的画像
         </el-button>
         <el-button
+          type="warning"
+          plain
+          :icon="DocumentChecked"
+          @click="openTitlePromotionDrawer"
+        >
+          职称晋升科教核验单
+        </el-button>
+        <el-button
           type="success"
           plain
           :icon="Printer"
@@ -429,6 +437,170 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 职称晋升科教资格智能核验抽屉 -->
+    <el-drawer
+      v-model="titlePromotionDrawerVisible"
+      title="《职称晋升科教资格审查表》智能抽取与自动核验"
+      size="780px"
+      destroy-on-close
+    >
+      <div class="promotion-drawer-body">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          title="系统严格按照卫健委与人社职称评审规范，自动提取任现职以来的科研课题、一作/通讯论文（自动剔除预警期刊）、科普代表作、进修满6个月记录与近5年继教学分，并生成带唯一防伪核验码（MED-XXXX）的规范审核单。"
+          style="margin-bottom: 16px"
+        />
+
+        <el-card shadow="never" style="margin-bottom: 16px">
+          <el-form :inline="true" label-width="110px">
+            <el-form-item label="拟晋升职称">
+              <el-select v-model="promotionForm.拟晋升职称" style="width: 160px">
+                <el-option label="副主任医师" value="副主任医师" />
+                <el-option label="主任医师" value="主任医师" />
+                <el-option label="副主任护师" value="副主任护师" />
+                <el-option label="主任护师" value="主任护师" />
+                <el-option label="主治医师/中级" value="主治医师" />
+                <el-option label="副主任技师" value="副主任技师" />
+                <el-option label="副主任药师" value="副主任药师" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="现职称任职时间">
+              <el-date-picker
+                v-model="promotionForm.现职称任职日期"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="现任职起算时间"
+                style="width: 150px"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :loading="promotionLoading" @click="executePromotionReview">
+                重新核验
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+
+        <div v-loading="promotionLoading">
+          <div v-if="promotionResult" class="promotion-result-box">
+            <!-- 防伪与综合结论 -->
+            <div class="promotion-summary-banner">
+              <div>
+                <div class="banner-title">
+                  候选人：<strong>{{ promotionResult.人员姓名 }}</strong> ({{ promotionResult.科室名称 }})
+                  <span class="muted" style="margin-left: 10px;">现职称: {{ promotionResult.当前职称 || '未登记' }}</span>
+                </div>
+                <div class="banner-sub">
+                  申报拟晋升：<strong style="color: #1890ff;">{{ promotionResult.拟晋升职称 }}</strong>
+                  &nbsp;|&nbsp; 现职称起算：{{ promotionResult.现任职起算日期 || '不限' }}
+                </div>
+              </div>
+              <div class="anti-counterfeit-tag">
+                <div class="code-label">唯一防伪核验码</div>
+                <div class="code-val">{{ promotionResult.防伪核验码 }}</div>
+              </div>
+            </div>
+
+            <!-- 1. 论文（标明剔除预警期刊） -->
+            <div class="review-section">
+              <div class="section-header">
+                <span>一、第一作者 / 通讯作者学术论文 (正规合规刊物 {{ promotionResult.论文业绩?.length || 0 }} 篇)</span>
+                <el-tag size="small" type="success">已剔除预警与风险期刊</el-tag>
+              </div>
+              <el-table :data="promotionResult.论文业绩 || []" border size="small" empty-text="任现职以来暂无合规一作/通讯论文">
+                <el-table-column prop="论文标题" label="论文题目" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="刊物名称" label="期刊名称" width="130" show-overflow-tooltip />
+                <el-table-column prop="作者身份" label="署名身份" width="90" align="center" />
+                <el-table-column prop="分区" label="分区/级别" width="90" align="center" />
+                <el-table-column prop="发表日期" label="发表日期" width="100" align="center" />
+              </el-table>
+            </div>
+
+            <!-- 2. 科研课题 -->
+            <div class="review-section">
+              <div class="section-header">
+                <span>二、科研课题承担情况 (共 {{ promotionResult.课题业绩?.length || 0 }} 项)</span>
+              </div>
+              <el-table :data="promotionResult.课题业绩 || []" border size="small" empty-text="任现职以来暂无课题记录">
+                <el-table-column prop="项目中文名称" label="课题名称" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="项目级别" label="级别" width="100" align="center" />
+                <el-table-column prop="承担身份" label="身份" width="90" align="center" />
+                <el-table-column prop="立项年度" label="年度" width="80" align="center" />
+                <el-table-column prop="批准经费" label="经费(万元)" width="95" align="right" />
+              </el-table>
+            </div>
+
+            <!-- 3. 科普成果、典型案例与护理小发明 -->
+            <div class="review-section">
+              <div class="section-header">
+                <span>三、医学科普作品、临床案例与护理发明 (共 {{ promotionResult.科普与案例业绩?.length || 0 }} 项)</span>
+              </div>
+              <el-table :data="promotionResult.科普与案例业绩 || []" border size="small" empty-text="暂无科普与案例记录">
+                <el-table-column prop="成果名称" label="成果名称" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="分类" label="分类" width="120" align="center" />
+                <el-table-column prop="形式类型" label="形式" width="100" align="center" />
+                <el-table-column prop="完成日期" label="完成日期" width="100" align="center" />
+              </el-table>
+            </div>
+
+            <!-- 4. 进修与帮扶（满6个月认定） -->
+            <div class="review-section">
+              <div class="section-header">
+                <span>四、进修满 6 个月记录 ({{ promotionResult.是否满足进修六个月 ? '已达标' : '待达标' }})</span>
+                <el-tag size="small" :type="promotionResult.是否满足进修六个月 ? 'success' : 'danger'">
+                  {{ promotionResult.是否满足进修六个月 ? '进修满180天达标' : '未满6个月' }}
+                </el-tag>
+              </div>
+              <el-table :data="promotionResult.进修业绩 || []" border size="small" empty-text="暂无进修记录">
+                <el-table-column prop="业务类型" label="进修类型" width="120" />
+                <el-table-column prop="合作单位名称" label="进修/受援单位" min-width="160" show-overflow-tooltip />
+                <el-table-column label="起止时间" width="180" align="center">
+                  <template #default="{ row }">
+                    {{ formatDate(row.开始日期) }} ~ {{ formatDate(row.结束日期) }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="进修天数" label="天数" width="80" align="center">
+                  <template #default="{ row }">{{ row.进修天数 }} 天</template>
+                </el-table-column>
+                <el-table-column prop="考核鉴定结果" label="考核结果" width="90" align="center" />
+              </el-table>
+            </div>
+
+            <!-- 5. 近5年继教学分达标情况 -->
+            <div class="review-section">
+              <div class="section-header">
+                <span>五、近 5 年继续医学教育 (CME) 学分达标核查</span>
+                <el-tag size="small" :type="promotionResult.近五年学分是否全达标 ? 'success' : 'warning'">
+                  {{ promotionResult.近五年学分是否全达标 ? '近5年全达标' : '部分年份待补' }}
+                </el-tag>
+              </div>
+              <el-table :data="promotionResult.继教业绩 || []" border size="small">
+                <el-table-column prop="年度" label="学分年度" width="90" align="center" />
+                <el-table-column prop="I类学分" label="I类学分" width="90" align="center" />
+                <el-table-column prop="II类学分" label="II类学分" width="90" align="center" />
+                <el-table-column prop="总学分" label="总学分" width="90" align="center" />
+                <el-table-column prop="是否达标" label="达标状态" min-width="110" align="center">
+                  <template #default="{ row }">
+                    <el-tag size="small" :type="row.是否达标 ? 'success' : 'danger'">
+                      {{ row.是否达标 ? '达标' : '未达标' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="titlePromotionDrawerVisible = false">关闭</el-button>
+        <el-button type="success" :icon="Printer" @click="handlePrintTitlePromotionDoc">
+          打印/导出《资格审查表》
+        </el-button>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
@@ -447,10 +619,12 @@ import {
   Money,
   Printer,
   Trophy,
-  Briefcase
+  Briefcase,
+  DocumentChecked
 } from '@element-plus/icons-vue'
 import { getResearchPortfolio, type CapabilityScores, type YearTrendItem } from '@/api/office'
 import { getDepartmentList, getPeopleList } from '@/api/organization'
+import { getTitlePromotionPortfolio, exportTitlePromotionFormHtml } from '@/api/medical-advancement'
 import { useUserStore } from '@/stores/user'
 import { formatMoney, formatDate } from '@/utils/format'
 
@@ -478,6 +652,54 @@ const mentorList = ref<any[]>([])
 
 const departmentList = ref<any[]>([])
 const peopleOptions = ref<any[]>([])
+
+const titlePromotionDrawerVisible = ref(false)
+const promotionLoading = ref(false)
+const promotionForm = ref({ 拟晋升职称: '副主任医师', 现职称任职日期: '' })
+const promotionResult = ref<any>(null)
+
+function openTitlePromotionDrawer() {
+  titlePromotionDrawerVisible.value = true
+  executePromotionReview()
+}
+
+async function executePromotionReview() {
+  promotionLoading.value = true
+  try {
+    const res: any = await getTitlePromotionPortfolio({
+      人员编号: targetPersonId.value,
+      拟晋升职称: promotionForm.value.拟晋升职称,
+      现职称任职日期: promotionForm.value.现职称任职日期 || undefined
+    })
+    promotionResult.value = res?.data || res
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取职称审查数据失败')
+  } finally {
+    promotionLoading.value = false
+  }
+}
+
+async function handlePrintTitlePromotionDoc() {
+  try {
+    const res: any = await exportTitlePromotionFormHtml({
+      人员编号: targetPersonId.value,
+      拟晋升职称: promotionForm.value.拟晋升职称,
+      现职称任职日期: promotionForm.value.现职称任职日期 || undefined
+    })
+    const data = res?.data || res
+    const printWin = window.open('', '_blank')
+    if (printWin) {
+      printWin.document.write(data.html || '<h3>无内容</h3>')
+      printWin.document.close()
+      printWin.focus()
+      setTimeout(() => {
+        printWin.print()
+      }, 500)
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '导出打印审查表失败')
+  }
+}
 
 const radarChartRef = ref<HTMLElement | null>(null)
 const trendChartRef = ref<HTMLElement | null>(null)
@@ -1203,5 +1425,62 @@ onBeforeUnmount(() => {
   .stat-card {
     border: 1px solid #cbd5e1 !important;
   }
+}
+
+.promotion-drawer-body {
+  padding: 0 4px;
+}
+
+.promotion-summary-banner {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.banner-title {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.banner-sub {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.anti-counterfeit-tag {
+  text-align: right;
+  border-left: 2px dashed #cbd5e1;
+  padding-left: 16px;
+}
+
+.code-label {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.code-val {
+  font-size: 14px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #0284c7;
+}
+
+.review-section {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
 }
 </style>
