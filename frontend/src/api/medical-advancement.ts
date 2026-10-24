@@ -14,7 +14,10 @@ export interface NewTechProjectQuery {
 }
 
 export function listNewTechProjects(params: NewTechProjectQuery = {}) {
-  return request.get<{ total: number; list: any[] }>('/NewTechnology/获取新技术新项目列表', { params })
+  const { pageIndex, pageSize, ...rest } = params
+  return request.get<{ total: number; list: any[] }>('/NewTechnology/获取新技术新项目列表', {
+    params: { index: pageIndex || 1, size: pageSize || 10, ...rest }
+  })
 }
 
 export function getNewTechDetail(id: number) {
@@ -37,7 +40,10 @@ export function reviewNewTechProject(data: {
 }
 
 export function listNewTechFollowups(params: { 新技术编号?: number; 是否发生不良反应?: boolean; pageIndex?: number; pageSize?: number }) {
-  return request.get<{ total: number; list: any[] }>('/NewTechnology/获取随访例数列表', { params })
+  const { pageIndex, pageSize, ...rest } = params
+  return request.get<{ total: number; list: any[] }>('/NewTechnology/获取随访例数列表', {
+    params: { index: pageIndex || 1, size: pageSize || 10, ...rest }
+  })
 }
 
 export function saveNewTechFollowup(data: any) {
@@ -53,7 +59,10 @@ export function reviewNewTechRegularOrAward(data: { 编号: number; 通过: bool
 }
 
 export function listAppropriateTechs(params: { 牵头科室编号?: number; 受援基层单位?: string; 推广形式?: string; pageIndex?: number; pageSize?: number } = {}) {
-  return request.get<{ total: number; list: any[] }>('/NewTechnology/获取适宜技术推广列表', { params })
+  const { pageIndex, pageSize, ...rest } = params
+  return request.get<{ total: number; list: any[] }>('/NewTechnology/获取适宜技术推广列表', {
+    params: { index: pageIndex || 1, size: pageSize || 10, ...rest }
+  })
 }
 
 export function saveAppropriateTech(data: any) {
@@ -67,7 +76,10 @@ export function getMedicalAdvancementDashboard() {
 // ==================== 2. 科普成果与典型案例库 ====================
 
 export function listPopularScience(params: { 分类?: string; 形式类型?: string; 审核状态?: string; 第一作者编号?: number; 关键词?: string; pageIndex?: number; pageSize?: number } = {}) {
-  return request.get<{ total: number; list: any[] }>('/PopularScience/获取成果列表', { params })
+  const { pageIndex, pageSize, ...rest } = params
+  return request.get<{ total: number; list: any[] }>('/PopularScience/获取成果列表', {
+    params: { index: pageIndex || 1, size: pageSize || 10, ...rest }
+  })
 }
 
 export function savePopularScience(data: any) {
@@ -107,7 +119,10 @@ export function saveCommunityPartner(data: any) {
 }
 
 export function listCommunityTrainings(params: { 合作单位编号?: number; 业务类型?: string; 满六个月?: boolean; pageIndex?: number; pageSize?: number } = {}) {
-  return request.get<{ total: number; list: any[] }>('/CommunityHealthcare/获取进修与帮扶记录列表', { params })
+  const { pageIndex, pageSize, ...rest } = params
+  return request.get<{ total: number; list: any[] }>('/CommunityHealthcare/获取进修与帮扶记录列表', {
+    params: { index: pageIndex || 1, size: pageSize || 10, ...rest }
+  })
 }
 
 export function saveCommunityTraining(data: any) {

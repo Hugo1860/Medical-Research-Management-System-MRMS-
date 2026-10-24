@@ -100,7 +100,7 @@ WHERE ""年度"" = @targetYear OR EXTRACT(YEAR FROM ""申请日期"") = @targetY
 SELECT 
     COUNT(*) AS 审查总件数,
     COUNT(*) FILTER (WHERE ""受试者风险等级"" = '低风险') AS 简易快审或免除知情数,
-    COUNT(*) FILTER (WHERE ""状态"" = '已同意') AS 审查批准数
+    COUNT(*) FILTER (WHERE ""状态"" = '已批准') AS 审查批准数
 FROM ""伦理审查申请""
 WHERE EXTRACT(YEAR FROM ""建立时间"") = @targetYear;");
 
@@ -109,7 +109,7 @@ WHERE EXTRACT(YEAR FROM ""建立时间"") = @targetYear;");
 SELECT 
     COUNT(*) FILTER (WHERE ""业务类型"" = '基层来院进修') AS 接收基层进修人数,
     COUNT(*) FILTER (WHERE ""业务类型"" = '总院下乡帮扶') AS 下乡帮扶人次
-FROM ""医共体人员进修帮扶记录""
+FROM ""医共体人员进修与帮扶记录""
 WHERE EXTRACT(YEAR FROM ""开始日期"") = @targetYear;");
 
         return new
@@ -138,10 +138,12 @@ WHERE EXTRACT(YEAR FROM ""开始日期"") = @targetYear;");
 
         // 国考与等级评审核心佐证指标提取
         var techProjects = await Db.QueryAsync<dynamic>(@"
-SELECT ""编号"", ""项目名称"", ""申报类别"", ""技术难度等级"", ""审批状态"", ""临床开展总例数"", ""申报年度""
-FROM ""医疗新技术新项目""
-WHERE ""申报年度"" = @targetYear
-ORDER BY ""编号"" DESC LIMIT 30;", new { targetYear });
+SELECT t.""编号"", t.""项目名称"", t.""申报类别"", t.""技术难度等级"", t.""准入审批状态"" AS ""审批状态"",
+       (SELECT COUNT(*) FROM ""医疗新技术临床应用随访"" f WHERE f.""新技术编号"" = t.""编号"") AS ""临床开展总例数"",
+       t.""申报年度""
+FROM ""医疗新技术新项目"" t
+WHERE t.""申报年度"" = @targetYear
+ORDER BY t.""编号"" DESC LIMIT 30;", new { targetYear });
 
         var appropriateTechs = await Db.QueryAsync<dynamic>(@"
 SELECT t.""编号"", t.""技术名称"", t.""受援基层单位"", t.""推广形式"", t.""推广日期"", t.""培训场次"", t.""受益医务人员数"", t.""受益患者人次""
@@ -157,7 +159,7 @@ ORDER BY ""编号"" DESC LIMIT 30;", new { targetYear });
 
         var communityRecords = await Db.QueryAsync<dynamic>(@"
 SELECT r.""编号"", r.""业务类型"", u.""单位名称"" AS ""合作单位"", r.""人员姓名"", r.""人员职称"", r.""专业学科"", r.""开始日期"", r.""结束日期"", r.""考核鉴定结果""
-FROM ""医共体人员进修帮扶记录"" r
+FROM ""医共体人员进修与帮扶记录"" r
 LEFT JOIN ""医共体合作单位"" u ON u.""编号"" = r.""合作单位编号""
 WHERE EXTRACT(YEAR FROM r.""开始日期"") = @targetYear
 ORDER BY r.""开始日期"" DESC LIMIT 30;", new { targetYear });

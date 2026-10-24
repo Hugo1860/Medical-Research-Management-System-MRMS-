@@ -496,5 +496,93 @@ LIMIT 10;");
                 基层单位排行 = byUnit
             };
         }
+
+        #region 前端对接路由别名与快捷接口
+        [HttpGet]
+        public async Task<object> 获取新技术与适宜技术大盘统计()
+        {
+            var newTechTotal = await Db.ExecuteScalarAsync<int>(@"SELECT count(*) FROM ""医疗新技术新项目"";");
+            var inFollowup = await Db.ExecuteScalarAsync<int>(@"SELECT count(*) FROM ""医疗新技术新项目"" WHERE ""准入审批状态"" = '已准入应用';");
+            var converted = await Db.ExecuteScalarAsync<int>(@"SELECT count(*) FROM ""医疗新技术新项目"" WHERE ""准入审批状态"" = '已转常规';");
+            var followupsTotal = await Db.ExecuteScalarAsync<int>(@"SELECT count(*) FROM ""医疗新技术临床应用随访"";");
+            var adverseReactions = await Db.ExecuteScalarAsync<int>(@"SELECT count(*) FROM ""医疗新技术临床应用随访"" WHERE ""是否发生不良反应"" = TRUE;");
+
+            var appropriateSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT 
+    COUNT(*)::integer AS ""总推广记录数"",
+    COALESCE(SUM(""培训场次""), 0)::integer AS ""总培训场次"",
+    COALESCE(SUM(""受益医务人员数""), 0)::integer AS ""总受益基层医务人员"",
+    COALESCE(SUM(""受益患者人次""), 0)::integer AS ""总受益患者人次"",
+    COUNT(DISTINCT ""受援基层单位"")::integer AS ""覆盖基层单位数""
+FROM ""医共体适宜技术推广"";");
+
+            return new
+            {
+                新技术总申报数 = newTechTotal,
+                应用随访中数 = inFollowup,
+                已转常规数 = converted,
+                累计开展例数 = followupsTotal,
+                不良反应报告数 = adverseReactions,
+                适宜技术推广场次 = appropriateSummary != null ? Convert.ToInt32(appropriateSummary.总培训场次) : 0,
+                适宜技术培训基层医护 = appropriateSummary != null ? Convert.ToInt32(appropriateSummary.总受益基层医务人员) : 0,
+                适宜技术受益患者 = appropriateSummary != null ? Convert.ToInt32(appropriateSummary.总受益患者人次) : 0,
+                适宜技术覆盖基层单位 = appropriateSummary != null ? Convert.ToInt32(appropriateSummary.覆盖基层单位数) : 0
+            };
+        }
+
+        [HttpGet]
+        public async Task<object> 获取随访例数列表(Paging paging, long? 新技术编号 = null, bool? 是否发生不良反应 = null)
+        {
+            var where = new List<string>();
+            var p = new DynamicParameters();
+            if (新技术编号.HasValue && 新技术编号.Value > 0)
+            {
+                where.Add(@"s.""新技术编号"" = @新技术编号");
+                p.Add("新技术编号", 新技术编号.Value);
+            }
+            if (是否发生不良反应.HasValue)
+            {
+                where.Add(@"s.""是否发生不良反应"" = @是否发生不良反应");
+                p.Add("是否发生不良反应", 是否发生不良反应.Value);
+            }
+            var whereSql = where.Any() ? "WHERE " + string.Join(" AND ", where) : "";
+            var total = await Db.ExecuteScalarAsync<int>($@"SELECT count(*) FROM ""医疗新技术临床应用随访"" s {whereSql};", p);
+            var offset = (paging.Index - 1) * paging.Size;
+            p.Add("offset", offset);
+            p.Add("size", paging.Size);
+            var list = await Db.QueryAsync<dynamic>($@"
+SELECT s.*, t.""项目名称"", p.""姓名"" AS ""记录人姓名""
+FROM ""医疗新技术临床应用随访"" s
+LEFT JOIN ""医疗新技术新项目"" t ON t.""编号"" = s.""新技术编号""
+LEFT JOIN ""人员"" p ON p.""编号"" = s.""记录人编号""
+{whereSql}
+ORDER BY s.""应用日期"" DESC, s.""编号"" DESC
+OFFSET @offset LIMIT @size;", p);
+            return new { total, list };
+        }
+
+        [HttpGet]
+        public Task<object> 获取新技术新项目列表(Paging paging, int? 申报年度 = null, string 申报类别 = null, string 准入审批状态 = null, string 关键词 = null) =>
+            分页获取新技术列表(paging, 申报年度, 申报类别, 准入审批状态, 关键词);
+
+        [HttpPost]
+        public Task<object> 保存新技术申报([FromBody] 医疗新技术申报增改 model) => 申报新技术(model);
+
+        [HttpPost]
+        public Task<object> 医务科教准入审查([FromBody] 医疗新技术准入审查提交 model) => 准入审查(model);
+
+        [HttpPost]
+        public Task<object> 登记随访例数([FromBody] 医疗新技术随访登记 model) => 登记应用例数与随访(model);
+
+        [HttpPost]
+        public Task<object> 申请转常规或评奖([FromBody] 医疗新技术转常规评奖申请 model) => 申请转常规与评奖(model);
+
+        [HttpPost]
+        public Task<object> 审批转常规或评奖([FromBody] 医疗新技术转常规审批 model) => 审批转常规与评奖(model);
+
+        [HttpGet]
+        public Task<object> 获取适宜技术推广列表(Paging paging, string 关键词 = null, string 推广形式 = null, string 受援基层单位 = null) =>
+            分页查询适宜技术推广(paging, 关键词, 推广形式, 受援基层单位);
+        #endregion
     }
 }

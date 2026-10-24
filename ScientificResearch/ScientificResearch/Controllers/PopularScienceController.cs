@@ -156,5 +156,20 @@ GROUP BY ""分类"";");
 
             return new { 概况 = stat, 分类汇总 = categories };
         }
+
+        #region 前端对接路由别名
+        [HttpGet]
+        public Task<object> 获取成果列表(Paging paging, string 分类 = null, string 形式类型 = null, int? 年度 = null, string 关键词 = null) =>
+            分页获取科普案例成果(paging, 分类, 形式类型, 年度, 关键词);
+
+        [HttpPost]
+        public Task<object> 保存成果登记([FromBody] 科普成果与案例登记 model) => 保存科普案例成果(model);
+
+        [HttpPost]
+        public Task<object> 审核成果入库([FromBody] 科普成果审核 model) => 审核科普成果(model);
+
+        [HttpGet]
+        public Task<object> 获取科普与案例成效统计() => 统计成果成效();
+        #endregion
     }
 }

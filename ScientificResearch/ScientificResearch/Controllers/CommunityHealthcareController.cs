@@ -173,5 +173,23 @@ INSERT INTO ""医共体人员进修与帮扶记录"" (
                 return new { 编号 = id, 成功 = true };
             }
         }
+
+        #region 前端对接路由别名
+        [HttpGet]
+        public Task<object> 获取医共体合作单位列表(string 关键词 = null, string 单位类型 = null) =>
+            查询医共体单位列表(关键词, 单位类型);
+
+        [HttpPost]
+        public Task<object> 保存医共体合作单位([FromBody] 医共体合作单位增改 model) =>
+            保存医共体单位(model);
+
+        [HttpGet]
+        public Task<object> 获取进修与帮扶记录列表(Paging paging, string 业务类型 = null, long? 合作单位编号 = null, string 关键词 = null) =>
+            查询进修与帮扶记录(paging, 业务类型, 合作单位编号, 关键词);
+
+        [HttpPost]
+        public Task<object> 保存进修与帮扶记录([FromBody] 医共体人员进修帮扶登记 model) =>
+            登记进修与帮扶记录(model);
+        #endregion
     }
 }

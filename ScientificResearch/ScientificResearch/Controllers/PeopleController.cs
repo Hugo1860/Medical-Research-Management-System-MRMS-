@@ -1039,9 +1039,9 @@ SELECT ""编号"", ""项目中文名称"" AS ""项目名称"", ""项目类型"",
 FROM ""纵向项目立项""
 WHERE ""负责人编号"" = @targetId AND ""立项年度"" >= @sinceYear
 UNION ALL
-SELECT ""编号"", ""项目名称"", '横向合作' AS ""项目类型"", ""合同类型"" AS ""项目级别"", ""合同金额"" AS ""批准经费"", EXTRACT(YEAR FROM ""签订时间"")::integer AS ""年度"", '横向合同' AS ""来源""
+SELECT ""编号"", ""合同名称"" AS ""项目名称"", '横向合作' AS ""项目类型"", COALESCE(""合同类型"", '横向') AS ""项目级别"", ""合同金额"" AS ""批准经费"", EXTRACT(YEAR FROM ""签订时间"")::integer AS ""年度"", '横向合同' AS ""来源""
 FROM ""横向项目""
-WHERE ""负责人编号"" = @targetId AND ""签订时间"" >= @sinceDate
+WHERE ""项目负责人编号"" = @targetId AND ""签订时间"" >= @sinceDate
 UNION ALL
 SELECT ""编号"", ""项目名称"", ""项目类别"" AS ""项目类型"", ""项目级别"", ""申请经费"" AS ""批准经费"", ""申报年度"" AS ""年度"", '院级/自筹' AS ""来源""
 FROM ""纵向项目申报""
@@ -1050,16 +1050,28 @@ ORDER BY ""年度"" DESC, ""编号"" DESC;", new { targetId, sinceYear, sinceDat
 
             // 2. 任现职以来的论文（结合期刊风险名单，标记预警期刊）
             var papers = (await Db.QueryAsync<dynamic>(@"
-SELECT l.""编号"", l.""论文题目"", l.""刊物名称"", l.""发表时间"", l.""中科院分区"",
-       COALESCE(l.""是否为第一作者或通讯作者"", TRUE) AS ""第一或通讯作者"",
+SELECT l.""编号"", l.""论文标题"" AS ""论文题目"", 
+       COALESCE(k.""名称"", l.""刊物名称"", '学术刊物') AS ""刊物名称"",
+       COALESCE(l.""论文正式出版日期"", l.""论文Online日期"") AS ""发表时间"",
+       t.""中科院分区"",
+       CASE 
+           WHEN a.""作者级别"" IN ('第一作者', '共同第一作者', '通讯作者', '共同通讯作者') THEN TRUE
+           WHEN l.""第一作者"" LIKE '%' || p.""姓名"" || '%' OR l.""通讯作者"" LIKE '%' || p.""姓名"" || '%' THEN TRUE
+           ELSE FALSE 
+       END AS ""第一或通讯作者"",
        CASE WHEN EXISTS (
            SELECT 1 FROM ""期刊风险名单"" r 
-           WHERE lower(btrim(r.""期刊名称"")) = lower(btrim(l.""刊物名称"")) 
-             AND r.""风险等级"" IN ('高风险','重点监控','预警刊')
+           WHERE (k.""名称"" IS NOT NULL AND lower(btrim(r.""期刊名称"")) = lower(btrim(k.""名称"")))
+              OR (l.""刊物名称"" IS NOT NULL AND lower(btrim(r.""期刊名称"")) = lower(btrim(l.""刊物名称"")))
        ) THEN TRUE ELSE FALSE END AS ""是否预警刊""
-FROM ""成果论文"" l
-WHERE l.""建立人编号"" = @targetId AND l.""发表时间"" >= @sinceDate
-ORDER BY l.""发表时间"" DESC;", new { targetId, sinceDate })).ToList();
+FROM ""v1_成果论文_列表"" l
+JOIN ""人员"" p ON p.""编号"" = @targetId
+LEFT JOIN ""成果论文"" t ON t.""编号"" = l.""编号""
+LEFT JOIN ""刊物"" k ON k.""编号"" = t.""刊物编号""
+LEFT JOIN ""成果作者"" a ON a.""成果类型"" = 1 AND a.""成果编号"" = l.""编号"" AND a.""作者编号"" = @targetId
+WHERE (l.""认领人编号"" = @targetId OR a.""作者编号"" = @targetId OR l.""第一作者"" LIKE '%' || p.""姓名"" || '%' OR l.""所有作者"" LIKE '%' || p.""姓名"" || '%')
+  AND COALESCE(l.""论文正式出版日期"", l.""论文Online日期"") >= @sinceDate
+ORDER BY COALESCE(l.""论文正式出版日期"", l.""论文Online日期"") DESC;", new { targetId, sinceDate })).ToList();
 
             var validPapers = papers.Where(x => (bool)x.第一或通讯作者 && !(bool)x.是否预警刊).ToList();
             var warnedPapers = papers.Where(x => (bool)x.是否预警刊).ToList();
@@ -1321,6 +1333,41 @@ WHERE r.""防伪码"" = @防伪码;", new { 防伪码 });
 </html>";
 
             return Content(html, "text/html; charset=utf-8");
+        }
+
+        /// <summary>
+        /// 提供给前端直接调用的 POST 导出职称审查表 HTML 接口，返回 HTML 字符串以供浏览器打印
+        /// </summary>
+        [HttpPost]
+        public async Task<object> 导出职称审查表HTML([FromBody] 职称审查单生成请求 model)
+        {
+            if (model == null) return BadRequest(new { error = "参数缺失" });
+            var portfolio = await 获取职称晋升科教业绩(model.人员编号, model.拟晋升职称, model.现职称任职日期);
+            if (portfolio is ObjectResult objRes && objRes.StatusCode >= 400)
+            {
+                return objRes;
+            }
+
+            var type = portfolio.GetType();
+            var prop = type.GetProperty("防伪验真");
+            var fangweiObj = prop?.GetValue(portfolio);
+            var codeProp = fangweiObj?.GetType().GetProperty("防伪校验码");
+            var code = codeProp?.GetValue(fangweiObj)?.ToString();
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return BadRequest(new { error = "未能生成防伪校验码" });
+            }
+
+            var contentResult = await 导出职称审查表HTML(code) as ContentResult;
+            var html = contentResult?.Content ?? "";
+
+            return new
+            {
+                审核单编号 = code,
+                防伪码 = code,
+                html
+            };
         }
 
         /// <summary>
