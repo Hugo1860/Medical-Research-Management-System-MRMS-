@@ -59,7 +59,7 @@ SELECT
     (SELECT COUNT(*) FROM ""医疗新技术新项目"" WHERE ""申报年度"" = @targetYear) AS 新技术立项数,
     (SELECT COUNT(*) FROM ""医疗新技术临床应用随访"" WHERE EXTRACT(YEAR FROM ""应用日期"") = @targetYear) AS 临床应用例数,
     (SELECT COUNT(*) FROM ""医疗新技术临床应用随访"" WHERE EXTRACT(YEAR FROM ""应用日期"") = @targetYear AND ""是否发生不良反应"" = true) AS 不良反应例数,
-    (SELECT COUNT(*) FROM ""医疗新技术转常规与评奖"" WHERE ""审批状态"" = '已批准' AND EXTRACT(YEAR FROM ""创建时间"") = @targetYear) AS 转常规与获奖数;");
+    (SELECT COUNT(*) FROM ""医疗新技术转常规与评奖"" WHERE ""审批状态"" = '已批准' AND EXTRACT(YEAR FROM ""建立时间"") = @targetYear) AS 转常规与获奖数;", new { targetYear });
 
         // 5. 适宜技术下乡与医共体协同
         var appropriateTechSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
@@ -78,7 +78,7 @@ SELECT
     COUNT(*) FILTER (WHERE ""是否Top期刊"" = true OR ""中科院分区"" IN ('1区', '2区', 'SCI')) AS 高水平论著数,
     COUNT(*) FILTER (WHERE ""第一作者"" IS NOT NULL OR ""通讯作者"" IS NOT NULL) AS 第一或通讯作者数
 FROM ""成果论文""
-WHERE ""年度"" = @targetYear OR EXTRACT(YEAR FROM ""论文正式出版日期"") = @targetYear;");
+WHERE ""年度"" = @targetYear OR EXTRACT(YEAR FROM ""论文正式出版日期"") = @targetYear;", new { targetYear });
 
         // 7. 科普成果、典型案例与护理小发明
         var popularScienceSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
@@ -88,12 +88,12 @@ SELECT
     COUNT(*) FILTER (WHERE ""分类"" = '护理小发明') AS 护理小发明数,
     COALESCE(SUM(""受众传播量与成效""), 0) AS 累计受益与传播量
 FROM ""科普成果与临床案例库""
-WHERE EXTRACT(YEAR FROM ""完成日期"") = @targetYear;");
+WHERE EXTRACT(YEAR FROM ""完成日期"") = @targetYear;", new { targetYear });
 
         // 8. 成果专利与知识产权
         var patentCount = await Db.QuerySingleAsync<int>(@"
 SELECT COUNT(*) FROM ""成果专利""
-WHERE ""年度"" = @targetYear OR EXTRACT(YEAR FROM ""申请日期"") = @targetYear;");
+WHERE ""年度"" = @targetYear OR EXTRACT(YEAR FROM ""申请日期"") = @targetYear;", new { targetYear });
 
         // 9. 伦理审查全覆盖情况
         var ethicsSummary = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
@@ -102,7 +102,7 @@ SELECT
     COUNT(*) FILTER (WHERE ""受试者风险等级"" = '低风险') AS 简易快审或免除知情数,
     COUNT(*) FILTER (WHERE ""状态"" = '已批准') AS 审查批准数
 FROM ""伦理审查申请""
-WHERE EXTRACT(YEAR FROM ""建立时间"") = @targetYear;");
+WHERE EXTRACT(YEAR FROM ""建立时间"") = @targetYear;", new { targetYear });
 
         // 10. 医共体进修与帮扶
         var communityTraining = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
@@ -110,7 +110,7 @@ SELECT
     COUNT(*) FILTER (WHERE ""业务类型"" = '基层来院进修') AS 接收基层进修人数,
     COUNT(*) FILTER (WHERE ""业务类型"" = '总院下乡帮扶') AS 下乡帮扶人次
 FROM ""医共体人员进修与帮扶记录""
-WHERE EXTRACT(YEAR FROM ""开始日期"") = @targetYear;");
+WHERE EXTRACT(YEAR FROM ""开始日期"") = @targetYear;", new { targetYear });
 
         return new
         {

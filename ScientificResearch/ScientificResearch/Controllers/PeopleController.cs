@@ -1051,7 +1051,7 @@ ORDER BY ""年度"" DESC, ""编号"" DESC;", new { targetId, sinceYear, sinceDat
             // 2. 任现职以来的论文（结合期刊风险名单，标记预警期刊）
             var papers = (await Db.QueryAsync<dynamic>(@"
 SELECT l.""编号"", l.""论文标题"" AS ""论文题目"", 
-       COALESCE(k.""名称"", l.""刊物名称"", '学术刊物') AS ""刊物名称"",
+       COALESCE(l.""刊物名称"", '学术刊物') AS ""刊物名称"",
        COALESCE(l.""论文正式出版日期"", l.""论文Online日期"") AS ""发表时间"",
        t.""中科院分区"",
        CASE 
@@ -1061,13 +1061,11 @@ SELECT l.""编号"", l.""论文标题"" AS ""论文题目"",
        END AS ""第一或通讯作者"",
        CASE WHEN EXISTS (
            SELECT 1 FROM ""期刊风险名单"" r 
-           WHERE (k.""名称"" IS NOT NULL AND lower(btrim(r.""期刊名称"")) = lower(btrim(k.""名称"")))
-              OR (l.""刊物名称"" IS NOT NULL AND lower(btrim(r.""期刊名称"")) = lower(btrim(l.""刊物名称"")))
+           WHERE l.""刊物名称"" IS NOT NULL AND lower(btrim(r.""期刊名称"")) = lower(btrim(l.""刊物名称""))
        ) THEN TRUE ELSE FALSE END AS ""是否预警刊""
 FROM ""v1_成果论文_列表"" l
 JOIN ""人员"" p ON p.""编号"" = @targetId
 LEFT JOIN ""成果论文"" t ON t.""编号"" = l.""编号""
-LEFT JOIN ""刊物"" k ON k.""编号"" = t.""刊物编号""
 LEFT JOIN ""成果作者"" a ON a.""成果类型"" = 1 AND a.""成果编号"" = l.""编号"" AND a.""作者编号"" = @targetId
 WHERE (l.""认领人编号"" = @targetId OR a.""作者编号"" = @targetId OR l.""第一作者"" LIKE '%' || p.""姓名"" || '%' OR l.""所有作者"" LIKE '%' || p.""姓名"" || '%')
   AND COALESCE(l.""论文正式出版日期"", l.""论文Online日期"") >= @sinceDate
