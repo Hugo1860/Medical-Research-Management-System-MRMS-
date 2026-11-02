@@ -133,21 +133,33 @@
           </div>
           <el-divider content-position="left">批件有效期提醒</el-divider>
           <el-table :data="reminders.批件提醒" stripe border>
-            <el-table-column prop="申请编号" label="申请编号" width="100" />
-            <el-table-column prop="申请标题" label="申请标题" min-width="230" />
+            <el-table-column prop="申请编号" label="申请编号" width="90" align="center" />
+            <el-table-column prop="申请标题" label="申请标题" min-width="220" show-overflow-tooltip />
             <el-table-column prop="批件编号" label="批件编号" width="150" />
-            <el-table-column prop="有效期至" label="有效期至" width="130" />
-            <el-table-column prop="剩余天数" label="剩余天数" width="100" align="center">
+            <el-table-column prop="有效期至" label="有效期至" width="130" align="center" />
+            <el-table-column prop="剩余天数" label="剩余天数" width="110" align="center">
               <template #default="{ row }"><el-tag :type="row.剩余天数 < 0 ? 'danger' : 'warning'">{{ row.剩余天数 < 0 ? `已过期 ${Math.abs(row.剩余天数)} 天` : `${row.剩余天数} 天` }}</el-tag></template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="viewDetailById(row.申请编号)">查看详情</el-button>
+                <el-button v-if="canSubmitFollowup" link type="warning" size="small" @click="openFollowupFromReminder(row, '年度跟踪审查')">发起跟踪</el-button>
+              </template>
             </el-table-column>
           </el-table>
           <el-divider content-position="left">持续审查提醒</el-divider>
           <el-table :data="reminders.持续审查提醒" stripe border>
-            <el-table-column prop="申请编号" label="申请编号" width="100" />
-            <el-table-column prop="申请标题" label="申请标题" min-width="230" />
-            <el-table-column prop="记录类型" label="记录类型" width="150" />
-            <el-table-column prop="下次审查日期" label="下次审查日期" width="140" />
-            <el-table-column prop="状态" label="状态" width="110" />
+            <el-table-column prop="申请编号" label="申请编号" width="90" align="center" />
+            <el-table-column prop="申请标题" label="申请标题" min-width="220" show-overflow-tooltip />
+            <el-table-column prop="记录类型" label="记录类型" width="140" />
+            <el-table-column prop="下次审查日期" label="下次审查日期" width="130" align="center" />
+            <el-table-column prop="状态" label="状态" width="100" align="center" />
+            <el-table-column label="操作" width="180" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="viewDetailById(row.申请编号)">查看详情</el-button>
+                <el-button v-if="canSubmitFollowup" link type="warning" size="small" @click="openFollowupFromReminder(row, row.记录类型 || '年度跟踪审查')">提交记录</el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-tab-pane>
       </el-tabs>
@@ -177,8 +189,18 @@
       </el-alert>
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="120px" :disabled="!!form.编号 && !isEditableStatus(form.状态)">
         <el-row :gutter="12">
-          <el-col :span="12"><el-form-item label="流程模板编号" prop="流程模板编号"><el-input-number v-model="form.流程模板编号" :min="1" style="width: 100%" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="项目编号" prop="项目编号"><el-input-number v-model="form.项目编号" :min="1" style="width: 100%" /></el-form-item></el-col>
+          <el-col :span="12">
+            <el-form-item label="关联流程模板" prop="流程模板编号">
+              <el-select v-model="form.流程模板编号" placeholder="选择关联项目流程模板" style="width: 100%">
+                <el-option v-for="item in templateOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="关联项目编号" prop="项目编号">
+              <el-input-number v-model="form.项目编号" :min="1" placeholder="填入对应项目ID" style="width: 100%" />
+            </el-form-item>
+          </el-col>
         </el-row>
         <el-form-item label="申请类型" prop="申请类型"><el-select v-model="form.申请类型" style="width: 100%"><el-option v-for="item in typeOptions" :key="item" :label="item" :value="item" /></el-select></el-form-item>
         <el-form-item label="申请标题" prop="申请标题"><el-input v-model="form.申请标题" maxlength="200" show-word-limit /></el-form-item>
@@ -419,9 +441,7 @@
           <el-col :span="12">
             <el-form-item label="关联流程模板" required>
               <el-select v-model="wizardForm.流程模板编号" style="width: 100%">
-                <el-option label="纵向项目立项 (模板2)" :value="2" />
-                <el-option label="纵向项目申报 (模板1)" :value="1" />
-                <el-option label="横向项目申请 (模板3)" :value="3" />
+                <el-option v-for="item in templateOptions" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -539,10 +559,16 @@ const followupOptions = ['年度跟踪审查', '方案修正案', '知情同意�
 const reminderDays = ref(60)
 const reminders = reactive<{ 批件提醒: any[]; 持续审查提醒: any[] }>({ 批件提醒: [], 持续审查提醒: [] })
 
+const templateOptions = [
+  { label: '纵向项目立项 (模板 410)', value: 410 },
+  { label: '纵向项目申报 (模板 400)', value: 400 },
+  { label: '横向项目申请 (模板 450)', value: 450 }
+]
+
 const formVisible = ref(false)
 const formRef = ref<FormInstance>()
-const form = reactive<any>({ 编号: undefined, 状态: '草稿', 流程模板编号: 0, 项目编号: 0, 申请类型: '初始审查', 申请标题: '', 研究方案摘要: '', 受试者风险等级: '一般风险', 知情同意说明: '', 附件路径: '' })
-const formRules: FormRules = { 流程模板编号: [{ required: true, message: '请输入流程模板编号', trigger: 'blur' }], 项目编号: [{ required: true, message: '请输入项目编号', trigger: 'blur' }], 申请类型: [{ required: true, message: '请选择申请类型', trigger: 'change' }], 申请标题: [{ required: true, message: '请输入申请标题', trigger: 'blur' }], 研究方案摘要: [{ required: true, message: '请填写研究方案摘要', trigger: 'blur' }] }
+const form = reactive<any>({ 编号: undefined, 状态: '草稿', 流程模板编号: 410, 项目编号: 1, 申请类型: '初始审查', 申请标题: '', 研究方案摘要: '', 受试者风险等级: '一般风险', 知情同意说明: '', 附件路径: '' })
+const formRules: FormRules = { 流程模板编号: [{ required: true, message: '请选择流程模板', trigger: 'change' }], 项目编号: [{ required: true, message: '请输入项目编号', trigger: 'blur' }], 申请类型: [{ required: true, message: '请选择申请类型', trigger: 'change' }], 申请标题: [{ required: true, message: '请输入申请标题', trigger: 'blur' }], 研究方案摘要: [{ required: true, message: '请填写研究方案摘要', trigger: 'blur' }] }
 
 const detailVisible = ref(false)
 const detail = ref<any>(null)
@@ -577,7 +603,7 @@ const wizardVisible = ref(false)
 const wizardSubmitting = ref(false)
 const wizardForm = reactive<any>({
   场景类型: '回顾性病历分析',
-  流程模板编号: 2,
+  流程模板编号: 410,
   项目编号: 1,
   申请标题: '',
   研究目的: '',
@@ -667,7 +693,20 @@ async function loadReminders() { try { const result = await getEthicsExpiryRemin
 async function refresh() { await loadApplications(); await loadReminders(); await loadMeetings() }
 async function handleTabChange(name: string | number) { if (name === 'reminders') await loadReminders(); if (name === 'meetings') await loadMeetings() }
 function resetFilter() { filter.状态 = ''; filter.申请类型 = ''; filter.关键词 = ''; loadApplications() }
-function openCreate() { Object.assign(form, { 编号: undefined, 状态: '草稿', 流程模板编号: 0, 项目编号: 0, 申请类型: '初始审查', 申请标题: '', 研究方案摘要: '', 受试者风险等级: '一般风险', 知情同意说明: '', 附件路径: '' }); formVisible.value = true }
+function openCreate() { Object.assign(form, { 编号: undefined, 状态: '草稿', 流程模板编号: 410, 项目编号: 1, 申请类型: '初始审查', 申请标题: '', 研究方案摘要: '', 受试者风险等级: '一般风险', 知情同意说明: '', 附件路径: '' }); formVisible.value = true }
+async function viewDetailById(id: number) { try { detail.value = await getEthicsApplicationDetail(id); detailVisible.value = true } catch { /* request interceptor has shown the error */ } }
+function openFollowupFromReminder(row: any, type: string) {
+  Object.assign(followup, {
+    申请编号: row.申请编号,
+    记录类型: type || '年度跟踪审查',
+    发生日期: '',
+    下次审查日期: '',
+    严重程度: '一般',
+    事件说明: `针对批件 [${row.批件编号 || '伦理批件'}] / 申请 #${row.申请编号} 发起持续审查跟踪`,
+    附件路径: ''
+  })
+  followupVisible.value = true
+}
 async function openEdit(row: EthicsApplication) {
   if (!canEditApplication(row)) { ElMessage.info('当前申请状态不可编辑，请通过修正案重新发起'); return }
   try {
