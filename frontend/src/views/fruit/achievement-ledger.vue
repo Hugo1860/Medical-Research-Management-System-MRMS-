@@ -281,16 +281,25 @@
               <template #default="{ row }">{{ formatDate(row.授权公告日) }}</template>
             </el-table-column>
             <el-table-column prop="代理机构" label="代理机构" min-width="140" show-overflow-tooltip />
-            <el-table-column label="协同操作" width="180" fixed="right" align="center">
+            <el-table-column label="协同操作" width="230" fixed="right" align="center">
               <template #default="{ row }">
                 <el-button
                   link
                   type="primary"
                   size="small"
+                  :icon="Document"
+                  @click="openPatentDetailDialog(row)"
+                >
+                  详情与发明人
+                </el-button>
+                <el-button
+                  link
+                  type="warning"
+                  size="small"
                   :icon="Bell"
                   @click="openNotifyAgentDialog(row)"
                 >
-                  通知代理机构
+                  代理协同
                 </el-button>
                 <el-button
                   link
@@ -426,6 +435,175 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 专利详情与发明人位次分配弹窗 -->
+    <el-dialog
+      v-model="patentDetailDialogVisible"
+      title="专利知识产权详情与发明人分配"
+      width="780px"
+      destroy-on-close
+    >
+      <div v-loading="loadingPatentDetail">
+        <el-descriptions v-if="patentDetailData?.专利详情" :column="2" border size="small">
+          <el-descriptions-item label="专利名称" :span="2">
+            <span class="font-bold text-primary">{{ patentDetailData.专利详情.专利名称 }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="申请号 / 专利号">
+            {{ patentDetailData.专利详情.专利号 || patentDetailData.专利详情.申请号 || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="专利类型">
+            <el-tag size="small">{{ patentDetailData.专利详情.专利类型 || '-' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="专利权人">
+            {{ patentDetailData.专利详情.专利权人名称 || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="授权状态">
+            <el-tag :type="patentDetailData.专利详情.是否授权 ? 'success' : 'warning'" size="small">
+              {{ patentDetailData.专利详情.是否授权 ? '已授权' : '审查中' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="申请日期">
+            {{ formatDate(patentDetailData.专利详情.申请日期) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="授权公告日">
+            {{ formatDate(patentDetailData.专利详情.授权公告日) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="代理机构" :span="2">
+            {{ patentDetailData.专利详情.代理机构 || '-' }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <!-- 绩效与发明人位次拆分 -->
+        <div style="margin-top: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 600; font-size: 13px; color: #1e293b;">
+              发明人与位次权重分配（{{ patentDetailData?.成果作者?.length || 0 }} 人）
+            </span>
+            <el-tag size="small" type="primary">
+              {{ patentDetailData?.专利详情?.专利类型?.includes('发明') ? '发明专利基准 30分' : '实用新型/外观基准 10分' }}
+            </el-tag>
+          </div>
+          <el-table :data="patentDetailData?.成果作者 || []" border stripe size="small">
+            <el-table-column label="署名顺位" width="100" align="center">
+              <template #default="{ $index }">第 {{ $index + 1 }} 发明人</template>
+            </el-table-column>
+            <el-table-column prop="作者姓名" label="发明人姓名" min-width="120" />
+            <el-table-column prop="作者级别" label="作者级别" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag size="small" :type="row.作者级别 === '第一发明人' || row.作者级别 === '第一作者' ? 'danger' : 'info'">
+                  {{ row.作者级别 || '发明人' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="工作量占比" label="工作量 / 绩效权重" width="140" align="center">
+              <template #default="{ row }">
+                <span>{{ row.工作量占比 ? `${(row.工作量占比 * 100).toFixed(0)}%` : '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="预估折算绩效" width="130" align="center">
+              <template #default="{ row }">
+                <span style="color: #b91c1c; font-weight: 600;">
+                  {{ calculatePatentAuthorScore(patentDetailData?.专利详情, row) }} 分
+                </span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- 关联科研项目 -->
+        <div v-if="patentDetailData?.成果项目?.length" style="margin-top: 14px;">
+          <span style="font-weight: 600; font-size: 13px; color: #1e293b; display: block; margin-bottom: 6px;">
+            关联科研项目课题
+          </span>
+          <el-table :data="patentDetailData.成果项目" border stripe size="small">
+            <el-table-column prop="项目编号" label="项目编号" width="90" align="center" />
+            <el-table-column prop="项目名称" label="项目名称" min-width="200" />
+            <el-table-column prop="项目来源" label="来源 / 级别" width="140" />
+          </el-table>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="patentDetailDialogVisible = false">关闭</el-button>
+        <el-button
+          v-if="patentDetailData?.专利详情"
+          type="primary"
+          @click="openGovernanceDrawer(3, patentDetailData.专利详情.编号, patentDetailData.专利详情.专利名称)"
+        >
+          查看全景治理追溯
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 学术著作详情弹窗 -->
+    <el-dialog
+      v-model="bookDetailDialogVisible"
+      title="学术著作详情与著者分工"
+      width="780px"
+      destroy-on-close
+    >
+      <div v-loading="loadingBookDetail">
+        <el-descriptions v-if="bookDetailData?.著作详情" :column="2" border size="small">
+          <el-descriptions-item label="著作名称" :span="2">
+            <span class="font-bold text-primary">{{ bookDetailData.著作详情.著作名称 }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="著作形式">
+            <el-tag size="small">{{ bookDetailData.著作详情.著作形式 || bookDetailData.著作详情.著作类型 || '-' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="出版社">
+            {{ bookDetailData.著作详情.出版社名称 || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="出版日期">
+            {{ formatDate(bookDetailData.著作详情.著作出版日期) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="ISBN 书号">
+            {{ bookDetailData.著作详情.ISBN号 || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="总字数 (万字)">
+            {{ bookDetailData.著作详情.著作字数 != null ? `${bookDetailData.著作详情.著作字数} 万字` : '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="是否译为外文">
+            {{ bookDetailData.著作详情.是否译为外文 ? '是' : '否' }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <!-- 著者分工与绩效权重 -->
+        <div style="margin-top: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 600; font-size: 13px; color: #1e293b;">
+              著者团队与位次权重（{{ bookDetailData?.成果作者?.length || 0 }} 人）
+            </span>
+          </div>
+          <el-table :data="bookDetailData?.成果作者 || []" border stripe size="small">
+            <el-table-column label="著者顺位" width="100" align="center">
+              <template #default="{ $index }">第 {{ $index + 1 }} 著者</template>
+            </el-table-column>
+            <el-table-column prop="作者姓名" label="著者姓名" min-width="120" />
+            <el-table-column prop="作者级别" label="署名角色" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag size="small" :type="row.作者级别 === '主编' ? 'danger' : 'info'">
+                  {{ row.作者级别 || '著者' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="工作量占比" label="字数 / 贡献占比" width="140" align="center">
+              <template #default="{ row }">
+                <span>{{ row.工作量占比 ? `${(row.工作量占比 * 100).toFixed(0)}%` : '-' }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="bookDetailDialogVisible = false">关闭</el-button>
+        <el-button
+          v-if="bookDetailData?.著作详情"
+          type="primary"
+          @click="openGovernanceDrawer(2, bookDetailData.著作详情.编号, bookDetailData.著作详情.著作名称)"
+        >
+          查看全景治理追溯
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- 通知专利代理机构弹窗 -->
     <el-dialog
@@ -779,7 +957,8 @@ import {
   Bell,
   Connection,
   Plus,
-  DocumentChecked
+  DocumentChecked,
+  Document
 } from '@element-plus/icons-vue'
 import {
   getPagingAchievements,
@@ -787,7 +966,9 @@ import {
   addAchievementRelation,
   updateAchievementGovernance,
   getPagingBooks,
+  getBookDetail,
   getPagingPatents,
+  getPatentDetail,
   notifyPatentAgent,
   getPagingAwards,
   getAchievementConversions,
@@ -852,6 +1033,36 @@ const notifyForm = reactive<{
   事件类型: '申请',
   说明: ''
 })
+
+// 5.1 专利详情与发明人位次分配
+const patentDetailDialogVisible = ref(false)
+const loadingPatentDetail = ref(false)
+const patentDetailData = ref<{ 专利详情: PatentItem; 成果项目: any[]; 成果作者: any[]; 审核情况: any[] } | null>(null)
+
+async function openPatentDetailDialog(row: PatentItem) {
+  patentDetailDialogVisible.value = true
+  loadingPatentDetail.value = true
+  try {
+    const res = await getPatentDetail(row.编号)
+    patentDetailData.value = (res as any)?.data || res
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取专利发明人与绩效分配详情失败')
+  } finally {
+    loadingPatentDetail.value = false
+  }
+}
+
+function calculatePatentAuthorScore(patent?: PatentItem, author?: any) {
+  if (!patent) return 0
+  const isInvention = patent.专利类型?.includes('发明')
+  const base = isInvention ? 30.00 : 10.00
+  let ratio = author?.工作量占比 ? Number(author.工作量占比) : 0
+  if (ratio <= 0) {
+    if (author?.作者级别 === '第一发明人' || author?.作者级别 === '第一作者') ratio = 0.60
+    else ratio = 0.20
+  }
+  return Number((base * ratio).toFixed(2))
+}
 
 // 6. 治理抽屉
 const showGovernanceDrawer = ref(false)
@@ -1141,8 +1352,22 @@ async function submitAddRelation() {
   }
 }
 
-function viewBookDetail(id: number) {
-  openGovernanceDrawer(2, id, `学术专著 #${id}`)
+// 5.2 专著详情与著者位次分配
+const bookDetailDialogVisible = ref(false)
+const loadingBookDetail = ref(false)
+const bookDetailData = ref<{ 著作详情: BookItem; 成果项目: any[]; 成果作者: any[]; 审核情况: any[] } | null>(null)
+
+async function viewBookDetail(id: number) {
+  bookDetailDialogVisible.value = true
+  loadingBookDetail.value = true
+  try {
+    const res = await getBookDetail(id)
+    bookDetailData.value = (res as any)?.data || res
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取学术著作著者与分工详情失败')
+  } finally {
+    loadingBookDetail.value = false
+  }
 }
 
 function viewAwardDetail(id: number) {

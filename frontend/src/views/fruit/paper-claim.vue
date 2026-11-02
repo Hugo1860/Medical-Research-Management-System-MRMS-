@@ -388,13 +388,25 @@
 
           <el-form-item label="作者位次" required>
             <el-select v-model="claimForm.作者位次" style="width: 100%;">
-              <el-option label="第一作者 (First Author)" value="第一作者" />
-              <el-option label="共同第一作者 (Co-First Author)" value="共同第一作者" />
-              <el-option label="通讯作者 (Corresponding Author)" value="通讯作者" />
-              <el-option label="共同通讯作者 (Co-Corresponding)" value="共同通讯作者" />
-              <el-option label="主要参与作者 (Co-Author)" value="主要参与作者" />
+              <el-option label="第一作者 (First Author - 50%绩效基准)" value="第一作者" />
+              <el-option label="通讯作者 (Corresponding Author - 30%绩效基准)" value="通讯作者" />
+              <el-option label="共同第一作者 (Co-First Author - 10%绩效基准)" value="共同第一作者" />
+              <el-option label="共同通讯作者 (Co-Corresponding - 10%绩效基准)" value="共同通讯作者" />
+              <el-option label="主要参与作者 (Co-Author - 10%绩效基准)" value="主要参与作者" />
             </el-select>
           </el-form-item>
+
+          <div class="performance-estimate-card">
+            <div class="estimate-title">
+              <el-icon><TrendCharts /></el-icon>
+              <span>科研绩效动态分配预估</span>
+            </div>
+            <div class="estimate-details">
+              <span>论文基准分: <b>{{ claimPerformancePreview.baseScore }}</b> 分</span>
+              <span>位次拆分权重: <b>{{ (claimPerformancePreview.ratio * 100).toFixed(0) }}%</b></span>
+              <span class="estimate-highlight">预计计入个人绩效: <b>{{ claimPerformancePreview.finalScore }}</b> 分</span>
+            </div>
+          </div>
 
           <el-form-item label="成果认领说明">
             <el-input
@@ -492,7 +504,8 @@ import {
   Cpu,
   Check,
   Plus,
-  Setting
+  Setting,
+  TrendCharts
 } from '@element-plus/icons-vue'
 
 const activeTab = ref('activePush')
@@ -528,6 +541,31 @@ const currentPushPaper = ref<ActivePushPaperItem | null>(null)
 const claimForm = reactive({
   作者位次: '第一作者',
   认领说明: ''
+})
+
+// 依据全院科研综合绩效动态测算公式实时预估认领分值
+const claimPerformancePreview = computed(() => {
+  if (!currentPushPaper.value) return { baseScore: 0, ratio: 0.5, finalScore: 0 }
+  const part = currentPushPaper.value.中科院分区 || ''
+  let base = 5
+  if (part.includes('1区') && currentPushPaper.value.是否Top期刊) base = 120
+  else if (part.includes('1区')) base = 100
+  else if (part.includes('2区')) base = 60
+  else if (part.includes('3区')) base = 30
+  else if (part.includes('4区')) base = 10
+  if (currentPushPaper.value.是否Top期刊 && !part.includes('1区')) base += 20
+  const ifFactor = Number(currentPushPaper.value.影响因子 || 0)
+  base += Number((ifFactor * 10).toFixed(2))
+
+  let ratio = 0.5
+  if (claimForm.作者位次 === '第一作者') ratio = 0.50
+  else if (claimForm.作者位次 === '通讯作者') ratio = 0.30
+  else if (claimForm.作者位次 === '共同第一作者') ratio = 0.10
+  else if (claimForm.作者位次 === '共同通讯作者') ratio = 0.10
+  else ratio = 0.10
+
+  const finalScore = Number((base * ratio).toFixed(2))
+  return { baseScore: Number(base.toFixed(2)), ratio, finalScore }
 })
 
 // 机构别名弹窗
@@ -1048,6 +1086,41 @@ onMounted(async () => {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
+      }
+    }
+
+    .performance-estimate-card {
+      background: #eff6ff;
+      border: 1px dashed #93c5fd;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 12px 0 16px 0;
+
+      .estimate-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #1d4ed8;
+        margin-bottom: 6px;
+      }
+
+      .estimate-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: #334155;
+
+        .estimate-highlight {
+          color: #0369a1;
+          font-weight: 600;
+          b {
+            color: #b91c1c;
+            font-size: 14px;
+          }
+        }
       }
     }
   }
