@@ -8,6 +8,7 @@ namespace ScientificResearch.Models
         public string 系统代码 { get; set; }
         public string 系统名称 { get; set; }
         public string 系统类型 { get; set; }
+        public string 接入方式 { get; set; } = "接口";
         public string 基础地址 { get; set; }
         public string 认证方式 { get; set; } = "无";
         public string 认证引用 { get; set; }

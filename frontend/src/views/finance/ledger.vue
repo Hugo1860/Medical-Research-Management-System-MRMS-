@@ -211,21 +211,21 @@
         <el-tab-pane label="HRP 财务中间库双向协同" name="hrpSync">
           <div class="hrp-sync-box">
             <el-alert
-              title="科研与 HRP 财务系统双向中间库协同机制"
+              title="科研与 HRP 财务系统中间库状态"
               type="info"
               :closable="false"
               show-icon
-              description="清华长庚医院实践方案：科研管理系统与院内 HRP 财务系统通过4张标准业务中间表（项目表 hrp_sync_project、预算表 hrp_sync_budget、到账流水表 hrp_sync_incoming、支出核销流水表 hrp_sync_expense）进行松耦合交互，实现立项预算主动推送与财务到账/支出自动回写入账。"
+              description="当前页面只展示四张标准中间表的本地暂存状态（项目、预算、到账和支出）。外部 HRP 发送、到账回执和付款回写尚未接入，不以“已同步”文案代替真实回执。"
               style="margin-bottom: 16px;"
             />
 
             <!-- 操作动作卡片 -->
             <div class="sync-action-toolbar">
               <el-button type="primary" :icon="Upload" :loading="syncPushing" @click="handleHrpPush">
-                一键推送立项与预算至 HRP
+                登记立项与预算待处理暂存
               </el-button>
               <el-button type="success" :icon="Download" :loading="syncPulling" @click="handleHrpPull">
-                一键拉取 HRP 到账与实际支出
+                刷新 HRP 到账与实际支出暂存
               </el-button>
               <el-button :icon="Refresh" :loading="hrpLoading" @click="fetchHrpStatus">
                 刷新协同状态
@@ -246,10 +246,10 @@
                       <span>¥{{ formatMoney(row.approved_budget) }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="中间表同步状态" width="130" align="center">
+                    <el-table-column label="HRP 接收状态" width="130" align="center">
                     <template #default="{ row }">
-                      <el-tag :type="row.sync_status === 1 ? 'success' : row.sync_status === 2 ? 'danger' : 'warning'" size="small">
-                        {{ row.sync_status === 1 ? '已同步成功' : row.sync_status === 2 ? '同步异常' : '待HRP拉取' }}
+                      <el-tag :type="hrpStatusTag(row.状态代码 || row.sync_status)" size="small" :title="hrpStatusTitle(row)">
+                        {{ hrpStatusLabel(row.状态代码 || row.sync_status, 'project') }}
                       </el-tag>
                     </template>
                   </el-table-column>
@@ -271,8 +271,8 @@
                   <el-table-column prop="arrival_batch" label="对应到账批次" width="140" align="center" />
                   <el-table-column label="状态" width="110" align="center">
                     <template #default="{ row }">
-                      <el-tag :type="row.sync_status === 1 ? 'success' : 'warning'" size="small">
-                        {{ row.sync_status === 1 ? '已生效' : '待处理' }}
+                      <el-tag :type="hrpStatusTag(row.状态代码 || row.sync_status)" size="small" :title="hrpStatusTitle(row)">
+                        {{ hrpStatusLabel(row.状态代码 || row.sync_status, 'budget') }}
                       </el-tag>
                     </template>
                   </el-table-column>
@@ -292,8 +292,8 @@
                   <el-table-column prop="source_account" label="拨付来源渠道" min-width="180" />
                   <el-table-column label="回写科研系统状态" width="140" align="center">
                     <template #default="{ row }">
-                      <el-tag :type="row.sync_status === 1 ? 'success' : 'info'" size="small">
-                        {{ row.sync_status === 1 ? '已入账至科研' : '待处理' }}
+                      <el-tag :type="hrpStatusTag(row.状态代码 || row.sync_status)" size="small" :title="hrpStatusTitle(row)">
+                        {{ hrpStatusLabel(row.状态代码 || row.sync_status, 'incoming') }}
                       </el-tag>
                     </template>
                   </el-table-column>
@@ -314,8 +314,8 @@
                   <el-table-column prop="expense_date" label="实际扣账日期" width="130" />
                   <el-table-column label="状态" width="120" align="center">
                     <template #default="{ row }">
-                      <el-tag :type="row.sync_status === 1 ? 'success' : 'warning'" size="small">
-                        {{ row.sync_status === 1 ? '已核销记账' : '待入账' }}
+                      <el-tag :type="hrpStatusTag(row.状态代码 || row.sync_status)" size="small" :title="hrpStatusTitle(row)">
+                        {{ hrpStatusLabel(row.状态代码 || row.sync_status, 'expense') }}
                       </el-tag>
                     </template>
                   </el-table-column>
@@ -528,10 +528,10 @@ async function fetchHrpStatus() {
     }
     const res = await getHrpSyncStatus(projectId.value)
     if (res) {
-      hrpProjectList.value = Array.isArray(res.项目列表) ? res.项目列表 : []
-      hrpBudgetList.value = Array.isArray(res.预算列表) ? res.预算列表 : []
-      hrpIncomingList.value = Array.isArray(res.到账列表) ? res.到账列表 : []
-      hrpExpenseList.value = Array.isArray(res.支出列表) ? res.支出列表 : []
+      hrpProjectList.value = Array.isArray(res.项目推送列表) ? res.项目推送列表 : []
+      hrpBudgetList.value = Array.isArray(res.预算推送列表) ? res.预算推送列表 : []
+      hrpIncomingList.value = Array.isArray(res.到账回写列表) ? res.到账回写列表 : []
+      hrpExpenseList.value = Array.isArray(res.支出报销回写列表) ? res.支出报销回写列表 : []
     }
   } catch (e: any) {
     hrpProjectList.value = []
@@ -551,8 +551,8 @@ async function handleHrpPush() {
   }
   syncPushing.value = true
   try {
-    await syncHrpIntermediate({ 协同模式: '推送立项与预算', 项目编号: projectId.value })
-    ElMessage.success('已成功将课题立项信息与预算明细推送至 HRP 中间库！')
+    await syncHrpIntermediate({ 动作: 'push_only', 项目编号: projectId.value })
+    ElMessage.info('已登记 HRP 待处理暂存；尚无外部 HRP 回执')
     await fetchHrpStatus()
   } catch (err: any) {
     ElMessage.error(err.response?.data?.error || err.message || '推送失败')
@@ -568,9 +568,8 @@ async function handleHrpPull() {
   }
   syncPulling.value = true
   try {
-    await syncHrpIntermediate({ 协同模式: '拉取到账与支出', 项目编号: projectId.value })
-    ElMessage.success('已成功从 HRP 中间库拉取最新财务到账与实际支出流水！')
     await fetchHrpStatus()
+    ElMessage.info('已刷新本地 HRP 暂存状态；尚无外部 HRP 回执')
   } catch (err: any) {
     ElMessage.error(err.response?.data?.error || err.message || '拉取失败')
   } finally {
@@ -581,6 +580,34 @@ async function handleHrpPull() {
 function formatMoney(num?: number) {
   if (num == null) return '0.00'
   return Number(num).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function hrpStatusCode(value: unknown): 'connected' | 'unconfigured' | 'failed' | 'manual_import' {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (['connected', 'confirmed', '已确认', '1'].includes(normalized)) return 'connected'
+  if (['failed', '失败', '异常', '同步异常', '2'].includes(normalized)) return 'failed'
+  if (['manual_import', '人工导入', '已处理'].includes(normalized)) return 'manual_import'
+  return 'unconfigured'
+}
+
+function hrpStatusLabel(value: unknown, scope: 'project' | 'budget' | 'incoming' | 'expense') {
+  const status = hrpStatusCode(value)
+  if (status === 'connected') {
+    return scope === 'project' ? 'HRP 已确认回执' : scope === 'budget' ? 'HRP 已确认入表' : scope === 'incoming' ? 'HRP 已确认回写' : 'HRP 已确认核销'
+  }
+  if (status === 'failed') return 'HRP 处理失败'
+  if (status === 'manual_import') return '人工/历史登记（无回执）'
+  return scope === 'project' ? '待 HRP 处理（本地暂存）' : scope === 'budget' ? '待 HRP 处理（本地暂存）' : scope === 'incoming' ? '待 HRP 回写（本地暂存）' : '待 HRP 回写（本地暂存）'
+}
+
+function hrpStatusTag(value: unknown): 'success' | 'danger' | 'warning' | 'info' {
+  const status = hrpStatusCode(value)
+  return status === 'connected' ? 'success' : status === 'failed' ? 'danger' : status === 'manual_import' ? 'warning' : 'info'
+}
+
+function hrpStatusTitle(row: { 状态代码?: unknown; 状态说明?: string; sync_status?: unknown }) {
+  const code = hrpStatusCode(row.状态代码 ?? row.sync_status)
+  return `状态代码：${code}；${row.状态说明 || '状态来自本地中间表，未取得外部 HRP 回执'}`
 }
 
 function getExecutionRate(spent: number, budget: number): number {

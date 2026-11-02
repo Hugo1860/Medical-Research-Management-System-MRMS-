@@ -10,6 +10,7 @@ restore_script="$root/deploy/verify-postgres-backup.sh"
 runbook="$root/docs/production-uat-runbook.md"
 deploy_readme="$root/deploy/README.md"
 database_readme="$root/database/postgresql/README.md"
+expected_schema_version="$("$root/deploy/read-current-schema-version.sh")"
 
 for path in "$export_script" "$restore_script" "$runbook" "$deploy_readme" "$database_readme"; do
   [[ -f "$path" ]] || { echo "备份恢复契约失败: 缺少 $path" >&2; exit 1; }
@@ -40,7 +41,7 @@ done
 for marker in \
   'set -euo pipefail' \
   'umask 077' \
-  'expected_version="${EXPECTED_SCHEMA_VERSION:-106}"' \
+  'expected_version="${EXPECTED_SCHEMA_VERSION:-$("$script_root/deploy/read-current-schema-version.sh")}"' \
   'pg_restore --list' \
   "psql -U \"\$database_user\" -d \"\$database_name\" -Atc 'SELECT 1'" \
   '--exit-on-error' \
@@ -88,13 +89,15 @@ for marker in \
   }
 done
 
-python3 - "$root" "$runbook" "$deploy_readme" "$database_readme" <<'PY'
+python3 - "$root" "$runbook" "$deploy_readme" "$database_readme" "$expected_schema_version" <<'PY'
 import json
 import pathlib
 import sys
 
 root = pathlib.Path(sys.argv[1])
-docs = [pathlib.Path(value).read_text(encoding='utf-8') for value in sys.argv[2:]]
+expected_version = int(sys.argv[-1])
+docs = [pathlib.Path(value).read_text(encoding='utf-8') for value in sys.argv[2:-1]]
+latest = max(int(path.name[:3]) for path in (root / 'database' / 'postgresql' / 'migrations').glob('[0-9][0-9][0-9]_*.sql'))
 for path in (
     root / 'ScientificResearch' / 'ScientificResearch' / 'appsettings.json',
     root / 'ScientificResearch' / 'ScientificResearch' / 'appsettings.Production.json',
@@ -103,17 +106,17 @@ for path in (
         continue
     data = json.loads(path.read_text(encoding='utf-8-sig'))
     expected = data.get('Postgres', {}).get('ExpectedSchemaVersion')
-    if str(expected) != '106':
-        raise SystemExit(f'备份恢复契约失败: {path} ExpectedSchemaVersion={expected!r}，期望 106')
+    if int(expected) != expected_version or int(expected) != latest:
+        raise SystemExit(f'备份恢复契约失败: {path} ExpectedSchemaVersion={expected!r}，期望当前版本 {expected_version}/{latest}')
 
 joined = '\n'.join(docs)
 required = {
-    'runbook restore command': 'EXPECTED_SCHEMA_VERSION=106 BACKUP_FILE=',
+    'runbook restore command': f'EXPECTED_SCHEMA_VERSION={expected_version} BACKUP_FILE="$backup_file" ./deploy/verify-postgres-backup.sh',
     'runbook export command': 'EXPORT_FILE="$backup_file" ./deploy/export-postgres-data.sh',
     'runbook report evidence': 'restore-report.json',
-    'deployment README restore command': 'EXPECTED_SCHEMA_VERSION=106 ./deploy/verify-postgres-backup.sh',
-    'deployment README schema': 'schema 版本 106',
-    'database README schema': 'Postgres__ExpectedSchemaVersion` 默认值为 `106`',
+    'deployment README restore command': 'BACKUP_FILE=/secure/backup/scientificresearch-...dump',
+    'deployment README schema': 'schema 版本与仓库最新迁移一致',
+    'database README schema': 'Postgres__ExpectedSchemaVersion` 默认从 `appsettings.json` 与迁移目录最新编号读取',
     'database README isolated restore': '临时 PostgreSQL 18 容器恢复',
 }
 missing = [label for label, marker in required.items() if marker not in joined]
@@ -126,7 +129,7 @@ if missing:
 for marker in ('不会操作正式数据库卷', '恢复演练报告'):
     if marker not in joined:
         raise SystemExit(f'备份恢复契约失败: 文档缺少边界说明 {marker}')
-print('PostgreSQL 备份恢复静态契约通过: Schema106、custom dump、校验元数据、隔离恢复和演练证据齐全')
+print(f'PostgreSQL 备份恢复静态契约通过: Schema{expected_version}、custom dump、校验元数据、隔离恢复和演练证据齐全')
 PY
 
 if ! grep -Fq './deploy/verify-postgres-backup-contract.sh' "$root/deploy/verify-local-release.sh"; then

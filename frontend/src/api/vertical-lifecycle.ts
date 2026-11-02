@@ -82,7 +82,8 @@ export function getPagedApprovals(
   return get<PagingResult<VerticalProjectApprovalItem>>('/YProject/分页获取科研项目立项', {
     Index: paging.index,
     Size: paging.size,
-    ...filter
+    Like项目中文名称: filter?.Like项目名称,
+    Like负责人姓名: filter?.Like负责人姓名
   })
 }
 
@@ -91,15 +92,46 @@ export function getApprovalDetail(approvalId: number) {
   return get<any>('/YProject/获取纵向项目立项详情', { 纵向项目立项编号: approvalId })
 }
 
+export interface CoreProjectClosureStatus {
+  项目编号: number
+  项目名称: string
+  资助类型: string
+  申报: { 状态: string; 编号?: number | null; 审批状态: string }
+  立项: { 状态: string; 已审批: boolean }
+  到账: { 状态: string; 金额: number; 是否必需: boolean }
+  预算: { 状态: string; 金额: number; 是否完成: boolean }
+  报销: { 状态: string; 金额: number }
+  提醒: { 状态: string; 数量: number }
+  结题: { 状态: string; 是否完成: boolean }
+  成果归档: { 状态: string; 数量: number }
+  验收通过: boolean
+  下一步: string
+}
+
+export function getCoreProjectClosureStatus(projectId: number, applicationId?: number) {
+  return get<CoreProjectClosureStatus>('/YProject/获取纵向项目核心闭环状态', {
+    纵向项目立项编号: projectId,
+    ...(applicationId ? { 纵向项目申报编号: applicationId } : {})
+  })
+}
+
+// Read-only acceptance summary for the complete vertical-project lifecycle.
+export function getProjectClosureAcceptanceSummary(projectId: number) {
+  return get<any>('/YProject/获取纵向项目闭环验收摘要', {
+    纵向项目立项编号: projectId
+  })
+}
+
 // 分页获取在研项目中检列表
 export function getPagedMidterms(
   paging: { index: number; size: number },
-  filter?: { Like项目名称?: string; Like负责人姓名?: string }
+  filter?: { Like项目名称?: string; Like项目中文名称?: string; Like负责人姓名?: string }
 ) {
   return get<PagingResult<VerticalMidtermItem>>('/YProject/分页获取纵向项目中检', {
     Index: paging.index,
     Size: paging.size,
-    ...filter
+    Like项目中文名称: filter?.Like项目中文名称 ?? filter?.Like项目名称,
+    ...(filter?.Like负责人姓名 ? { Like负责人姓名: filter.Like负责人姓名 } : {})
   })
 }
 
@@ -116,12 +148,13 @@ export function createMidterm(data: { 纵向项目立项编号: number; 中检�
 // 分页获取项目变更列表
 export function getPagedChanges(
   paging: { index: number; size: number },
-  filter?: { Like项目名称?: string; Like负责人姓名?: string }
+  filter?: { Like项目名称?: string; Like项目中文名称?: string; Like负责人姓名?: string }
 ) {
   return get<PagingResult<VerticalChangeItem>>('/YProject/分页获取纵向项目变更', {
     Index: paging.index,
     Size: paging.size,
-    ...filter
+    Like项目中文名称: filter?.Like项目中文名称 ?? filter?.Like项目名称,
+    ...(filter?.Like负责人姓名 ? { Like负责人姓名: filter.Like负责人姓名 } : {})
   })
 }
 
@@ -143,12 +176,13 @@ export function applyProjectLifecycleChange(data: {
 // 分页获取项目结题列表
 export function getPagedCloseouts(
   paging: { index: number; size: number },
-  filter?: { Like项目名称?: string; Like负责人姓名?: string }
+  filter?: { Like项目名称?: string; Like项目中文名称?: string; Like负责人姓名?: string }
 ) {
   return get<PagingResult<VerticalCloseoutItem>>('/YProject/分页获取纵向项目结题', {
     Index: paging.index,
     Size: paging.size,
-    ...filter
+    Like项目中文名称: filter?.Like项目中文名称 ?? filter?.Like项目名称,
+    ...(filter?.Like负责人姓名 ? { Like负责人姓名: filter.Like负责人姓名 } : {})
   })
 }
 

@@ -1,0 +1,149 @@
+PASS: application category=1 eligible=False manager
+PASS: application category=1 eligible=False owner
+PASS: application category=1 eligible=False other
+PASS: application category=1 eligible=False unrelated role denied
+PASS: application category=1 eligible=False total and page
+PASS: application category=1 eligible=False page does not reveal other
+PASS: application category=1 eligible=False filtered foreign not revealed
+PASS: application category=1 eligible=False exact foreign ID cannot reveal record
+PASS: application category=1 eligible=True manager
+PASS: application category=1 eligible=True owner
+PASS: application category=1 eligible=True other
+PASS: application category=1 eligible=True unrelated role denied
+PASS: application category=1 eligible=True total and page
+PASS: application category=1 eligible=True page does not reveal other
+PASS: application category=1 eligible=True filtered foreign not revealed
+PASS: application category=1 eligible=True exact foreign ID cannot reveal record
+PASS: application category=2 eligible=False manager
+PASS: application category=2 eligible=False owner
+PASS: application category=2 eligible=False other
+PASS: application category=2 eligible=False unrelated role denied
+PASS: application category=2 eligible=False total and page
+PASS: application category=2 eligible=False page does not reveal other
+PASS: application category=2 eligible=False filtered foreign not revealed
+PASS: application category=2 eligible=False exact foreign ID cannot reveal record
+PASS: application category=2 eligible=True manager
+PASS: application category=2 eligible=True owner
+PASS: application category=2 eligible=True other
+PASS: application category=2 eligible=True unrelated role denied
+PASS: application category=2 eligible=True total and page
+PASS: application category=2 eligible=True page does not reveal other
+PASS: application category=2 eligible=True filtered foreign not revealed
+PASS: application category=2 eligible=True exact foreign ID cannot reveal record
+PASS: application category=3 eligible=False manager
+PASS: application category=3 eligible=False owner
+PASS: application category=3 eligible=False other
+PASS: application category=3 eligible=False unrelated role denied
+PASS: application category=3 eligible=False total and page
+PASS: application category=3 eligible=False page does not reveal other
+PASS: application category=3 eligible=False filtered foreign not revealed
+PASS: application category=3 eligible=False exact foreign ID cannot reveal record
+PASS: application category=3 eligible=True manager
+PASS: application category=3 eligible=True owner
+PASS: application category=3 eligible=True other
+PASS: application category=3 eligible=True unrelated role denied
+PASS: application category=3 eligible=True total and page
+PASS: application category=3 eligible=True page does not reveal other
+PASS: application category=3 eligible=True filtered foreign not revealed
+PASS: application category=3 eligible=True exact foreign ID cannot reveal record
+PASS: eligible list excludes approved application while ordinary list retains it
+PASS: application user 4 eligible=False sees assigned or participating project
+PASS: application user 4 eligible=True sees assigned or participating project
+PASS: application user 5 eligible=False sees assigned or participating project
+PASS: application user 5 eligible=True sees assigned or participating project
+PASS: application user 6 eligible=False sees assigned or participating project
+PASS: application user 6 eligible=True sees assigned or participating project
+PASS: mid manager includes all parent projects
+PASS: mid owner includes uninitiated child
+PASS: mid uninitiated child remains null
+PASS: mid other only sees own parent
+PASS: mid participant or current-step user 4
+PASS: mid participant or current-step user 5
+PASS: mid participant or current-step user 6
+PASS: mid unrelated role denied
+PASS: mid total and paging after permission
+PASS: mid later page cannot reveal other
+PASS: mid search cannot reveal foreign
+PASS: mid search retains authorized results
+PASS: change manager includes all parent projects
+PASS: change owner includes uninitiated child
+PASS: change uninitiated child remains null
+PASS: change other only sees own parent
+PASS: change participant or current-step user 4
+PASS: change participant or current-step user 5
+PASS: change participant or current-step user 6
+PASS: change unrelated role denied
+PASS: change total and paging after permission
+PASS: change later page cannot reveal other
+PASS: change search cannot reveal foreign
+PASS: change search retains authorized results
+PASS: mid stage direct assignee sees only assigned child
+PASS: mid stage assignee can read corresponding detail
+PASS: mid direct assignee takes precedence over role
+PASS: mid unassigned role cannot read assigned detail
+PASS: mid assignee cannot list other stage
+PASS: mid assignee cannot read other stage
+PASS: mid assignee cannot read foreign parent
+PASS: mid role assignee when no direct assignee
+PASS: mid role assignee can read detail
+PASS: mid completed step no longer grants list access
+PASS: mid completed step no longer grants detail access
+PASS: change stage direct assignee sees only assigned child
+PASS: change stage assignee can read corresponding detail
+PASS: change direct assignee takes precedence over role
+PASS: change unassigned role cannot read assigned detail
+PASS: change assignee cannot list other stage
+PASS: change assignee cannot read other stage
+PASS: change assignee cannot read foreign parent
+PASS: change role assignee when no direct assignee
+PASS: change role assignee can read detail
+PASS: change completed step no longer grants list access
+PASS: change completed step no longer grants detail access
+PASS: close manager includes all parent projects
+PASS: close owner includes uninitiated child
+PASS: close uninitiated child remains null
+PASS: close other only sees own parent
+PASS: close participant or current-step user 4
+PASS: close participant or current-step user 5
+PASS: close participant or current-step user 6
+PASS: close unrelated role denied
+PASS: close total and paging after permission
+PASS: close later page cannot reveal other
+PASS: close search cannot reveal foreign
+PASS: close search retains authorized results
+PASS: close stage direct assignee sees only assigned child
+PASS: close stage assignee can read corresponding detail
+PASS: close direct assignee takes precedence over role
+PASS: close unassigned role cannot read assigned detail
+PASS: close assignee cannot list other stage
+PASS: close assignee cannot read other stage
+PASS: close assignee cannot read foreign parent
+PASS: close role assignee when no direct assignee
+PASS: close role assignee can read detail
+PASS: close completed step no longer grants list access
+PASS: close completed step no longer grants detail access
+PASS: mid matching child visible to owner
+PASS: mid detail user 1
+PASS: mid detail user 4
+PASS: mid detail user 5
+PASS: mid detail user 6
+PASS: mid unauthorized parent forbidden
+PASS: mid cross-parent child forbidden
+PASS: change matching child visible to owner
+PASS: change detail user 1
+PASS: change detail user 4
+PASS: change detail user 5
+PASS: change detail user 6
+PASS: change unauthorized parent forbidden
+PASS: change cross-parent child forbidden
+PASS: close matching child visible to owner
+PASS: close detail user 1
+PASS: close detail user 4
+PASS: close detail user 5
+PASS: close detail user 6
+PASS: close unauthorized parent forbidden
+PASS: close cross-parent child forbidden
+PASS: closeout cross-parent midterm forbidden
+PASS: midterm zero child preserves uninitiated detail
+PASS: closeout zero children preserve uninitiated detail
+Vertical lifecycle scope regression passed: 148 checks; real controllers and isolated PostgreSQL.

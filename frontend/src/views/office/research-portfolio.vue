@@ -90,7 +90,7 @@
 
     <!-- 打印专用顶部抬头 (仅在打印时呈现) -->
     <div class="print-header print-only">
-      <h1 class="print-title">医疗科研管理系统 · 科研人员个人学术档案与业绩报告</h1>
+      <h1 class="print-title">医院科研管理系统 · 科研人员个人学术档案与业绩报告</h1>
       <div class="print-meta">
         <span>档案对象: <strong>{{ userProfile?.姓名 || '-' }}</strong> (工号: {{ userProfile?.工号 || '-' }})</span>
         <span>所属部门: {{ userProfile?.部门名称 || '-' }}</span>

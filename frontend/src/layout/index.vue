@@ -9,6 +9,7 @@
       />
       <TagsView />
       <AppMain />
+      <BuildFooter />
     </div>
   </div>
 </template>
@@ -19,6 +20,7 @@ import Sidebar from './components/Sidebar.vue'
 import Navbar from './components/Navbar.vue'
 import TagsView from './components/TagsView.vue'
 import AppMain from './components/AppMain.vue'
+import BuildFooter from './components/BuildFooter.vue'
 
 const isCollapse = ref(false)
 </script>

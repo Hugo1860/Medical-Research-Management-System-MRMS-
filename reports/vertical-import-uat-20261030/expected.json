@@ -1,0 +1,21 @@
+{
+  "approval": "UAT-PDF-26a8e6cfd677",
+  "batch": "UAT-BATCH-26a8e6cfd677",
+  "title": "UAT Synthetic Research Study 26a8e6cfd677",
+  "year": 2026,
+  "funding_wan": 12.345,
+  "funding_yuan": 123450,
+  "approval_date": "2026-01-02",
+  "start_date": "2026-02-01",
+  "end_date": "2028-01-31",
+  "category": 1,
+  "discipline": "Medicine",
+  "discipline_type": "Clinical",
+  "study_type": "Applied",
+  "project_type": "Research",
+  "project_level": "Institutional",
+  "source_unit": "Synthetic UAT",
+  "sha256": "6bc02dd49435f2cc8c7106a129517b8e6e1f40d1dc4e22efdc9f3dc2179b9d1f",
+  "owner_name": "验收负责人",
+  "owner_employee_number": "uat-owner-64332bba"
+}

@@ -1,0 +1,58 @@
+PASS: 申报 valid active binding hold
+PASS: 申报 foreign entity rejected
+PASS: 申报 wrong template rejected
+PASS: 申报 unauthorized operator rejected
+PASS: 申报 ended step rejected
+PASS: 立项 valid active binding hold
+PASS: 立项 foreign entity rejected
+PASS: 立项 wrong template rejected
+PASS: 立项 unauthorized operator rejected
+PASS: 立项 ended step rejected
+PASS: 中检 valid active binding hold
+PASS: 中检 foreign entity rejected
+PASS: 中检 wrong template rejected
+PASS: 中检 unauthorized operator rejected
+PASS: 中检 forged parent rejected
+PASS: 中检 ended step rejected
+PASS: 变更 valid active binding hold
+PASS: 变更 foreign entity rejected
+PASS: 变更 wrong template rejected
+PASS: 变更 unauthorized operator rejected
+PASS: 变更 forged parent rejected
+PASS: 变更 ended step rejected
+PASS: 结题 valid active binding hold
+PASS: 结题 foreign entity rejected
+PASS: 结题 wrong template rejected
+PASS: 结题 unauthorized operator rejected
+PASS: 结题 forged parent rejected
+PASS: 结题 ended step rejected
+PASS: new application cannot overwrite existing id
+PASS: new approval cannot overwrite existing id
+PASS: new approval cannot overwrite existing id
+PASS: new approval cannot overwrite existing id
+PASS: new change cannot overwrite existing id
+PASS: foreign application cannot be converted
+PASS: valid midterm hold persisted
+PASS: cross-project midterm controller rejected
+PASS: foreign midterm unchanged
+PASS: valid application hold persisted
+PASS: foreign application controller rejected
+PASS: foreign application unchanged
+PASS: valid approval hold persisted
+PASS: foreign approval controller rejected
+PASS: foreign approval unchanged
+PASS: valid change hold persisted
+PASS: foreign change controller rejected
+PASS: foreign change unchanged
+PASS: valid closeout hold persisted
+PASS: foreign closeout controller rejected
+PASS: foreign closeout unchanged
+PASS: cross-project change application rejected
+PASS: rejected change application does not complete step
+PASS: all five legitimate controller actions complete their own steps
+PASS: application completion persisted
+PASS: approval completion persisted
+PASS: midterm completion persisted
+PASS: change completion persisted
+PASS: closeout completion persisted
+Vertical write scope regression passed: 57 checks; isolated PostgreSQL and real business/controllers.

@@ -124,7 +124,17 @@ namespace ScientificResearch.Business
         /// <param name="isHold"></param>
         /// <param name="AdditionalActionsWhenState">当前操作状态值=多少时,才执行附加动作,默认null</param>
         /// <returns></returns>
-        async public Task 完成步骤<T>(完成步骤 step, int 操作人编号, T model = null, bool isHold = false, int? AdditionalActionsWhenState = null) where T : class
+        // Optional binding is used by vertical lifecycle writes. The table is selected
+        // from a server-side allowlist, never from a request-provided identifier.
+        public sealed class 纵向步骤绑定
+        {
+            public string 阶段 { get; set; }
+            public int 流程模板编号 { get; set; }
+            public int 子记录编号 { get; set; }
+            public int? 立项编号 { get; set; }
+        }
+
+        async public Task 完成步骤<T>(完成步骤 step, int 操作人编号, T model = null, bool isHold = false, int? AdditionalActionsWhenState = null, 纵向步骤绑定 绑定 = null) where T : class
         {
             //var sql = model == null ? string.Empty : typeof(T).Name;
             using (var dbForTransaction = new NpgsqlConnection(DbConnectionString))
@@ -135,6 +145,44 @@ namespace ScientificResearch.Business
                     try
                     {
                         var 下一步骤编号 = 0;
+
+                        if (绑定 != null)
+                        {
+                            if (绑定.子记录编号 <= 0 || (绑定.立项编号.HasValue && 绑定.立项编号.Value <= 0))
+                                throw new ForbiddenAccessException("流程步骤与纵向项目记录不匹配");
+                            var table = 绑定.阶段 switch
+                            {
+                                "申报" => "\"纵向项目申报\"",
+                                "立项" => "\"纵向项目立项\"",
+                                "中检" => "\"纵向项目中检\"",
+                                "变更" => "\"纵向项目变更\"",
+                                "结题" => "\"纵向项目结题\"",
+                                _ => throw new ArgumentException("未知纵向项目阶段")
+                            };
+                            // Lock all participating rows until the workflow action and
+                            // accompanying write commit, preventing a concurrent rebind.
+                            var root = 绑定.阶段 == "申报" || 绑定.阶段 == "立项";
+                            var sql = root ? @"
+SELECT entity.""编号""
+  FROM ""步骤"" step
+  JOIN ""流程"" flow ON flow.""编号""=step.""流程编号""
+  JOIN " + table + @" entity ON entity.""编号""=flow.""项目编号""
+ WHERE step.""编号""=@stepId AND step.""状态""=0
+   AND flow.""流程模板编号""=@templateId AND entity.""编号""=@childId
+ FOR UPDATE OF step, flow, entity;" : @"
+SELECT child.""纵向项目编号""
+  FROM ""步骤"" step
+  JOIN ""流程"" flow ON flow.""编号""=step.""流程编号""
+  JOIN " + table + @" child ON child.""编号""=flow.""项目编号""
+  JOIN ""纵向项目立项"" parent ON parent.""编号""=child.""纵向项目编号""
+ WHERE step.""编号""=@stepId AND step.""状态""=0
+   AND flow.""流程模板编号""=@templateId AND child.""编号""=@childId
+ FOR UPDATE OF step, flow, child, parent;";
+                            var boundId = await dbForTransaction.QuerySingleOrDefaultAsync<int?>(sql,
+                                new { stepId = step.步骤编号, templateId = 绑定.流程模板编号, childId = 绑定.子记录编号 }, transaction);
+                            if (!boundId.HasValue || (!root && 绑定.立项编号.HasValue && boundId.Value != 绑定.立项编号.Value))
+                                throw new ForbiddenAccessException("流程步骤与纵向项目记录不匹配");
+                        }
 
                         // 查询函数不仅用于展示待办；流程写入前必须再次在事务内校验
                         // 当前操作人，避免直接调用完成接口绕过步骤指定人/角色限制。

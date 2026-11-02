@@ -46,9 +46,11 @@ echo "检测到 $asset_count 个已优化打包的静态 chunk 资源。"
 # modern SPA instead of relying on a one-off hot sync.
 publish_wwwroot="$project_root/publish/linux-x64/wwwroot"
 if [ -d "$publish_wwwroot" ]; then
-    if [ -f "$publish_wwwroot/index.html" ] && [ ! -f "$publish_wwwroot/index.legacy.html" ]; then
-        cp "$publish_wwwroot/index.html" "$publish_wwwroot/index.legacy.html"
-    fi
+    # Sync compatibility entrypoints from their owning source, not from a
+    # possibly stale SPA index already in the release directory.
+    source_wwwroot="$project_root/ScientificResearch/ScientificResearch/wwwroot"
+    cp -R "$source_wwwroot/." "$publish_wwwroot/"
+    cp "$source_wwwroot/index.html" "$publish_wwwroot/index.legacy.html"
     cp -R "$dist_dir/." "$publish_wwwroot/"
     echo "已同步现代 SPA 到离线发布目录: $publish_wwwroot"
 fi

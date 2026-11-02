@@ -550,7 +550,13 @@ SELECT ""编号"", ""流程模板编号"", ""项目编号"", ""项目支出类�
             var resultStr = await Db.QuerySingleAsync<string>(
                 "SELECT \"sp_hrp中间库双向协同\"(@项目编号, @动作)::text;",
                 new { 项目编号 = model?.项目编号, 动作 = "push_only" });
-            return Newtonsoft.Json.JsonConvert.DeserializeObject(resultStr);
+            return new
+            {
+                状态 = "queued",
+                外部回执 = false,
+                说明 = "仅写入本地 HRP 待处理暂存，未发送供应商请求或伪造到账/付款回执",
+                结果 = Newtonsoft.Json.JsonConvert.DeserializeObject(resultStr)
+            };
         }
 
         [HttpGet]
@@ -563,19 +569,73 @@ SELECT ""编号"", ""流程模板编号"", ""项目编号"", ""项目支出类�
             if (项目编号.HasValue && !isFinanceManager && !await 是可访问经费范围(纵向项目立项流程模板编号, 项目编号.Value))
                 return ProjectAccessDenied();
             var projects = await Db.QueryAsync<object>(@"
-SELECT ""id"", ""project_id"", ""project_no"", ""project_name"", ""pi_name"", ""approved_funds"", ""sync_status"", ""sync_time""
+SELECT ""id"", ""project_id"", ""project_no"", ""project_name"", ""pi_name"", ""approved_funds"", ""sync_status"", ""sync_time"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'failed'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN 'connected'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('manual_import','人工导入') THEN 'manual_import'
+         ELSE 'unconfigured'
+       END AS ""状态代码"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'HRP 处理失败，需查看错误并重试'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN '已取得明确 HRP 回执；不等同于付款到账'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('manual_import','人工导入') THEN '人工/历史登记，未证明 HRP 外部回执'
+         ELSE '仅本地待处理暂存，未发送或未取得 HRP 回执'
+       END AS ""状态说明""
   FROM ""hrp_sync_project""
  WHERE (@项目编号 IS NULL OR ""project_id"" = @项目编号)
  ORDER BY ""id"" DESC LIMIT 20;", new { 项目编号 });
 
             var budgets = await Db.QueryAsync<object>(@"
-SELECT ""id"", ""project_id"", ""expense_type"", ""expense_content"", ""finance_subject"", ""amount"", ""batch_no"", ""sync_status"", ""sync_time""
+SELECT ""id"", ""project_id"", ""expense_type"", ""expense_content"", ""finance_subject"", ""amount"", ""batch_no"", ""sync_status"", ""sync_time"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'failed'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN 'connected'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('manual_import','人工导入') THEN 'manual_import'
+         ELSE 'unconfigured'
+       END AS ""状态代码"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'HRP 处理失败，需查看错误并重试'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN '已取得明确 HRP 回执；不等同于付款到账'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('manual_import','人工导入') THEN '人工/历史登记，未证明 HRP 外部回执'
+         ELSE '仅本地待处理暂存，未发送或未取得 HRP 回执'
+       END AS ""状态说明""
   FROM ""hrp_sync_budget""
  WHERE (@项目编号 IS NULL OR ""project_id"" = @项目编号)
  ORDER BY ""id"" DESC LIMIT 20;", new { 项目编号 });
 
+            var incomings = await Db.QueryAsync<object>(@"
+SELECT ""id"", ""project_id"", ""incoming_id"", ""remit_unit"", ""incoming_date"", ""amount"", ""voucher_no"", ""hrp_bill_no"", ""sync_status"", ""sync_time"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'failed'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN 'connected'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('已处理','manual_import','人工导入') THEN 'manual_import'
+         ELSE 'unconfigured'
+       END AS ""状态代码"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'HRP 处理失败，需查看错误并重试'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN '已取得明确 HRP 回执；不等同于到账入账'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('已处理','manual_import','人工导入') THEN '人工/历史登记，未证明 HRP 外部回执'
+         ELSE '仅本地待处理暂存，未发送或未取得 HRP 回执'
+       END AS ""状态说明""
+  FROM ""hrp_sync_incoming""
+ WHERE (@项目编号 IS NULL OR ""project_id"" = @项目编号)
+ ORDER BY ""id"" DESC LIMIT 20;", new { 项目编号 });
+
             var expenses = await Db.QueryAsync<object>(@"
-SELECT ""id"", ""project_id"", ""applicant_name"", ""expense_type"", ""amount"", ""hrp_voucher_no"", ""pay_status"", ""pay_date"", ""sync_status""
+SELECT ""id"", ""project_id"", ""applicant_name"", ""expense_type"", ""amount"", ""hrp_voucher_no"", ""pay_status"", ""pay_date"", ""sync_status"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'failed'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN 'connected'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('已处理','manual_import','人工导入') THEN 'manual_import'
+         ELSE 'unconfigured'
+       END AS ""状态代码"",
+       CASE
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('failed','失败','2') THEN 'HRP 处理失败，需查看错误并重试'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('connected','confirmed','已确认','1') THEN '已取得明确 HRP 回执；不等同于付款完成'
+         WHEN lower(COALESCE(""sync_status"",'')) IN ('已处理','manual_import','人工导入') THEN '人工/历史登记，未证明 HRP 外部回执'
+         ELSE '仅本地待处理暂存，未发送或未取得 HRP 回执'
+       END AS ""状态说明""
   FROM ""hrp_sync_expense""
  WHERE (@项目编号 IS NULL OR ""project_id"" = @项目编号)
  ORDER BY ""id"" DESC LIMIT 20;", new { 项目编号 });
@@ -584,6 +644,7 @@ SELECT ""id"", ""project_id"", ""applicant_name"", ""expense_type"", ""amount"",
             {
                 项目推送列表 = projects,
                 预算推送列表 = budgets,
+                到账回写列表 = incomings,
                 支出报销回写列表 = expenses
             };
         }

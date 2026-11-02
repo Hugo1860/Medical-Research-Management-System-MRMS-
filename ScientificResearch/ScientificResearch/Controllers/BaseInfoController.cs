@@ -13,6 +13,13 @@ using System.IO;
 
 namespace ScientificResearch.Controllers
 {
+    public class 迁移参与人绑定复核
+    {
+        public int 参与人记录编号 { get; set; }
+        public int 确认流程模板编号 { get; set; }
+        public string 确认说明 { get; set; }
+    }
+
     /// <summary>
     /// 基础信息维护的接口
     /// </summary>
@@ -34,14 +41,64 @@ namespace ScientificResearch.Controllers
             if (!await HasAnyRoleAsync("系统管理员", "科研管理员", "科技办"))
                 return StatusCode(403, new { error = "无权查看迁移绑定异常" });
             return await Db.QueryAsync<object>(@"
-SELECT '项目参与人' AS ""异常类型"", p.""编号""::text AS ""记录编号"", p.""流程模板编号"", p.""项目编号"", p.""参与人编号""::text AS ""关联编号"", '流程模板、项目和参与人均为0或无对应项目' AS ""说明""
+SELECT '项目参与人' AS ""异常类型"", p.""编号""::text AS ""记录编号"", p.""流程模板编号"", p.""项目编号"", p.""参与人编号""::text AS ""关联编号"", '流程模板、项目和参与人均为0或无对应项目' AS ""说明"",
+       COALESCE(r.""复核状态"", '待业务确认') AS ""复核状态"", r.""确认流程模板编号"", r.""确认说明"", r.""复核人编号"", r.""复核时间""
   FROM ""项目参与人"" p
+  LEFT JOIN ""项目参与人绑定复核"" r ON r.""参与人记录编号""=p.""编号""
  WHERE NOT (
        (p.""流程模板编号""=400 AND EXISTS (SELECT 1 FROM ""纵向项目申报"" x WHERE x.""编号""=p.""项目编号""))
     OR (p.""流程模板编号""=410 AND EXISTS (SELECT 1 FROM ""纵向项目立项"" x WHERE x.""编号""=p.""项目编号""))
     OR (p.""流程模板编号""=450 AND EXISTS (SELECT 1 FROM ""横向项目"" x WHERE x.""编号""=p.""项目编号""))
     OR EXISTS (SELECT 1 FROM ""流程"" f WHERE f.""流程模板编号""=p.""流程模板编号"" AND f.""项目编号""=p.""项目编号""))
  ORDER BY p.""编号"";");
+        }
+
+        /// <summary>
+        /// 记录业务负责人对孤立参与人绑定的人工判断。此接口不会删除、移动或改写原绑定。
+        /// </summary>
+        [HttpPost]
+        async public Task<object> 确认迁移参与人绑定([FromBody]迁移参与人绑定复核 model)
+        {
+            if (!await HasAnyRoleAsync("系统管理员", "科研管理员", "科技办"))
+                return StatusCode(403, new { error = "无权确认迁移参与人绑定" });
+            if (model == null || model.参与人记录编号 <= 0 || model.确认流程模板编号 is not (400 or 410 or 450))
+                throw new ArgumentException("参与人记录编号或确认流程模板编号无效，只允许 400、410、450");
+            if (string.IsNullOrWhiteSpace(model.确认说明) || model.确认说明.Trim().Length > 1000)
+                throw new ArgumentException("确认说明不能为空且不能超过 1000 字");
+            var binding = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT p.""流程模板编号"", p.""项目编号"", p.""参与人编号"",
+       NOT (
+           (p.""流程模板编号""=400 AND EXISTS (SELECT 1 FROM ""纵向项目申报"" x WHERE x.""编号""=p.""项目编号""))
+        OR (p.""流程模板编号""=410 AND EXISTS (SELECT 1 FROM ""纵向项目立项"" x WHERE x.""编号""=p.""项目编号""))
+        OR (p.""流程模板编号""=450 AND EXISTS (SELECT 1 FROM ""横向项目"" x WHERE x.""编号""=p.""项目编号""))
+        OR EXISTS (SELECT 1 FROM ""流程"" f WHERE f.""流程模板编号""=p.""流程模板编号"" AND f.""项目编号""=p.""项目编号"")
+       ) AS ""是否孤立""
+  FROM ""项目参与人"" p
+ WHERE p.""编号""=@参与人记录编号;", new { model.参与人记录编号 });
+            if (binding == null) return NotFound(new { error = "参与人绑定记录不存在" });
+            if ((int)binding.流程模板编号 != model.确认流程模板编号)
+                throw new ArgumentException("确认流程模板编号必须与原参与人绑定一致，不得猜测或改写 400、410、450");
+            if (!(bool)binding.是否孤立)
+                return BadRequest(new { error = "该绑定已有对应项目或流程，不属于迁移孤立记录；无需人工复核" });
+
+            // Keep the orphan row untouched. A later, separately approved repair
+            // may use this record, but this confirmation is never a repair command.
+            await Db.ExecuteAsync(@"
+INSERT INTO ""项目参与人绑定复核"" (""参与人记录编号"",""确认流程模板编号"",""确认说明"",""复核状态"",""复核人编号"")
+VALUES (@参与人记录编号,@确认流程模板编号,@确认说明,'已确认',@复核人编号)
+ON CONFLICT (""参与人记录编号"") DO UPDATE SET
+  ""确认流程模板编号""=EXCLUDED.""确认流程模板编号"",
+  ""确认说明""=EXCLUDED.""确认说明"",
+  ""复核状态""=EXCLUDED.""复核状态"",
+  ""复核人编号""=EXCLUDED.""复核人编号"",
+  ""复核时间""=CURRENT_TIMESTAMP;", new
+            {
+                model.参与人记录编号,
+                model.确认流程模板编号,
+                确认说明 = model.确认说明.Trim(),
+                复核人编号 = CurrentUser.编号
+            });
+            return new { success = true, 参与人记录编号 = model.参与人记录编号, 复核状态 = "已确认", 说明 = "已记录业务确认；原绑定未被自动修复或删除" };
         }
 
         #region 字典

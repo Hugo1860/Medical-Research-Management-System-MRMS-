@@ -1,0 +1,28 @@
+ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0
+FROM ${SDK_IMAGE} AS dependencies
+ARG NUGET_REMOTE_SOURCE=https://api.nuget.org/v3/index.json
+WORKDIR /src
+COPY ScientificResearch/ScientificResearch/ScientificResearch.csproj ScientificResearch/ScientificResearch/
+RUN --mount=type=cache,id=scientificresearch-nuget,target=/root/.nuget/packages \
+    --mount=type=bind,source=deploy/nuget-local,target=/nuget-local \
+    set -eu; set -- --source /nuget-local; \
+    if [ -n "$NUGET_REMOTE_SOURCE" ]; then set -- "$@" --source "$NUGET_REMOTE_SOURCE"; fi; \
+    dotnet restore ScientificResearch/ScientificResearch/ScientificResearch.csproj -r linux-x64 -p:UseAppHost=false -p:SelfContained=false --disable-parallel --verbosity normal "$@"
+
+FROM dependencies AS build
+COPY ScientificResearch/ScientificResearch/ ScientificResearch/ScientificResearch/
+RUN --mount=type=cache,id=scientificresearch-nuget,target=/root/.nuget/packages \
+    dotnet publish ScientificResearch/ScientificResearch/ScientificResearch.csproj \
+    -c Release -r linux-x64 -p:UseAppHost=false --self-contained false --no-restore -o /out
+
+FROM build AS regression
+COPY tests/ tests/
+RUN --mount=type=cache,id=scientificresearch-nuget,target=/root/.nuget/packages \
+    --mount=type=bind,source=deploy/nuget-local,target=/nuget-local \
+    set -eu; set -- --source /nuget-local; \
+    if [ -n "$NUGET_REMOTE_SOURCE" ]; then set -- "$@" --source "$NUGET_REMOTE_SOURCE"; fi; \
+    for project in tests/*/*.csproj; do \
+      name="$(basename "$(dirname "$project")")"; \
+      dotnet restore "$project" -p:UseAppHost=false -p:SelfContained=false "$@"; \
+      dotnet publish "$project" -c Release -p:UseAppHost=false --no-restore --self-contained false -o "/checks/$name"; \
+    done

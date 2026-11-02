@@ -9,8 +9,8 @@
         </svg>
       </span>
       <div class="brand-titles">
-        <span class="brand-main">医学科研管理系统</span>
-        <small class="brand-sub" lang="en">Medical Research Management System (MRMS)</small>
+        <span class="brand-main">医院科研管理系统</span>
+        <small class="brand-sub" lang="en">Hospital Research Management System (HRMS)</small>
       </div>
     </header>
 
@@ -71,7 +71,7 @@
           </span>
           <div class="welcome-card-titles">
             <span class="welcome-card-kicker">科研人员与管理统一入口</span>
-            <h2 id="welcome-card-title">登录科研管理系统</h2>
+            <h2 id="welcome-card-title">登录医院科研管理系统</h2>
           </div>
         </div>
 
@@ -239,7 +239,7 @@
 
     <!-- 页脚版权与口号 -->
     <footer class="welcome-footer">
-      <span>医学科研管理系统 · Medical Research Management System</span>
+      <span>医院科研管理系统 · Hospital Research Management System (HRMS)</span>
       <span>共同推进规范科研与高水平临床转化创新。</span>
     </footer>
   </div>

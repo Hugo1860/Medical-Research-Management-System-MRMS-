@@ -3,6 +3,13 @@
 .agents
 **/bin
 **/obj
+**/node_modules
+.env
+.env.local
+**/*.local.env
+**/appsettings.*.local.json
+**/appsettings.Production.json
+reports
 数据库备份文件
 ScientificResearch/ScientificResearch/log4net/*.log
 database/postgresql/source-sqlserver/data

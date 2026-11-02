@@ -142,6 +142,7 @@ checks = [
     ('/Analytics/获取科研统计钻取?指标=科研人员', 'GET'),
     ('/Analytics/获取科研统计指标口径', 'GET'),
     ('/BaseInfo/获取迁移绑定异常', 'GET'),
+    ('/BaseInfo/确认迁移参与人绑定', 'POST'),
     # HR、财务、预算异常和伦理同步。
     ('/People/同步HR人员', 'POST'),
     ('/People/预览HR人员同步', 'POST'),
@@ -235,6 +236,7 @@ checks = [
     ('/Permission/获取我的权限变更通知', 'GET'),
     ('/Permission/标记权限变更通知已读', 'POST'),
     ('/YProject/分页获取纵向项目申报计划', 'GET'),
+    ('/YProject/获取纵向项目核心闭环状态?纵向项目立项编号=1', 'GET'),
     ('/YProject/保存纵向项目申报计划', 'POST'),
     ('/YProject/发布纵向项目申报计划?编号=1&状态=发布', 'POST'),
     # 电子签章和正式电子档案的供应商门禁；未登录必须先被认证层拒绝。

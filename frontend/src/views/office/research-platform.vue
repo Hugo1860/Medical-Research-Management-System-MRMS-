@@ -86,6 +86,7 @@
           <el-table v-loading="loadingPlatforms" :data="platforms" border stripe><el-table-column prop="平台名称" label="平台名称" min-width="200" /><el-table-column prop="平台类型" label="类型" width="130" /><el-table-column prop="依托部门名称" label="依托部门" width="150" /><el-table-column prop="负责人姓名" label="负责人" width="110" /><el-table-column prop="开放状态" label="开放状态" width="100" /><el-table-column prop="成员数" label="成员数" width="90" /><el-table-column prop="联系方式" label="联系方式" min-width="160" /><el-table-column label="操作" width="90" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openPlatform(row)">编辑</el-button></template></el-table-column></el-table>
           <el-empty v-if="!loadingPlatforms && !platforms.length" description="暂无科研平台资料" />
         </el-tab-pane>
+        <el-tab-pane label="仪器预约与年报" name="instruments" lazy><InstrumentWorkbench :platforms="platforms" :can-manage="canManage" /></el-tab-pane>
         <el-tab-pane label="导入导出日志" name="logs"><el-table v-loading="loadingLogs" :data="logs" border stripe><el-table-column prop="创建时间" label="时间" width="180" /><el-table-column prop="模块" label="模块" width="160" /><el-table-column prop="操作类型" label="类型" width="90" /><el-table-column prop="文件名称" label="文件" min-width="220" /><el-table-column prop="记录数" label="记录数" width="90" /><el-table-column prop="成功数" label="成功" width="80" /><el-table-column prop="失败数" label="失败" width="80" /><el-table-column prop="状态" label="状态" width="100" /><el-table-column prop="操作人姓名" label="操作人" width="110" /></el-table><el-empty v-if="!loadingLogs && !logs.length" description="暂无导入导出操作日志或当前账号无权限" /></el-tab-pane>
       </el-tabs>
     </el-card>
@@ -130,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type UploadFile } from 'element-plus'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -138,12 +139,15 @@ import { Refresh, Service, List, Clock, Star, ArrowRight, Bell, Search, Phone, D
 import { createResearchServiceApplication, listMyResearchServiceApplications, listPendingResearchServices, listResearchImportExportLogs, listResearchPlatforms, listResearchServices, processResearchServiceApplication, rateResearchService, saveResearchPlatform, saveResearchService, uploadResearchServiceTemplate, type ResearchPlatform, type ResearchService, type ResearchServiceApplication } from '@/api/research-platform'
 import { remindResearchService } from '@/api/document-messaging'
 import UserSelectDialog from '@/components/UserSelectDialog.vue'
+import InstrumentWorkbench from './components/InstrumentWorkbench.vue'
 import type { PersonItem } from '@/api/organization'
 
 const route = useRoute()
 const userStore = useUserStore()
 const initialTab = String(route.query.tab || 'workbench')
-const tab = ref(['workbench', 'services', 'applications', 'todo', 'platforms', 'logs'].includes(initialTab) ? initialTab : initialTab === 'instruments' ? 'platforms' : 'workbench')
+const allowedTabs = ['workbench', 'services', 'applications', 'todo', 'platforms', 'instruments', 'logs']
+const tab = ref(allowedTabs.includes(initialTab) ? initialTab : 'workbench')
+watch(() => route.query.tab, value => { tab.value = allowedTabs.includes(String(value)) ? String(value) : 'workbench' })
 const loading = ref(false)
 const saving = ref(false)
 const loadingServices = ref(false)

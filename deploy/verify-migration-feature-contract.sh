@@ -6,7 +6,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 migration_dir="$root/database/postgresql/migrations"
 settings="$root/ScientificResearch/ScientificResearch/appsettings.json"
-expected=116
+expected="$("$root/deploy/read-current-schema-version.sh")"
 
 python3 - "$root" "$expected" <<'PY'
 import json, re, sys
@@ -70,6 +70,11 @@ markers = {
     114: ('医院运营模式', '基础信息维护/医院运营模式.html', '角色权限'),
     115: ('sp_纵向项目申报_增改', '资助类型'),
     116: ('医疗新技术新项目', '医疗新技术临床应用随访', '医共体适宜技术推广', '科普成果与临床案例库', '职称晋升资格审查记录', '医共体合作单位'),
+    117: ('启用功能', '项目闭环', '最近连接状态', '项目参与人绑定复核', 'v_科研项目核心闭环'),
+    118: ('状态代码', 'connected', 'unconfigured', 'failed', 'manual_import'),
+    119: ('产品层级', '字段策略', '流程策略', '统计指标策略', '基层核心版', '医院增强版', '综合科研平台版'),
+    120: ('教育部科研统计', '首页组件与业务催办', '科研文档共享与消息中心', '科研办公'),
+    121: ('v2_纵向项目申报_详情', 'v2_报销'),
 }
 for number, required in markers.items():
     path = next((p for p in files if int(p.name[:3]) == number), None)

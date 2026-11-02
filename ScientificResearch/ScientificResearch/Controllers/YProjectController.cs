@@ -213,6 +213,8 @@ SELECT ""编号"",""计划年度"",""批次名称"",""项目类别"",""发布开
 
         private async Task 发起一个纵向项目申报流程(纵向项目申报增改 model)
         {
+            if (model?.基本资料 == null) throw new ArgumentException("缺少项目申报基本资料");
+            if (model.基本资料.编号 != 0) throw new ForbiddenAccessException("新增项目申报不能指定已有编号");
             model.基本资料.申报计划编号 = model.申报计划编号 ?? model.基本资料.申报计划编号;
             model.基本资料.院级批次编号 = model.院级批次编号 ?? model.基本资料.院级批次编号;
             var preflight = await 获取纵向项目申报预检查(model, model?.IsHold == true);
@@ -482,6 +484,7 @@ RETURNING ""编号"";", new
         [HttpPost]
         async public Task 完善纵向项目申报资料([FromBody]完成步骤<纵向项目申报增改> model)
         {
+            if (model?.附加数据?.基本资料 == null) throw new ArgumentException("缺少项目基本资料");
             //await 内部完善纵向项目申报资料(model);
             await MyWorkFlowBusiness.完成步骤(
                 model.toSimple(), CurrentUser.编号,
@@ -491,7 +494,7 @@ RETURNING ""编号"";", new
                     tt = model.附加数据.基本资料.ToDataTable(),
                     tt_项目参与人 = model.附加数据.参与人列表.ToDataTable()
                 },
-                model.附加数据.IsHold
+                model.附加数据.IsHold, 绑定: new WorkFlowBusiness.纵向步骤绑定 { 阶段 = "申报", 流程模板编号 = 纵向项目申报流程模板编号, 子记录编号 = model.附加数据.基本资料.编号 }
                 );
         }
 
@@ -549,11 +552,77 @@ RETURNING ""编号"";", new
             return await 分页获取纵向项目申报(paging, filter);
         }
 
+        // All list access follows the same project/current-step rule as CanAccessProjectAsync.
+        // The source and field names below are selected by server code; all values are parameters.
+        private const string 纵向列表访问条件 = @"(""fn_人员可访问项目""(@person,@accessTemplate,PROJECT_ID) OR EXISTS (
+    SELECT 1 FROM ""流程"" flow
+    JOIN ""步骤"" step ON step.""流程编号""=flow.""编号"" AND step.""状态""=0
+    WHERE flow.""流程模板编号""=@accessTemplate AND flow.""项目编号""=PROJECT_ID
+      AND (EXISTS (SELECT 1 FROM ""步骤指定人"" direct
+                   WHERE direct.""步骤编号""=step.""编号"" AND direct.""指定人编号""=@person)
+           OR EXISTS (SELECT 1 FROM ""步骤角色"" sr JOIN ""人员角色"" pr ON pr.""角色编号""=sr.""角色编号""
+                      WHERE sr.""步骤模板编号""=step.""步骤模板编号"" AND pr.""人员编号""=@person))
+))";
+
+        private const string 纵向阶段当前步骤条件 = @"EXISTS (
+    SELECT 1 FROM ""流程"" flow
+    JOIN ""步骤"" step ON step.""流程编号""=flow.""编号"" AND step.""状态""=0
+    WHERE flow.""流程模板编号""=@stageTemplate AND flow.""项目编号""=STAGE_ID
+      AND ""fn_某人是否可以操作某步骤""(step.""编号"", @person)
+)";
+
+        private async Task<object> 分页获取授权纵向列表(Paging paging, object filter, string source, int accessTemplate, string projectIdField, int? stageTemplate = null)
+        {
+            paging ??= new Paging();
+            var parameters = new DynamicParameters();
+            parameters.Add("person", CurrentUser.编号);
+            parameters.Add("accessTemplate", accessTemplate);
+            parameters.Add("approvalTemplate", 纵向项目立项流程模板编号);
+            parameters.Add("midtermTemplate", 纵向项目中检流程模板编号);
+            parameters.Add("changeTemplate", 纵向项目变更流程模板编号);
+            parameters.Add("closeoutTemplate", 纵向项目结题流程模板编号);
+            var visibility = 纵向列表访问条件.Replace("PROJECT_ID", "data.\"" + projectIdField + "\"");
+            if (stageTemplate.HasValue)
+            {
+                parameters.Add("stageTemplate", stageTemplate.Value);
+                visibility = "(" + visibility + " OR " + 纵向阶段当前步骤条件.Replace("STAGE_ID", "data.\"编号\"") + ")";
+            }
+            var conditions = new List<string> { visibility };
+            // These are precisely the supported properties of the four filter models.
+            var isApplication = accessTemplate == 纵向项目申报流程模板编号;
+            var fields = new Dictionary<string, string> {
+                ["编号"] = "编号", ["分类"] = "分类", ["是否立项"] = "是否立项",
+                ["Like项目名称"] = isApplication ? "项目名称" : "项目中文名称",
+                ["Like项目中文名称"] = "项目中文名称",
+                ["Like项目英文名称"] = "项目英文名称", ["Like变更事由"] = "变更事由",
+                ["发起人编号"] = "发起人编号"
+            };
+            if (filter != null)
+            {
+                foreach (var property in filter.GetType().GetProperties())
+                {
+                    if (!fields.TryGetValue(property.Name, out var column))
+                        throw new InvalidOperationException("不支持的纵向项目列表筛选条件: " + property.Name);
+                    var value = property.GetValue(filter);
+                    if (value == null) continue;
+                    var parameter = "filter" + parameters.ParameterNames.Count();
+                    var like = property.Name.StartsWith("Like", StringComparison.Ordinal);
+                    parameters.Add(parameter, like ? "%" + value + "%" : value);
+                    conditions.Add("data.\"" + column + "\" " + (like ? "LIKE" : "=") + " @" + parameter);
+                }
+            }
+            var size = Math.Max(1, paging.Size);
+            parameters.Add("offset", (long)Math.Max(0, paging.Index - 1) * size);
+            parameters.Add("limit", size);
+            var from = " FROM " + source + " data WHERE " + string.Join(" AND ", conditions);
+            var sql = "SELECT count(*)::integer" + from + "; SELECT data.*" + from +
+                " ORDER BY data.\"编号\" " + (paging.OrderType ? "ASC" : "DESC") + " OFFSET @offset LIMIT @limit;";
+            using var result = await Db.QueryMultipleAsync(sql, parameters);
+            return new PagingResult<object> { Total = result.Read<int>().Single(), List = result.Read<object>().ToArray() };
+        }
+
         private async Task<object> 分页获取纵向项目申报(Paging paging, 纵向项目申报Filter filter) =>
-            await Db.GetPagingListSpAsync<object, 纵向项目申报Filter>(
-                paging,
-                filter,
-                $"tfn_纵向项目申报({CurrentUser.编号},{纵向项目申报流程模板编号})");
+            await 分页获取授权纵向列表(paging, filter, "\"tfn_纵向项目申报\"(@person,@accessTemplate)", 纵向项目申报流程模板编号, "编号");
 
         [HttpGet]
         async public Task<object> 获取纵向项目申报详情(int 纵向项目申报编号)
@@ -794,10 +863,7 @@ SELECT EXISTS (
         private async Task<object> 分页获取可立项的纵向项目申报(Paging paging, 纵向项目申报Filter filter)
         {
             filter.是否立项 = false;
-            return await Db.GetPagingListSpAsync<object, 纵向项目申报Filter>(
-                 paging,
-                 filter,
-                 $"tfn_纵向项目申报({CurrentUser.编号},{纵向项目申报流程模板编号})");
+            return await 分页获取纵向项目申报(paging, filter);
         }
 
         [HttpGet]
@@ -843,7 +909,12 @@ SELECT EXISTS (
         [HttpPost]
         async public Task 新增纵向项目申报立项([FromBody]纵向项目立项增改 model)
         {
+            if (model?.基本资料 == null) throw new ArgumentException("缺少项目立项基本资料");
             var 来源纵向项目申报编号 = model.基本资料.编号;
+            if (来源纵向项目申报编号 <= 0 ||
+                !await Db.QuerySingleAsync<bool>("SELECT EXISTS (SELECT 1 FROM \"纵向项目申报\" WHERE \"编号\"=@id)", new { id = 来源纵向项目申报编号 }) ||
+                !await CanAccessProjectAsync(纵向项目申报流程模板编号, 来源纵向项目申报编号))
+                throw new ForbiddenAccessException("无权访问来源项目申报");
             model.基本资料.编号 = 0;
             await 发起一个纵向项目立项流程(model);
             await Db.ExecuteSpAsync(
@@ -887,6 +958,8 @@ SELECT EXISTS (
 
         private async Task 发起一个纵向项目立项流程(纵向项目立项增改 model)
         {
+            if (model?.基本资料 == null) throw new ArgumentException("缺少项目立项基本资料");
+            if (model.基本资料.编号 != 0) throw new ForbiddenAccessException("新增项目立项不能指定已有编号");
             if (!验证纵向项目立项增改数据(model))
             {
                 throw new Exception("批准经费或配套经费与预算金额不符");
@@ -913,6 +986,7 @@ SELECT EXISTS (
         [HttpPost]
         async public Task 完善纵向项目立项资料([FromBody]完成步骤<纵向项目立项增改> model)
         {
+            if (model?.附加数据?.基本资料 == null) throw new ArgumentException("缺少项目基本资料");
             if (!验证纵向项目立项增改数据(model.附加数据))
             {
                 throw new Exception("批准经费或配套经费与预算金额不符");
@@ -928,7 +1002,7 @@ SELECT EXISTS (
                       tt_项目经费预算 = model.附加数据.经费预算列表.ToDataTable(),
                       tt_项目计划 = model.附加数据.计划列表.ToDataTable(),
                       tt_项目预期成果 = model.附加数据.预期成果列表.ToDataTable()
-                  }, model.附加数据.IsHold);
+                  }, model.附加数据.IsHold, 绑定: new WorkFlowBusiness.纵向步骤绑定 { 阶段 = "立项", 流程模板编号 = 纵向项目立项流程模板编号, 子记录编号 = model.附加数据.基本资料.编号 });
         }
 
         private bool 验证纵向项目立项增改数据(纵向项目立项增改 model)
@@ -979,11 +1053,45 @@ SELECT EXISTS (
             return await 分页获取纵向项目立项列表(paging, filter);
         }
 
-        private async Task<object> 分页获取纵向项目立项列表(Paging paging, 纵向项目立项Filter filter) =>
-            await Db.GetPagingListSpAsync<object, 纵向项目立项Filter>(
-                paging,
-                filter,
-                $"tfn_纵向项目立项({CurrentUser.编号},{纵向项目立项流程模板编号})");
+        // Match the same project and current-step visibility used by detail endpoints,
+        // and apply it before COUNT/OFFSET so pagination never leaks other projects.
+        private const string 纵向立项可见范围 = @"
+FROM ""tfn_纵向项目立项""(@person,@template) data
+JOIN ""纵向项目立项"" project ON project.""编号""=data.""编号""
+WHERE (CAST(@category AS integer) IS NULL OR data.""分类""=@category)
+  AND (CAST(@chineseName AS text) IS NULL OR data.""项目中文名称"" LIKE @chineseName)
+  AND (CAST(@englishName AS text) IS NULL OR data.""项目英文名称"" LIKE @englishName)
+  AND (CAST(@ownerName AS text) IS NULL OR data.""负责人姓名"" LIKE @ownerName)
+  AND (CAST(@initiator AS integer) IS NULL OR data.""发起人编号""=@initiator)
+  AND (""fn_人员可访问项目""(@person,@template,data.""编号"") OR EXISTS (
+      SELECT 1 FROM ""流程"" flow
+      JOIN ""步骤"" step ON step.""流程编号""=flow.""编号"" AND step.""状态""=0
+      WHERE flow.""流程模板编号""=@template AND flow.""项目编号""=data.""编号""
+        AND (EXISTS (SELECT 1 FROM ""步骤指定人"" direct
+                      WHERE direct.""步骤编号""=step.""编号"" AND direct.""指定人编号""=@person)
+             OR EXISTS (SELECT 1 FROM ""步骤角色"" sr JOIN ""人员角色"" pr ON pr.""角色编号""=sr.""角色编号""
+                        WHERE sr.""步骤模板编号""=step.""步骤模板编号"" AND pr.""人员编号""=@person))
+  ))";
+
+        private async Task<object> 分页获取纵向项目立项列表(Paging paging, 纵向项目立项Filter filter)
+        {
+            paging ??= new Paging();
+            filter ??= new 纵向项目立项Filter();
+            var size = Math.Max(1, paging.Size);
+            var offset = (long)Math.Max(0, paging.Index - 1) * size;
+            var args = new {
+                person = CurrentUser.编号, template = 纵向项目立项流程模板编号, category = filter.分类,
+                chineseName = filter.Like项目中文名称 == null ? null : "%" + filter.Like项目中文名称 + "%",
+                englishName = filter.Like项目英文名称 == null ? null : "%" + filter.Like项目英文名称 + "%",
+                ownerName = string.IsNullOrWhiteSpace(filter.Like负责人姓名) ? null : "%" + filter.Like负责人姓名.Trim() + "%",
+                initiator = filter.发起人编号, offset, size
+            };
+            // The tfn's 项目编号 refers to the workflow, not the approval document.
+            var sql = "SELECT count(*)::integer " + 纵向立项可见范围 + "; SELECT data.*, project.\"项目编号\" AS \"立项文号\" " +
+                纵向立项可见范围 + " ORDER BY data.\"编号\" " + (paging.OrderType ? "ASC" : "DESC") + " OFFSET @offset LIMIT @size;";
+            using var result = await Db.QueryMultipleAsync(sql, args);
+            return new PagingResult<object> { Total = result.Read<int>().Single(), List = result.Read<object>().ToArray() };
+        }
 
         [HttpGet]
         async public Task<object> 获取纵向项目立项详情(int 纵向项目立项编号)
@@ -1000,6 +1108,191 @@ SELECT EXISTS (
             var r5 = await Db.GetListSpAsync<object>($"tfn_项目预期成果({纵向项目立项流程模板编号},{纵向项目立项编号})");
             var r6 = await MyWorkFlowBusiness.获取某流程的步骤(纵向项目立项流程模板编号, 纵向项目立项编号);
             return new { 立项基本信息 = r1, 参与人信息 = r2, 财务信息 = r3, 项目计划与目标 = r4, 项目预期成果 = r5, 审核记录 = r6 };
+        }
+
+        /// <summary>
+        /// 返回基层核心版验收所需的项目最小闭环状态：申报、审批、立项、到账、预算、报销、提醒、结题和成果归档。
+        /// 该接口只读，不创建流程、不回写财务或成果记录。
+        /// </summary>
+        [HttpGet]
+        async public Task<object> 获取纵向项目核心闭环状态(int 纵向项目立项编号, int? 纵向项目申报编号 = null)
+        {
+            var denied = await HospitalCapabilityDeniedAsync("projectLifecycle", "项目全生命周期");
+            if (denied != null) return denied;
+            if (!await CanAccessProjectAsync(纵向项目立项流程模板编号, 纵向项目立项编号))
+                return ProjectAccessDenied();
+            var row = await Db.QuerySingleOrDefaultAsync<dynamic>(
+                @"SELECT * FROM ""v_科研项目核心闭环"" WHERE ""立项编号""=@纵向项目立项编号;",
+                new { 纵向项目立项编号 });
+            if (row == null) return NotFound(new { error = "纵向项目立项不存在" });
+
+            var application = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT y.""编号"", y.""项目名称"", y.""是否立项"",
+       CASE WHEN f.""状态""=1 THEN '已审批' WHEN f.""编号"" IS NULL THEN '未发起' ELSE '审批中' END AS ""审批状态""
+  FROM ""纵向项目申报"" y
+  LEFT JOIN ""流程"" f ON f.""流程模板编号""=@申报模板 AND f.""项目编号""=y.""编号""
+ WHERE (@申报编号 IS NOT NULL AND y.""编号""=@申报编号)
+    OR (@申报编号 IS NULL AND y.""项目名称""=@项目名称 AND y.""申报人编号""=@负责人编号)
+ ORDER BY y.""编号"" DESC LIMIT 1;", new
+            {
+                申报编号 = 纵向项目申报编号,
+                项目名称 = (string)row.项目名称,
+                负责人编号 = (int?)row.负责人编号,
+                申报模板 = 纵向项目申报流程模板编号
+            });
+
+            var fundingType = await Db.QuerySingleOrDefaultAsync<string>(
+                "SELECT \"资助类型\" FROM \"纵向项目立项\" WHERE \"编号\"=@编号;",
+                new { 编号 = 纵向项目立项编号 }) ?? "财政资助";
+            var requiresIncoming = fundingType is not ("自筹经费" or "立项不资助");
+            var approved = string.Equals((string)row.立项审批状态, "已审批", StringComparison.Ordinal);
+            var budgetAmount = Convert.ToDecimal(row.预算金额 ?? 0m);
+            var incomingAmount = Convert.ToDecimal(row.已到账金额 ?? 0m);
+            var budgetReady = budgetAmount > 0m || !requiresIncoming;
+            var closeout = (string)row.结题状态;
+            var achievementCount = Convert.ToInt32(row.成果归档数 ?? 0);
+            var acceptance = approved && budgetReady && (!requiresIncoming || incomingAmount > 0m)
+                && closeout == "已结题" && achievementCount > 0;
+
+            return new
+            {
+                项目编号 = 纵向项目立项编号,
+                项目名称 = (string)row.项目名称,
+                资助类型 = fundingType,
+                申报 = application == null ? new { 状态 = "未关联申报", 编号 = (int?)null, 审批状态 = "未关联" } : new { 状态 = (bool?)application.是否立项 == true ? "已立项" : "申报中", 编号 = (int?)application.编号, 审批状态 = (string)application.审批状态 },
+                立项 = new { 状态 = (string)row.立项审批状态, 已审批 = approved },
+                到账 = new { 状态 = requiresIncoming ? (incomingAmount > 0m ? "已到账" : "待到账") : "无需到账", 金额 = incomingAmount, 是否必需 = requiresIncoming },
+                预算 = new { 状态 = budgetReady ? "已建立" : "待建立", 金额 = budgetAmount, 是否完成 = budgetReady },
+                报销 = new { 状态 = Convert.ToDecimal(row.已报销金额 ?? 0m) > 0m ? "已有报销" : "尚无报销", 金额 = Convert.ToDecimal(row.已报销金额 ?? 0m) },
+                提醒 = new { 状态 = Convert.ToInt32(row.待处理提醒数 ?? 0) > 0 ? "待处理" : "无待处理提醒", 数量 = Convert.ToInt32(row.待处理提醒数 ?? 0) },
+                结题 = new { 状态 = closeout, 是否完成 = closeout == "已结题" },
+                成果归档 = new { 状态 = achievementCount > 0 ? "已关联" : "待关联", 数量 = achievementCount },
+                验收通过 = acceptance,
+                下一步 = acceptance ? "核心闭环已完成" : !approved ? "完成立项审批" : !budgetReady ? "建立项目预算" : requiresIncoming && incomingAmount <= 0m ? "登记并核验经费到账" : closeout != "已结题" ? "完成结题验收与归档" : achievementCount == 0 ? "关联成果并完成归档" : "处理待办提醒"
+            };
+        }
+
+        /// <summary>
+        /// 只读聚合纵向项目闭环验收所需的生命周期申请、任务书版本及内部确认、研究报告、
+        /// 电子档案清单和项目参与人绑定。没有对应流程的绑定只标记为 ORPHAN_PARTICIPANT，
+        /// 要求人工确认；本接口不会删除、移动或改写任何绑定，也不会初始化档案清单。
+        /// </summary>
+        [HttpGet]
+        async public Task<object> 获取纵向项目闭环验收摘要(int 纵向项目立项编号)
+        {
+            var denied = await HospitalCapabilityDeniedAsync("projectLifecycle", "项目全生命周期");
+            if (denied != null) return denied;
+            if (纵向项目立项编号 <= 0 || !await CanAccessProjectAsync(纵向项目立项流程模板编号, 纵向项目立项编号))
+                return ProjectAccessDenied();
+
+            var project = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+SELECT p.""编号"", p.""项目中文名称"", p.""负责人编号"", p.""计划开始日期"", p.""计划完成日期"",
+       COALESCE((SELECT e.""事件类型"" FROM ""纵向项目生命周期申请"" e
+                  WHERE e.""纵向项目立项编号""=p.""编号"" AND e.""状态""='已批准'
+                  ORDER BY e.""审核时间"" DESC NULLS LAST,e.""编号"" DESC LIMIT 1),'正常') AS ""当前生命周期状态""
+  FROM ""纵向项目立项"" p WHERE p.""编号""=@项目编号;", new { 项目编号 = 纵向项目立项编号 });
+            if (project == null) return NotFound(new { error = "纵向项目不存在" });
+
+            var lifecycleApplications = (await Db.QueryAsync<dynamic>(@"
+SELECT e.""编号"",e.""事件类型"",e.""原计划完成日期"",e.""新计划完成日期"",e.""状态"",
+       e.""申请人编号"",e.""审核人编号"",e.""申请时间"",e.""审核时间"",
+       (e.""状态""='待审核') AS ""是否未完成""
+  FROM ""纵向项目生命周期申请"" e
+ WHERE e.""纵向项目立项编号""=@项目编号
+ ORDER BY e.""申请时间"" DESC,e.""编号"" DESC;", new { 项目编号 = 纵向项目立项编号 })).ToList();
+
+            var taskbooks = (await Db.QueryAsync<dynamic>(@"
+SELECT t.""编号"",t.""版本号"",t.""任务书标题"",t.""生成方式"",t.""状态"",t.""生效时间"",t.""建立时间"",
+       (SELECT count(*)::integer FROM ""纵向项目任务书签署"" s WHERE s.""任务书编号""=t.""编号"") AS ""内部确认数"",
+       (SELECT count(*)::integer FROM ""纵向项目任务书签署"" s
+         WHERE s.""任务书编号""=t.""编号"" AND s.""状态""<>'已确认' ) AS ""未完成内部确认数""
+  FROM ""纵向项目任务书"" t
+ WHERE t.""纵向项目立项编号""=@项目编号
+ ORDER BY t.""版本号"" DESC;", new { 项目编号 = 纵向项目立项编号 })).ToList();
+            var pendingConfirmations = (await Db.QueryAsync<dynamic>(@"
+SELECT s.""编号"",s.""任务书编号"",t.""版本号"",s.""签署人编号"",p.""姓名"" AS ""签署人姓名"",
+       s.""签署角色"",s.""状态"",s.""请求时间""
+  FROM ""纵向项目任务书签署"" s
+  JOIN ""纵向项目任务书"" t ON t.""编号""=s.""任务书编号""
+  LEFT JOIN ""人员"" p ON p.""编号""=s.""签署人编号""
+ WHERE t.""纵向项目立项编号""=@项目编号
+   AND t.""状态""<>'已作废' AND s.""状态""<>'已确认'
+ ORDER BY t.""版本号"" DESC,s.""请求时间"" DESC,s.""编号"" DESC;", new { 项目编号 = 纵向项目立项编号 })).ToList();
+
+            var researchReports = (await Db.QueryAsync<dynamic>(@"
+SELECT r.""编号"",r.""报告类型"",r.""报告年度"",r.""状态"",r.""提交人编号"",r.""提交时间"",
+       r.""审核人编号"",r.""审核时间""
+  FROM ""纵向项目研究报告"" r
+ WHERE r.""纵向项目立项编号""=@项目编号
+ ORDER BY r.""报告年度"" DESC,r.""建立时间"" DESC,r.""编号"" DESC;", new { 项目编号 = 纵向项目立项编号 })).ToList();
+
+            // This summary is deliberately read-only. Do not call 确保项目档案清单 here:
+            // an empty checklist is evidence of a missing prerequisite, not a reason to write rows.
+            var archiveChecklist = (await Db.QueryAsync<dynamic>(@"
+SELECT c.""编号"",c.""材料代码"",c.""材料名称"",c.""是否必需"",c.""要求说明"",c.""状态"",
+       c.""关联档案材料编号"",c.""核验说明"",c.""核验人编号"",c.""核验时间""
+  FROM ""纵向项目电子档案清单"" c
+ WHERE c.""纵向项目立项编号""=@项目编号
+ ORDER BY c.""是否必需"" DESC,c.""材料代码"";", new { 项目编号 = 纵向项目立项编号 })).ToList();
+
+            var participantBindings = (await Db.QueryAsync<dynamic>(@"
+SELECT b.""编号"",b.""流程模板编号"",b.""项目编号"",b.""参与人编号"",p.""姓名"" AS ""参与人姓名"",
+       b.""工作量占比"",b.""备注"",b.""建立时间"",
+       EXISTS (SELECT 1 FROM ""流程"" f
+                WHERE f.""流程模板编号""=b.""流程模板编号"" AND f.""项目编号""=b.""项目编号"") AS ""有对应流程"",
+       CASE WHEN EXISTS (SELECT 1 FROM ""流程"" f
+                          WHERE f.""流程模板编号""=b.""流程模板编号"" AND f.""项目编号""=b.""项目编号"") THEN NULL ELSE 'ORPHAN_PARTICIPANT' END AS ""状态代码"",
+       CASE WHEN EXISTS (SELECT 1 FROM ""流程"" f
+                          WHERE f.""流程模板编号""=b.""流程模板编号"" AND f.""项目编号""=b.""项目编号"") THEN FALSE ELSE TRUE END AS ""需要人工确认"",
+       COALESCE(r.""复核状态"",'待人工确认') AS ""复核状态"",r.""确认说明"",r.""复核人编号"",r.""复核时间""
+  FROM ""项目参与人"" b
+  LEFT JOIN ""人员"" p ON p.""编号""=b.""参与人编号""
+  LEFT JOIN ""项目参与人绑定复核"" r ON r.""参与人记录编号""=b.""编号""
+ WHERE b.""项目编号""=@项目编号
+ ORDER BY b.""编号"";", new { 项目编号 = 纵向项目立项编号 })).ToList();
+
+            var blockers = new List<object>();
+            var pendingLifecycle = lifecycleApplications.Where(x => (bool)x.是否未完成).ToList();
+            if (pendingLifecycle.Count > 0)
+                blockers.Add(new { 代码 = "LIFECYCLE_PENDING", 名称 = "生命周期申请待审核", 数量 = pendingLifecycle.Count, 提示 = "仍有延期、暂停或终止申请未完成审核" });
+
+            var effectiveTaskbook = taskbooks.FirstOrDefault(x => (string)x.状态 == "已生效");
+            if (effectiveTaskbook == null)
+                blockers.Add(new { 代码 = "TASKBOOK_NOT_EFFECTIVE", 名称 = "任务书未生效", 数量 = 1, 提示 = "必须存在一个已生效的任务书版本" });
+            if (pendingConfirmations.Count > 0)
+                blockers.Add(new { 代码 = "TASKBOOK_PENDING_CONFIRMATION", 名称 = "任务书内部确认未完成", 数量 = pendingConfirmations.Count, 提示 = "仍有内部确认记录未完成；内部确认不构成法律电子签章" });
+
+            var unapprovedReports = researchReports.Where(x => (string)x.状态 != "已通过").ToList();
+            if (researchReports.Count == 0)
+                blockers.Add(new { 代码 = "RESEARCH_REPORT_MISSING", 名称 = "研究报告缺失", 数量 = 1, 提示 = "尚未提交研究报告" });
+            else if (unapprovedReports.Count > 0)
+                blockers.Add(new { 代码 = "RESEARCH_REPORT_UNAPPROVED", 名称 = "研究报告未通过", 数量 = unapprovedReports.Count, 提示 = "仍有草稿、待审核或退回的研究报告" });
+
+            var missingArchiveItems = archiveChecklist.Where(x => (bool)x.是否必需 && (string)x.状态 == "缺失").ToList();
+            var unverifiedArchiveItems = archiveChecklist.Where(x => (bool)x.是否必需 && (string)x.状态 == "已上传").ToList();
+            if (archiveChecklist.Count == 0)
+                blockers.Add(new { 代码 = "ARCHIVE_CHECKLIST_MISSING", 名称 = "电子档案清单缺失", 数量 = 1, 提示 = "尚未建立电子档案清单" });
+            if (missingArchiveItems.Count > 0)
+                blockers.Add(new { 代码 = "ARCHIVE_REQUIRED_MISSING", 名称 = "电子档案必需材料缺项", 数量 = missingArchiveItems.Count, 提示 = "仍有必需档案材料处于缺失状态" });
+            if (unverifiedArchiveItems.Count > 0)
+                blockers.Add(new { 代码 = "ARCHIVE_REQUIRED_UNVERIFIED", 名称 = "电子档案必需材料待核验", 数量 = unverifiedArchiveItems.Count, 提示 = "已上传的必需档案材料尚未完成核验" });
+
+            var orphanBindings = participantBindings.Where(x => (string)x.状态代码 == "ORPHAN_PARTICIPANT").ToList();
+            var unconfirmedOrphans = orphanBindings.Where(x => (string)x.复核状态 != "已确认").ToList();
+            if (unconfirmedOrphans.Count > 0)
+                blockers.Add(new { 代码 = "ORPHAN_PARTICIPANT", 名称 = "参与人绑定缺少对应流程", 数量 = unconfirmedOrphans.Count, 提示 = "仅标记孤立绑定并要求业务人员人工确认；不会自动删除或改写绑定" });
+
+            return new
+            {
+                项目 = project,
+                生命周期申请 = new { 记录 = lifecycleApplications, 未完成数 = pendingLifecycle.Count },
+                任务书 = new { 版本 = taskbooks, 当前生效版本 = effectiveTaskbook, 未完成内部确认 = pendingConfirmations },
+                研究报告 = new { 记录 = researchReports, 未通过数 = unapprovedReports.Count },
+                电子档案清单 = new { 记录 = archiveChecklist, 缺项 = missingArchiveItems, 待核验 = unverifiedArchiveItems },
+                项目参与人绑定 = new { 记录 = participantBindings, 孤立绑定 = orphanBindings, 待人工确认 = unconfirmedOrphans },
+                阻断项 = blockers,
+                验收通过 = blockers.Count == 0
+            };
         }
         #endregion
 
@@ -1096,13 +1389,16 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
         }
 
         [HttpPost]
-        async public Task 完善纵向项目中检资料([FromBody]完成步骤<纵向项目中检完善> model) =>
+        async public Task 完善纵向项目中检资料([FromBody]完成步骤<纵向项目中检完善> model)
+        {
+            if (model?.附加数据?.基本资料 == null) throw new ArgumentException("缺少项目基本资料");
             await MyWorkFlowBusiness.完成步骤(
                 model.toSimple(), CurrentUser.编号,
                 new sp_纵向项目中检_增改()
                 {
                     tt = model.附加数据.基本资料.ToDataTable()
-                }, model.附加数据.IsHold);
+                }, model.附加数据.IsHold, 绑定: new WorkFlowBusiness.纵向步骤绑定 { 阶段 = "中检", 流程模板编号 = 纵向项目中检流程模板编号, 子记录编号 = model.附加数据.基本资料.编号, 立项编号 = model.附加数据.基本资料.纵向项目编号 });
+        }
 
         [HttpPost]
         async public Task 专家评审纵向项目中检(完成步骤<IEnumerable<专家评分>> model)
@@ -1123,18 +1419,37 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
 
         [HttpGet]
         async public Task<object> 分页获取纵向项目中检(Paging paging, 纵向项目中检Filter filter) =>
-            await Db.GetPagingListSpAsync<object, 纵向项目中检Filter>(
-                paging,
-                filter,
-                $"tfn_纵向项目中检({CurrentUser.编号},{纵向项目立项流程模板编号},{纵向项目中检流程模板编号})");
+            await 分页获取授权纵向列表(paging, filter, "\"tfn_纵向项目中检\"(@person,@approvalTemplate,@midtermTemplate)", 纵向项目立项流程模板编号, "纵向项目立项编号", 纵向项目中检流程模板编号);
+
+        private async Task<bool> 纵向子记录属于立项(string kind, int childId, int projectId)
+        {
+            if (childId == 0) return true;
+            var table = kind switch
+            {
+                "中检" => "\"纵向项目中检\"",
+                "变更" => "\"纵向项目变更\"",
+                "结题" => "\"纵向项目结题\"",
+                _ => throw new ArgumentException("未知纵向项目阶段", nameof(kind))
+            };
+            return await Db.QuerySingleAsync<bool>("SELECT EXISTS (SELECT 1 FROM " + table +
+                " WHERE \"编号\"=@childId AND \"纵向项目编号\"=@projectId)", new { childId, projectId });
+        }
+
+        private async Task<bool> 可查看纵向阶段详情(int projectId, int stageId, int stageTemplate)
+        {
+            if (await CanAccessProjectAsync(纵向项目立项流程模板编号, projectId)) return true;
+            if (stageId <= 0) return false;
+            return await Db.QuerySingleAsync<bool>("SELECT " + 纵向阶段当前步骤条件.Replace("STAGE_ID", "@stageId"),
+                new { person = CurrentUser.编号, stageTemplate, stageId });
+        }
 
         [HttpGet]
         async public Task<object> 获取纵向项目中检详情(int 纵向项目立项编号, int 纵向项目中检编号)
         {
-            if (!await CanAccessProjectAsync(纵向项目立项流程模板编号, 纵向项目立项编号))
-            {
+            if (!await 纵向子记录属于立项("中检", 纵向项目中检编号, 纵向项目立项编号))
                 return ProjectAccessDenied();
-            }
+            if (!await 可查看纵向阶段详情(纵向项目立项编号, 纵向项目中检编号, 纵向项目中检流程模板编号))
+                return ProjectAccessDenied();
             //var r1 = await Db.GetListSpAsync<v2_纵向项目立项_详情, 纵向项目立项Filter>(new 纵向项目立项Filter() { 编号 = 纵向项目立项编号 });
             var r1 = await Db.GetModelByIdSpAsync<v2_纵向项目立项_详情>(纵向项目立项编号);
             var r2 = await Db.GetListSpAsync<object>($"tfn_项目参与人({纵向项目立项流程模板编号},{纵向项目立项编号})");
@@ -1188,6 +1503,7 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
         async public Task 新增纵向项目变更([FromBody]纵向项目变更增改 model)
         {
             if (model?.基本资料 == null) throw new ArgumentException("缺少变更基本资料");
+            if (model.基本资料.编号 != 0) throw new ForbiddenAccessException("新增项目变更不能指定已有编号");
             if (!await CanAccessProjectAsync(纵向项目立项流程模板编号, model.基本资料.纵向项目编号)) throw new ForbiddenAccessException("无权访问该项目");
             var preflight = await 获取纵向项目生命周期预检查("变更", model.基本资料.纵向项目编号, 纵向项目变更流程模板编号);
             if (!preflight.通过) throw new ArgumentException("项目变更预检查未通过：" + string.Join("；", preflight.检查项.Where(x => !x.通过).Select(x => x.提示)));
@@ -1199,12 +1515,13 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
         [HttpPost]
         async public Task 完善纵向项目变更资料([FromBody] 完成步骤<纵向项目变更增改> model)
         {
+            if (model?.附加数据?.基本资料 == null) throw new ArgumentException("缺少项目基本资料");
             await MyWorkFlowBusiness.完成步骤(
                 model.toSimple(), CurrentUser.编号,
                 new sp_纵向项目变更_增改()
                 {
                     tt = model.附加数据.基本资料.ToDataTable()
-                }, model.附加数据.IsHold);
+                }, model.附加数据.IsHold, 绑定: new WorkFlowBusiness.纵向步骤绑定 { 阶段 = "变更", 流程模板编号 = 纵向项目变更流程模板编号, 子记录编号 = model.附加数据.基本资料.编号, 立项编号 = model.附加数据.基本资料.纵向项目编号 });
         }
 
         /// <summary>
@@ -1216,6 +1533,7 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
         [HttpPost]
         async public Task 审核并应用纵向项目变更([FromBody]完成步骤<int> model)
         {
+            if (model == null) throw new ArgumentException("缺少变更审核资料");
             var 操作人编号 = await ResolveOperationUserAsync("项目审批");
             await MyWorkFlowBusiness.完成步骤(
                 model.toSimple(), 操作人编号,
@@ -1223,15 +1541,13 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
                 {
                     纵向项目变更编号 = model.附加数据
                 },
-                AdditionalActionsWhenState: 1);
+                AdditionalActionsWhenState: 1,
+                绑定: new WorkFlowBusiness.纵向步骤绑定 { 阶段 = "变更", 流程模板编号 = 纵向项目变更流程模板编号, 子记录编号 = model.附加数据 });
         }
 
         [HttpGet]
         async public Task<object> 分页获取纵向项目变更(Paging paging, 纵向项目变更Filter filter) =>
-           await Db.GetPagingListSpAsync<object, 纵向项目变更Filter>(
-               paging,
-               filter,
-               $"tfn_纵向项目变更({CurrentUser.编号},{纵向项目立项流程模板编号},{纵向项目变更流程模板编号})");
+            await 分页获取授权纵向列表(paging, filter, "\"tfn_纵向项目变更\"(@person,@approvalTemplate,@changeTemplate)", 纵向项目立项流程模板编号, "纵向项目立项编号", 纵向项目变更流程模板编号);
 
         /// <summary>
         /// 获取纵向项目变更详情,包括变更前后的详情;
@@ -1243,10 +1559,10 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
         [HttpGet]
         async public Task<object> 获取纵向项目变更详情(int 纵向项目立项编号, int 纵向项目变更编号, int? 状态)
         {
-            if (!await CanAccessProjectAsync(纵向项目立项流程模板编号, 纵向项目立项编号))
-            {
+            if (!await 纵向子记录属于立项("变更", 纵向项目变更编号, 纵向项目立项编号))
                 return ProjectAccessDenied();
-            }
+            if (!await 可查看纵向阶段详情(纵向项目立项编号, 纵向项目变更编号, 纵向项目变更流程模板编号))
+                return ProjectAccessDenied();
             var r1 = await Db.GetModelByIdSpAsync<v2_纵向项目立项_详情>(纵向项目立项编号);
             var r2 = await Db.GetModelByIdSpAsync<v2_纵向项目变更_详情>(纵向项目变更编号);
 
@@ -1312,13 +1628,16 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
         }
 
         [HttpPost]
-        async public Task 完善纵向项目结题资料([FromBody] 完成步骤<纵向项目结题完善> model) =>
+        async public Task 完善纵向项目结题资料([FromBody] 完成步骤<纵向项目结题完善> model)
+        {
+            if (model?.附加数据?.基本资料 == null) throw new ArgumentException("缺少项目基本资料");
             await MyWorkFlowBusiness.完成步骤(
                 model.toSimple(), CurrentUser.编号,
                 new sp_纵向项目结题_增改()
                 {
                     tt = model.附加数据.基本资料.ToDataTable()
-                }, model.附加数据.IsHold);
+                }, model.附加数据.IsHold, 绑定: new WorkFlowBusiness.纵向步骤绑定 { 阶段 = "结题", 流程模板编号 = 纵向项目结题流程模板编号, 子记录编号 = model.附加数据.基本资料.编号, 立项编号 = model.附加数据.基本资料.纵向项目编号 });
+        }
 
         [HttpPost]
         async public Task<object> 上传结题资料()
@@ -1333,18 +1652,17 @@ SELECT EXISTS (SELECT 1 FROM ""纵向项目立项"" WHERE ""编号"" = @项目�
 
         [HttpGet]
         async public Task<object> 分页获取纵向项目结题(Paging paging, 纵向项目结题Filter filter) =>
-           await Db.GetPagingListSpAsync<object, 纵向项目结题Filter>(
-               paging,
-               filter,
-               $"tfn_纵向项目结题({CurrentUser.编号},{纵向项目立项流程模板编号},{纵向项目中检流程模板编号},{纵向项目变更流程模板编号},{纵向项目结题流程模板编号})");
+            await 分页获取授权纵向列表(paging, filter, "\"tfn_纵向项目结题\"(@person,@approvalTemplate,@midtermTemplate,@changeTemplate,@closeoutTemplate)", 纵向项目立项流程模板编号, "纵向项目立项编号", 纵向项目结题流程模板编号);
 
         [HttpGet]
         async public Task<object> 获取纵向项目结题详情(int 纵向项目立项编号, int 纵向项目中检编号, int 纵向项目结题编号)
         {
-            if (!await CanAccessProjectAsync(纵向项目立项流程模板编号, 纵向项目立项编号))
-            {
+            if (!await 纵向子记录属于立项("结题", 纵向项目结题编号, 纵向项目立项编号))
                 return ProjectAccessDenied();
-            }
+            if (!await 纵向子记录属于立项("中检", 纵向项目中检编号, 纵向项目立项编号))
+                return ProjectAccessDenied();
+            if (!await 可查看纵向阶段详情(纵向项目立项编号, 纵向项目结题编号, 纵向项目结题流程模板编号))
+                return ProjectAccessDenied();
             var r1 = await Db.GetModelByIdSpAsync<v2_纵向项目立项_详情>(纵向项目立项编号);
             var r2 = await Db.GetListSpAsync<object>($"tfn_项目参与人({纵向项目立项流程模板编号},{纵向项目立项编号})");
             var r3 = await Db.GetListSpAsync<object>($"tfn_项目经费预算({纵向项目立项流程模板编号},{纵向项目立项编号})");

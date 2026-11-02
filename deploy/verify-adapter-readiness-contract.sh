@@ -28,7 +28,6 @@ for marker in \
 done
 
 for marker in \
-  'if (model.是否启用 && !地址有效(address))' \
   '已存在其他启用适配器' \
   'ApplyExternalAuthentication(request, authMode, authRef)' \
   'X-Request-ID' \
@@ -36,6 +35,20 @@ for marker in \
   '测试模式 = "dry-run"'; do
   grep -Fq -- "$marker" "$operations" || fail "运行管理接口缺少边界: $marker"
 done
+
+# Keep the write boundary aligned with the current access-mode policy: an
+# enabled endpoint is validated only for interface adapters; manual imports
+# remain usable without a network address.
+python3 - "$operations" <<'PY'
+import pathlib
+import re
+import sys
+
+source = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8')
+pattern = r'if\s*\(\s*model\.是否启用\s*&&\s*accessMode\s*==\s*"接口"\s*&&\s*!地址有效\(address\)\s*\)'
+if not re.search(pattern, source):
+    raise SystemExit('运行管理接口缺少接口模式 HTTPS 地址门禁')
+PY
 
 for marker in \
   'HasCompleteOutboundConfigurationAsync' \

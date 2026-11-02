@@ -270,15 +270,25 @@ export interface SaveArrivalBudgetParams {
 }
 
 export interface HrpSyncParams {
-  协同模式: '推送立项与预算' | '拉取到账与支出' | string
+  动作: 'push_only' | string
   项目编号?: number
 }
 
 export interface HrpSyncStatusResult {
-  项目列表: any[]
-  预算列表: any[]
-  到账列表: any[]
-  支出列表: any[]
+  项目推送列表: HrpSyncRow[]
+  预算推送列表: HrpSyncRow[]
+  到账回写列表: HrpSyncRow[]
+  支出报销回写列表: HrpSyncRow[]
+}
+
+/** Four-state contract shared by HRP status displays. `connected` requires an explicit external acknowledgement. */
+export type HrpStatusCode = 'connected' | 'unconfigured' | 'failed' | 'manual_import'
+
+export interface HrpSyncRow {
+  sync_status?: string | number | null
+  状态代码?: HrpStatusCode
+  状态说明?: string
+  sync_time?: string | null
 }
 
 // 按到账维护项目预算 (文献清华长庚模式: 批次预算细化与闭环控制)

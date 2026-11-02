@@ -119,23 +119,29 @@ ORDER BY b.""开始时间"" DESC;", new { 仪器编号 });
         [HttpPost]
         public async Task<object> 提交仪器预约([FromBody] InstrumentBookingApplyModel model)
         {
-            if (model == null || model.仪器编号 <= 0 || model.开始时间 >= model.结束时间)
-                throw new ArgumentException("预约时段无效");
+            if (model == null || model.仪器编号 <= 0 || model.开始时间 >= model.结束时间 || model.样品数 <= 0)
+                throw new ArgumentException("预约时段无效，样品数必须为正整数");
 
-            using var trans = Db.BeginTransaction();
+            using var connection = Db;
+            connection.Open();
+            using var trans = connection.BeginTransaction();
             try
             {
                 // 1. 锁住仪器记录
-                var inst = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+                var inst = await connection.QuerySingleOrDefaultAsync<dynamic>(@"
 SELECT * FROM ""平台仪器设备"" WHERE ""编号""=@仪器编号 FOR UPDATE;", new { model.仪器编号 }, trans);
                 if (inst == null) return NotFound(new { error = "仪器设备不存在" });
                 if (inst.开放状态 != "开放" && inst.开放状态 != "仅内部")
                     return StatusCode(409, new { error = $"仪器当前处于【{inst.开放状态}】状态，无法预约" });
 
+                var minutes = (model.结束时间 - model.开始时间).TotalMinutes;
+                if (minutes < (int)inst.最短预约分钟 || minutes > (int)inst.最长预约分钟)
+                    return StatusCode(409, new { error = "预约时长不在仪器允许范围内" });
+
                 // 2. 检查资质
                 if ((bool)inst.需培训资质)
                 {
-                    var hasQual = await Db.QuerySingleOrDefaultAsync<int>(@"
+                    var hasQual = await connection.QuerySingleOrDefaultAsync<int>(@"
 SELECT COUNT(1) FROM ""仪器使用资质""
 WHERE ""仪器编号""=@仪器编号 AND ""人员编号""=@userId AND ""状态""='有效'
   AND (""有效期至"" IS NULL OR ""有效期至"" >= CURRENT_DATE);", new { model.仪器编号, userId = CurrentUser.编号 }, trans);
@@ -143,7 +149,7 @@ WHERE ""仪器编号""=@仪器编号 AND ""人员编号""=@userId AND ""状态""
                 }
 
                 // 3. 严格事务级防时间重叠冲突检测 (对使用中或已批准的预约)
-                var conflict = await Db.QuerySingleOrDefaultAsync<int>(@"
+                var conflict = await connection.QuerySingleOrDefaultAsync<int>(@"
 SELECT COUNT(1) FROM ""仪器预约""
 WHERE ""仪器编号""=@仪器编号
   AND ""状态"" IN ('待审核','已批准','使用中')
@@ -156,7 +162,7 @@ WHERE ""仪器编号""=@仪器编号
                 if (conflict > 0)
                     return StatusCode(409, new { error = "该时段已被其他预约占用，请调整预约时间" });
 
-                var id = await Db.QuerySingleAsync<long>(@"
+                var id = await connection.QuerySingleAsync<long>(@"
 INSERT INTO ""仪器预约"" (""仪器编号"",""预约人编号"",""流程模板编号"",""项目编号"",""开始时间"",""结束时间"",""样品数"",""用途说明"",""状态"")
 VALUES (@仪器编号,@预约人编号,@流程模板编号,@项目编号,@开始时间,@结束时间,@样品数,@用途说明,'待审核')
 RETURNING ""编号"";", new {
@@ -166,7 +172,7 @@ RETURNING ""编号"";", new {
                     model.项目编号,
                     model.开始时间,
                     model.结束时间,
-                    样品数 = model.样品数 <= 0 ? 1 : model.样品数,
+                    model.样品数,
                     用途说明 = NullIfEmpty(model.用途说明) ?? "科研实验"
                 }, trans);
 
@@ -209,19 +215,23 @@ WHERE ""编号""=@编号 AND ""状态""='待审核';", new {
         public async Task<object> 登记仪器使用([FromBody] InstrumentUsageRegisterModel model)
         {
             if (!await IsManager()) return StatusCode(403, new { error = "无权登记仪器使用与核算" });
-            if (model == null || model.预约编号 <= 0 || model.实际开始时间 >= model.实际结束时间)
-                throw new ArgumentException("使用时段无效");
+            if (model == null || model.预约编号 <= 0 || model.实际开始时间 >= model.实际结束时间 || model.实际样品数 <= 0)
+                throw new ArgumentException("使用时段无效，实际样品数必须为正整数");
 
-            using var trans = Db.BeginTransaction();
+            using var connection = Db;
+            connection.Open();
+            using var trans = connection.BeginTransaction();
             try
             {
-                var booking = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
+                var booking = await connection.QuerySingleOrDefaultAsync<dynamic>(@"
 SELECT b.*, i.""计费方式"", i.""内部单价"", i.""外部单价""
 FROM ""仪器预约"" b
 JOIN ""平台仪器设备"" i ON b.""仪器编号"" = i.""编号""
 WHERE b.""编号""=@预约编号 FOR UPDATE;", new { model.预约编号 }, trans);
 
                 if (booking == null) return NotFound(new { error = "预约记录不存在" });
+                if ((string)booking.状态 is not ("已批准" or "使用中"))
+                    return StatusCode(409, new { error = "仅已批准或使用中的预约可登记使用；已完成记录不可重复核算" });
 
                 TimeSpan diff = model.实际结束时间 - model.实际开始时间;
                 decimal hours = Math.Round((decimal)diff.TotalHours, 2);
@@ -246,23 +256,14 @@ WHERE b.""编号""=@预约编号 FOR UPDATE;", new { model.预约编号 }, trans
                     fee = 0; // 免费
                 }
 
-                var usageId = await Db.QuerySingleAsync<long>(@"
+                var usageId = await connection.QuerySingleAsync<long>(@"
 INSERT INTO ""仪器使用记录"" (""预约编号"",""实际开始时间"",""实际结束时间"",""实际样品数"",""实际机时小时"",""单价快照"",""计费金额"",""计费状态"",""结算凭证号"",""登记人编号"",""备注"")
 VALUES (@预约编号,@实际开始时间,@实际结束时间,@实际样品数,@hours,@unitPrice,@fee,'已确认',@结算凭证号,@登记人编号,@备注)
-ON CONFLICT (""预约编号"") DO UPDATE SET
-    ""实际开始时间""=EXCLUDED.""实际开始时间"",
-    ""实际结束时间""=EXCLUDED.""实际结束时间"",
-    ""实际样品数""=EXCLUDED.""实际样品数"",
-    ""实际机时小时""=EXCLUDED.""实际机时小时"",
-    ""单价快照""=EXCLUDED.""单价快照"",
-    ""计费金额""=EXCLUDED.""计费金额"",
-    ""结算凭证号""=EXCLUDED.""结算凭证号"",
-    ""备注""=EXCLUDED.""备注""
 RETURNING ""编号"";", new {
                     model.预约编号,
                     model.实际开始时间,
                     model.实际结束时间,
-                    实际样品数 = model.实际样品数 <= 0 ? 1 : model.实际样品数,
+                    model.实际样品数,
                     hours,
                     unitPrice,
                     fee,
@@ -271,7 +272,7 @@ RETURNING ""编号"";", new {
                     备注 = NullIfEmpty(model.备注)
                 }, trans);
 
-                await Db.ExecuteAsync(@"UPDATE ""仪器预约"" SET ""状态""='已完成' WHERE ""编号""=@预约编号;", new { model.预约编号 }, trans);
+                await connection.ExecuteAsync(@"UPDATE ""仪器预约"" SET ""状态""='已完成' WHERE ""编号""=@预约编号;", new { model.预约编号 }, trans);
 
                 trans.Commit();
                 return new { 编号 = usageId, 计费金额 = fee, 机时小时 = hours };
@@ -326,13 +327,14 @@ WHERE i.""平台编号""=@平台编号 AND EXTRACT(YEAR FROM b.""开始时间"")
                 年度预约次数 = bookingCount
             };
 
-            var id = await Db.QuerySingleAsync<long>(@"
+            var id = await Db.QuerySingleOrDefaultAsync<long?>(@"
 INSERT INTO ""平台年报"" (""平台编号"",""年度"",""状态"",""统计快照"",""年度总结"",""提交人编号"",""提交时间"")
 VALUES (@平台编号,@年度,'草稿',@snap::jsonb,@年度总结,@提交人编号,CURRENT_TIMESTAMP)
 ON CONFLICT (""平台编号"",""年度"") DO UPDATE SET
     ""统计快照""=EXCLUDED.""统计快照"",
     ""年度总结""=COALESCE(EXCLUDED.""年度总结"", ""平台年报"".""年度总结""),
     ""更新时间""=CURRENT_TIMESTAMP
+WHERE ""平台年报"".""状态"" IN ('草稿','退回')
 RETURNING ""编号"";", new {
                 model.平台编号,
                 model.年度,
@@ -341,7 +343,8 @@ RETURNING ""编号"";", new {
                 提交人编号 = CurrentUser.编号
             });
 
-            return new { 编号 = id, 统计 = stats };
+            if (!id.HasValue) return StatusCode(409, new { error = "已提交或已审核的年报不可覆盖，请先完成退回流程" });
+            return new { 编号 = id.Value, 统计 = stats };
         }
 
         #endregion

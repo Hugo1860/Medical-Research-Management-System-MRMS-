@@ -8,7 +8,7 @@
             {{ userStore.userInfo?.姓名?.substring(0, 1) || '科' }}
           </el-avatar>
           <div class="greeting-text">
-            <h2>早安，{{ userStore.userInfo?.姓名 || '科研人员' }}！欢迎使用科研信息管理系统</h2>
+            <h2>早安，{{ userStore.userInfo?.姓名 || '科研人员' }}！欢迎使用医院科研管理系统</h2>
             <p class="greeting-sub">
               工号：{{ userStore.userInfo?.工号 || '—' }} &nbsp;|&nbsp; 部门：{{
                 userStore.userInfo?.部门名称 || '科研院所'
@@ -41,7 +41,7 @@
         <el-card shadow="hover" class="metric-card card-blue">
           <div class="metric-body">
             <div class="metric-info">
-              <span class="metric-label">已登记科研项目</span>
+              <span class="metric-label">项目流程记录</span>
               <span class="metric-value">{{ projectMetric.value }} <small>项</small></span>
               <span class="metric-foot">{{ projectMetric.foot }}</span>
             </div>
@@ -54,7 +54,7 @@
         <el-card shadow="hover" class="metric-card card-green">
           <div class="metric-body">
             <div class="metric-info">
-              <span class="metric-label">已登记科研经费</span>
+              <span class="metric-label">项目流程关联金额</span>
               <span class="metric-value">{{ financeMetric.value }} <small>万元</small></span>
               <span class="metric-foot">{{ financeMetric.foot }}</span>
             </div>
@@ -67,7 +67,7 @@
         <el-card shadow="hover" class="metric-card card-purple">
           <div class="metric-body">
             <div class="metric-info">
-              <span class="metric-label">学术成果总数</span>
+              <span class="metric-label">成果流程记录</span>
               <span class="metric-value">{{ resultMetric.value }} <small>篇/项</small></span>
               <span class="metric-foot">{{ resultMetric.foot }}</span>
             </div>
@@ -81,8 +81,8 @@
           <div class="metric-body">
             <div class="metric-info">
               <span class="metric-label">待办审批流程</span>
-              <span class="metric-value">{{ pendingTasks.length }} <small>件</small></span>
-              <span class="metric-foot">{{ pendingTasks.length ? '请按办理提示处理' : '当前没有待办事项' }}</span>
+              <span class="metric-value">{{ todoTotal ?? '—' }} <small>件</small></span>
+              <span class="metric-foot">{{ todoHint }}</span>
             </div>
             <el-icon class="metric-icon"><Bell /></el-icon>
           </div>
@@ -98,7 +98,7 @@
           <template #header>
             <div class="card-header">
               <span class="header-title">科研统计指标概览</span>
-              <el-tag size="small" type="success">来自统计接口</el-tag>
+              <el-tag size="small" type="info">流程视图口径，记录可能重复</el-tag>
             </div>
           </template>
           <div ref="lineChartRef" class="chart-container"></div>
@@ -107,7 +107,7 @@
         <el-card shadow="never" class="chart-card" style="margin-top: 16px;">
           <template #header>
             <div class="card-header">
-              <span class="header-title">科研项目与成果类型分布</span>
+              <span class="header-title">项目与成果流程记录分布</span>
             </div>
           </template>
           <div ref="pieChartRef" class="chart-container"></div>
@@ -120,11 +120,11 @@
           <template #header>
             <div class="card-header">
               <span class="header-title">待处理科研事务</span>
-              <el-badge :value="pendingTasks.length" type="danger" />
+              <el-badge v-if="todoTotal !== null" :value="todoTotal" type="danger" />
             </div>
           </template>
 
-          <el-table :data="pendingTasks" style="width: 100%" stripe empty-text="当前暂无待办事项">
+          <el-table :data="pendingTasks" style="width: 100%" stripe :empty-text="todoTotal === null ? '待办数据暂不可用' : todoTotal > 0 ? '当前未返回可显示的待办明细' : '当前暂无待办事项'">
             <el-table-column prop="分类" label="分类" width="90">
               <template #default="{ row }">
                 <el-tag size="small" :type="getTagType(row.分类)">{{ row.分类 }}</el-tag>
@@ -221,6 +221,9 @@ const userStore = useUserStore()
 const todayStr = dayjs().format('YYYY年MM月DD日 星期' + ['日','一','二','三','四','五','六'][dayjs().day()])
 
 const pendingTasks = ref<WorkbenchSummaryItem[]>([])
+const todoTotal = ref<number | null>(null)
+const overviewAvailable = ref(false)
+const todoHint = computed(() => todoTotal.value === null ? '待办总数暂不可用' : todoTotal.value === 0 ? '当前没有待办事项' : '列表最多显示 8 条')
 const workbenchSummary = ref<WorkbenchSummary | null>(null)
 const overviewMetrics = ref<any[]>([])
 const configuredComponents = ref<DashboardComponent[]>([])
@@ -228,31 +231,28 @@ const lineChartRef = ref<HTMLDivElement | null>(null)
 const pieChartRef = ref<HTMLDivElement | null>(null)
 
 const metricByName = (name: string) => overviewMetrics.value.find((item) => item?.指标 === name)
+// These numbers are workflow-view rows, not distinct projects or personal totals.
+// Rows can repeat a project at different stages and omit projects with no flow.
 const projectMetric = computed(() => {
   const vertical = metricByName('纵向项目')
   const horizontal = metricByName('横向项目')
-  const count = Number(vertical?.数量 || 0) + Number(horizontal?.数量 || 0)
-  return {
-    value: count,
-    foot: `纵向 ${Number(vertical?.数量 || 0)} 项 / 横向 ${Number(horizontal?.数量 || 0)} 项`
+  if (!overviewAvailable.value || !vertical || !horizontal || vertical.数量 == null || horizontal.数量 == null) {
+    return { value: '—', foot: '流程统计暂不可用' }
   }
+  return { value: Number(vertical.数量) + Number(horizontal.数量), foot: '按流程视图统计，可能重复或遗漏无流程项目' }
 })
 const financeMetric = computed(() => {
-  const vertical = Number(metricByName('纵向项目')?.数值 || 0)
-  const horizontal = Number(metricByName('横向项目')?.数值 || 0)
-  const total = vertical + horizontal
-  return {
-    value: total ? (total / 10000).toFixed(1) : '—',
-    foot: total ? '按已登记项目批准经费/合同金额汇总' : '暂无可用经费统计数据'
+  const vertical = metricByName('纵向项目')
+  const horizontal = metricByName('横向项目')
+  if (!overviewAvailable.value || !vertical || !horizontal || vertical.数值 == null || horizontal.数值 == null) {
+    return { value: '—', foot: '流程统计暂不可用' }
   }
+  return { value: ((Number(vertical.数值) + Number(horizontal.数值)) / 10000).toFixed(1), foot: '按流程记录汇总，同一项目可能重复计入' }
 })
 const resultMetric = computed(() => {
   const result = metricByName('科研成果')
-  const count = Number(result?.数量 || 0)
-  return {
-    value: count,
-    foot: count ? '论文、著作、专利和获奖成果总数' : '暂无可用成果统计数据'
-  }
+  if (!overviewAvailable.value || !result || result.数量 == null) return { value: '—', foot: '流程统计暂不可用' }
+  return { value: Number(result.数量), foot: '按成果流程视图统计' }
 })
 
 function getTagType(category: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
@@ -308,12 +308,14 @@ function navigateConfigured(component: DashboardComponent) {
 async function fetchSummary() {
   const [summary, todo, overview, components] = await Promise.all([
     getWorkbenchSummary().catch(() => null),
-    getTodoList({ index: 1, size: 8 }).catch(() => ({ total: 0, list: [] })),
+    getTodoList({ index: 1, size: 8 }).catch(() => null),
     getAnalyticsOverview('overview').catch(() => null),
     getDashboardComponents().catch(() => [])
   ])
   workbenchSummary.value = summary
   const todoPayload = todo as any
+  const total = todoPayload?.total ?? todoPayload?.Total
+  todoTotal.value = typeof total === 'number' && Number.isFinite(total) && total >= 0 ? total : null
   const todoRows: WorkflowTaskItem[] = todoPayload?.list || todoPayload?.List || []
   pendingTasks.value = todoRows
     .filter((row) => Boolean(row.流程编号 || row.项目编号) && Boolean(row.流程名称 || row.步骤名称))
@@ -329,6 +331,7 @@ async function fetchSummary() {
     办理人: row.步骤操作人姓名 || row.步骤操作人部门名称
   }))
   const metrics = overview?.指标 || overview?.指标列表 || []
+  overviewAvailable.value = Array.isArray(metrics) && metrics.length > 0
   overviewMetrics.value = Array.isArray(metrics) ? metrics : []
   configuredComponents.value = Array.isArray(components) ? components : []
 }
@@ -346,7 +349,7 @@ function initCharts() {
       },
       yAxis: { type: 'value', name: '登记金额 (万元)' },
       series: [{ name: '登记金额', type: 'bar', data: metrics.map((item) => Number(item.数值 || 0) / 10000), itemStyle: { color: '#409eff' } }],
-      graphic: metrics.length ? undefined : [{ type: 'text', left: 'center', top: 'middle', style: { text: '暂无真实统计数据', fill: '#909399', fontSize: 14 } }]
+      graphic: metrics.length ? undefined : [{ type: 'text', left: 'center', top: 'middle', style: { text: overviewAvailable.value ? '暂无真实统计数据' : '流程统计暂不可用', fill: '#909399', fontSize: 14 } }]
     })
   }
 
@@ -357,7 +360,7 @@ function initCharts() {
       legend: { orient: 'vertical', left: 'left' },
       series: [
         {
-          name: '科研产出分布',
+          name: '流程记录分布',
           type: 'pie',
           radius: ['45%', '70%'],
           avoidLabelOverlap: false,
@@ -373,7 +376,7 @@ function initCharts() {
           data: metrics.map((item, index) => ({ value: Number(item.数量 || 0), name: item.指标, itemStyle: { color: ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399'][index % 5] } }))
         }
       ],
-      graphic: metrics.length ? undefined : [{ type: 'text', left: 'center', top: 'middle', style: { text: '暂无真实统计数据', fill: '#909399', fontSize: 14 } }]
+      graphic: metrics.length ? undefined : [{ type: 'text', left: 'center', top: 'middle', style: { text: overviewAvailable.value ? '暂无真实统计数据' : '流程统计暂不可用', fill: '#909399', fontSize: 14 } }]
     })
   }
 }

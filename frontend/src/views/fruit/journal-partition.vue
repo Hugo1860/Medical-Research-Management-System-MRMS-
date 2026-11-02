@@ -15,14 +15,16 @@
           <el-option label="CSSCI" value="CSSCI" />
           <el-option label="北大核心" value="北大核心" />
         </el-select>
+        <el-input-number v-model="filterYear" :min="1900" :max="9999" :precision="0" placeholder="论文年度" :disabled="batchMatching" style="width: 150px" />
         <el-input v-model="keyword" placeholder="期刊名称或 ISSN 检索" style="width: 240px" clearable />
         <el-button type="primary" @click="loadData">查询分区</el-button>
-        <el-button type="warning" @click="handleBatchMatch">批量对齐论文分区</el-button>
+        <el-button type="warning" :loading="batchMatching" @click="handleBatchMatch">批量对齐论文分区</el-button>
         <el-button type="success" @click="handleOpenAddDialog">录入分区条目</el-button>
       </div>
+      <p v-if="batchMatching" role="status">已处理 {{ batchProgress.processed }} 篇论文，新增 {{ batchProgress.matched }} 条待确认推荐。</p>
 
       <el-alert
-        title="数据接口提示：CNKI、万方、Web of Science、EI 商业接口需购买机构授权数据包后联调；当前提供标准本地分区规范库智能消歧与自动回写机制。"
+        title="匹配使用已录入的期刊分区库，结果保存为待确认推荐，不覆盖已有审核结果。外部数据库接入仍需机构授权及实际联调。年度留空时处理全部年度。"
         type="info"
         show-icon
         :closable="false"
@@ -61,6 +63,9 @@
             <el-option label="北大核心" value="北大核心" />
           </el-select>
         </el-form-item>
+        <el-form-item label="分区年度" required>
+          <el-input-number v-model="addForm.年度" :min="1900" :max="9999" :precision="0" />
+        </el-form-item>
         <el-form-item label="分区等级" required>
           <el-input v-model="addForm.分区" placeholder="如：1区、Q1" />
         </el-form-item>
@@ -82,27 +87,30 @@ import { ElMessage } from 'element-plus'
 import {
   getJournalPartitions,
   saveJournalPartition,
-  batchMatchPaperPartitions
+  matchAllPaperPartitions
 } from '@/api/journal-partition'
 
 const filterSource = ref('')
+const filterYear = ref<number | undefined>(new Date().getFullYear())
 const keyword = ref('')
 const tableData = ref<any[]>([])
+const batchMatching = ref(false)
+const batchProgress = ref({ processed: 0, matched: 0 })
 
 const addDialogVisible = ref(false)
 const addForm = ref<any>({
   期刊名称: '',
   ISSN: '',
   来源: '中科院分区',
-  年度: 2024,
+  年度: new Date().getFullYear(),
   学科类别: '医学',
   分区: '1区',
-  影响因子: 5.234
+  影响因子: undefined
 })
 
 async function loadData() {
   try {
-    const res = await getJournalPartitions(filterSource.value, undefined, keyword.value)
+    const res = await getJournalPartitions(filterSource.value || undefined, filterYear.value, keyword.value || undefined)
     tableData.value = res || []
   } catch (err: any) {
     ElMessage.error(err.message || '加载期刊分区库失败')
@@ -129,11 +137,16 @@ async function submitAdd() {
 }
 
 async function handleBatchMatch() {
+  if (batchMatching.value) return
+  batchMatching.value = true
+  batchProgress.value = { processed: 0, matched: 0 }
   try {
-    const res = await batchMatchPaperPartitions(2024)
-    ElMessage.success(`匹配任务执行成功，对齐产生 ${res?.产生匹配数 || 0} 条推荐记录`)
+    const result = await matchAllPaperPartitions(filterYear.value, progress => { batchProgress.value = progress })
+    ElMessage.success(`已处理 ${result.processed} 篇论文，新增 ${result.matched} 条待确认推荐`)
   } catch (err: any) {
-    ElMessage.error(err.message || '批量对齐失败')
+    ElMessage.error(`匹配中断，已处理 ${batchProgress.value.processed} 篇论文。${err.message || '请稍后重试'}；重试不会重复生成已有推荐。`)
+  } finally {
+    batchMatching.value = false
   }
 }
 

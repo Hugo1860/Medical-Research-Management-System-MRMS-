@@ -1,4 +1,6 @@
-# 科研管理系统验收矩阵
+# 科研管理系统验收矩阵（历史基线）
+
+> 本表保留早期版本的实现和验收记录，含 Schema 88/100 的历史描述，不代表当前 Schema 119 或生产环境状态。2026-10-28 起的修复、已执行检查与剩余边界以 [优化与验收记录](core-stabilization-2026-10-28.md) 为准；正式医院验收仍须逐项登记账号、数据、请求和负责人。
 
 | 模块 | 当前实现 | 当前证据 | 仍需完成 |
 |---|---|---|---|
@@ -23,9 +25,9 @@
 | 首页组件与催办 | 按角色组件布局配置、预警催办发起与处理、配置审计日志（迁移099） | `DashboardController`、`index.vue`、`verify-dashboard-component-contract.sh` | 用户自定义统计模型配置向导与前端拖拽排版扩展 |
 | 横向合同治理 | 合同版本签审、合作单位资质核验、技术合同收入认定、合同模板库（迁移100） | `HorizontalContractGovernanceController`、`horizontal-contract.vue`、`verify-horizontal-contract-governance-contract.sh` | 合同在线预览与套红打印排版 |
 
-## 当前发布门禁
+## 历史发布门禁
 
-本轮已重新验收 Docker Desktop、应用、PostgreSQL 和 Keycloak；`/health/live`、`/health/ready` 与 Keycloak discovery 均为 200。下面的结论基于本轮运行证据，但真实外部联调和角色回放仍需单独完成。
+以下为历史验收记录，不能替代当前复测：Docker Desktop、应用、PostgreSQL 和 Keycloak 曾完成检查；`/health/live`、`/health/ready` 与 Keycloak discovery 均为 200。下面的结论基于本轮运行证据，但真实外部联调和角色回放仍需单独完成。
 
 - `./deploy/verify-local-release.sh` 可一次性执行本地全量只读验收。
 - .NET 10 Linux 发布包编译通过。

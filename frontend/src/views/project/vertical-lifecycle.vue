@@ -102,7 +102,7 @@
                 :prefix-icon="Search"
                 clearable
                 style="width: 220px"
-                @keyup.enter="fetchApprovals"
+                @keyup.enter="searchApprovals"
               />
               <el-input
                 v-model="approvalFilters.Like负责人姓名"
@@ -110,9 +110,9 @@
                 :prefix-icon="Search"
                 clearable
                 style="width: 180px"
-                @keyup.enter="fetchApprovals"
+                @keyup.enter="searchApprovals"
               />
-              <el-button type="primary" :icon="Search" @click="fetchApprovals">查询</el-button>
+              <el-button type="primary" :icon="Search" @click="searchApprovals">查询</el-button>
             </div>
             <div class="toolbar-right">
               <el-button type="success" :icon="Plus" @click="goToApplication">
@@ -165,6 +165,7 @@
             <el-table-column label="操作" width="280" align="center" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" link size="small" @click="viewArchive(row)">全景档案</el-button>
+                <el-button type="info" link size="small" @click="openCoreClosure(row)">核心闭环</el-button>
                 <el-button type="primary" link size="small" @click="openMatchingDialog(row)">一键配套</el-button>
                 <el-button type="warning" link size="small" @click="openApplyChangeDialog(row)">申请变更</el-button>
                 <el-button type="success" link size="small" @click="handleApplyMidterm(row)">中检</el-button>
@@ -531,6 +532,24 @@
       </el-tabs>
     </el-card>
 
+    <el-dialog v-model="coreClosureVisible" title="基层核心版项目闭环验收" width="760px" destroy-on-close>
+      <el-skeleton v-if="coreClosureLoading" :rows="6" animated />
+      <template v-else-if="coreClosureData">
+        <el-alert :title="coreClosureData.验收通过 ? '核心闭环已完成' : '下一步：' + coreClosureData.下一步" :type="coreClosureData.验收通过 ? 'success' : 'warning'" show-icon :closable="false" />
+        <el-descriptions :column="2" border style="margin-top: 14px">
+          <el-descriptions-item label="申报">{{ coreClosureData.申报.状态 }} / {{ coreClosureData.申报.审批状态 }}</el-descriptions-item>
+          <el-descriptions-item label="立项审批">{{ coreClosureData.立项.状态 }}</el-descriptions-item>
+          <el-descriptions-item label="经费到账">{{ coreClosureData.到账.状态 }}（¥{{ formatMoney(coreClosureData.到账.金额) }}）</el-descriptions-item>
+          <el-descriptions-item label="预算">{{ coreClosureData.预算.状态 }}（¥{{ formatMoney(coreClosureData.预算.金额) }}）</el-descriptions-item>
+          <el-descriptions-item label="报销">{{ coreClosureData.报销.状态 }}（¥{{ formatMoney(coreClosureData.报销.金额) }}）</el-descriptions-item>
+          <el-descriptions-item label="提醒">{{ coreClosureData.提醒.状态 }}（{{ coreClosureData.提醒.数量 }} 条）</el-descriptions-item>
+          <el-descriptions-item label="结题">{{ coreClosureData.结题.状态 }}</el-descriptions-item>
+          <el-descriptions-item label="成果归档">{{ coreClosureData.成果归档.状态 }}（{{ coreClosureData.成果归档.数量 }} 项）</el-descriptions-item>
+        </el-descriptions>
+      </template>
+      <el-empty v-else description="暂无闭环状态" />
+    </el-dialog>
+
     <!-- 一键建立配套项目弹窗 (清华长庚医院实践) -->
     <el-dialog
       v-model="matchingDialogVisible"
@@ -797,6 +816,9 @@
             {{ archiveData.立项信息?.负责人部门名称 || '—' }}
           </el-descriptions-item>
         </el-descriptions>
+        <div v-if="archiveOriginalDetailId !== null" class="archive-toolbar">
+          <el-button :loading="archiveOriginalDownloading" @click="downloadArchiveOriginal">下载计划书原件</el-button>
+        </div>
 
         <el-divider content-position="left">任务书版本与内部确认</el-divider>
         <div class="archive-toolbar">
@@ -848,21 +870,13 @@
           <el-table-column prop="要求说明" label="核验要求" min-width="180" show-overflow-tooltip />
         </el-table>
 
-        <h4 class="mt-6 mb-3">生命周期关键节点溯源</h4>
-        <el-timeline>
-          <el-timeline-item timestamp="申报立项阶段" type="primary" :hollow="false">
-            <p class="timeline-title">课题通过院内伦理前置预检与学术专家打分推荐，获得正式立项批复。</p>
-          </el-timeline-item>
-          <el-timeline-item timestamp="经费到账与核销" type="success">
-            <p class="timeline-title">预算执行节点以经费台账实际记录为准。</p>
-          </el-timeline-item>
-          <el-timeline-item timestamp="在研中期检查" type="warning">
-            <p class="timeline-title">中期实验数据完整，关键里程碑按计划达成，专家给予优秀通过评定。</p>
-          </el-timeline-item>
-          <el-timeline-item timestamp="结题与成果归档" type="info">
-            <p class="timeline-title">结题报告与成果归档状态以电子档案清单实际记录为准。</p>
-          </el-timeline-item>
-        </el-timeline>
+        <h4 class="mt-6 mb-3">生命周期资料提示</h4>
+        <ul>
+          <li>申报、伦理审查和立项批复情况，请查阅对应的实际记录。</li>
+          <li>经费到账与预算执行情况，请查阅经费台账实际记录。</li>
+          <li>中期检查进展和专家意见，请查阅实际中检记录。</li>
+          <li>结题报告与成果归档情况，请查阅实际结题记录和材料清单。</li>
+        </ul>
       </div>
     </el-drawer>
   </div>
@@ -886,6 +900,7 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getPagedApprovals,
+  getApprovalDetail,
   getPagedMidterms,
   precheckMidterm,
   createMidterm,
@@ -900,7 +915,9 @@ import {
   type VerticalMidtermItem,
   type VerticalChangeItem,
   type VerticalCloseoutItem,
-  type LifecycleArchiveData
+  type LifecycleArchiveData,
+  getCoreProjectClosureStatus,
+  type CoreProjectClosureStatus
 } from '@/api/vertical-lifecycle'
 import {
   createMatchingProject,
@@ -923,6 +940,7 @@ import {
   type ProjectArchiveChecklistData
 } from '@/api/project'
 import { formatMoney, formatDate, formatDateTime } from '@/utils/format'
+import { downloadProposal } from '@/api/vertical-import'
 
 const route = useRoute()
 const router = useRouter()
@@ -1024,6 +1042,8 @@ const closeoutPaging = reactive({
 // 档案抽屉
 const archiveDrawerVisible = ref(false)
 const archiveData = ref<LifecycleArchiveData | null>(null)
+const archiveOriginalDetailId = ref<number | null>(null)
+const archiveOriginalDownloading = ref(false)
 const archiveProjectId = ref<number>(0)
 const archiveProjectName = ref('')
 const taskbookData = ref<ProjectTaskbookData | null>(null)
@@ -1053,6 +1073,9 @@ const matchingForm = reactive({
 const balanceDialogVisible = ref(false)
 const submittingBalance = ref(false)
 const activeCloseout = ref<any>(null)
+const coreClosureVisible = ref(false)
+const coreClosureLoading = ref(false)
+const coreClosureData = ref<CoreProjectClosureStatus | null>(null)
 const balanceForm = reactive({
   结余金额: 50000,
   备注: ''
@@ -1078,6 +1101,13 @@ function refreshCurrentTab() {
   onTabChange(activeTab.value)
 }
 
+// A new filter must start from the first page; otherwise valid matches on an
+// earlier page appear to be missing.
+function searchApprovals() {
+  approvalPaging.index = 1
+  void fetchApprovals()
+}
+
 // 获取立项列表
 async function fetchApprovals() {
   approvalsLoading.value = true
@@ -1089,7 +1119,10 @@ async function fetchApprovals() {
         Like负责人姓名: approvalFilters.Like负责人姓名.trim() || undefined
       }
     )
-    approvalsList.value = res?.list || []
+    // The list API returns 项目中文名称; preserve the UI model used by dialogs.
+    approvalsList.value = (res?.list || []).map((row) => ({
+      ...row, 项目名称: (row as VerticalProjectApprovalItem & { 项目中文名称?: string }).项目中文名称 || row.项目名称 || ''
+    }))
     approvalPaging.total = res?.total || 0
   } catch (error: any) {
     approvalsList.value = []
@@ -1097,6 +1130,19 @@ async function fetchApprovals() {
     ElMessage.error(error?.response?.data?.error || error?.message || '立项列表查询失败，请稍后重试')
   } finally {
     approvalsLoading.value = false
+  }
+}
+
+async function openCoreClosure(row: VerticalProjectApprovalItem) {
+  coreClosureVisible.value = true
+  coreClosureLoading.value = true
+  coreClosureData.value = null
+  try {
+    coreClosureData.value = await getCoreProjectClosureStatus(row.编号)
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.error || error?.message || '核心闭环状态查询失败')
+  } finally {
+    coreClosureLoading.value = false
   }
 }
 
@@ -1319,7 +1365,18 @@ async function handleApplyCloseout(row: VerticalProjectApprovalItem) {
 async function viewArchive(row: VerticalProjectApprovalItem) {
   archiveProjectId.value = row.编号
   archiveProjectName.value = row.项目名称
+  archiveOriginalDetailId.value = null
+  archiveData.value = null
   archiveDrawerVisible.value = true
+  // Resolve only the authenticated import endpoint. Never navigate to a raw
+  // database path, which may be external or an unrelated legacy file.
+  void getApprovalDetail(row.编号).then((detail) => {
+    if (archiveProjectId.value !== row.编号 || !archiveDrawerVisible.value) return
+    const path = detail?.立项基本信息?.立项文件路径
+    const match = typeof path === 'string' ? /^\/VerticalProjectImport\/下载计划书\?明细编号=([1-9]\d*)$/.exec(path) : null
+    const id = match ? Number(match[1]) : NaN
+    archiveOriginalDetailId.value = Number.isSafeInteger(id) ? id : null
+  }).catch(() => { /* No unsafe fallback when the authenticated detail is unavailable. */ })
   taskbookData.value = null
   archiveChecklist.value = null
   try {
@@ -1328,13 +1385,32 @@ async function viewArchive(row: VerticalProjectApprovalItem) {
       getProjectTaskbook(row.编号),
       getProjectArchiveChecklist(row.编号)
     ])
-    archiveData.value = res || { 立项信息: row }
+    archiveData.value = { ...(res || {}), 立项信息: { ...row, ...(res?.立项信息 || {}) } }
     taskbookData.value = taskbooks || { 任务书: [], 签署记录: [] }
     archiveChecklist.value = checklist || null
   } catch {
     archiveData.value = {
       立项信息: row
     }
+  }
+}
+
+async function downloadArchiveOriginal() {
+  const id = archiveOriginalDetailId.value
+  if (id === null || archiveOriginalDownloading.value) return
+  archiveOriginalDownloading.value = true
+  try {
+    const blob = await downloadProposal(id)
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `计划书-${id}.pdf`
+    anchor.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.error || error?.message || '计划书原件下载失败')
+  } finally {
+    archiveOriginalDownloading.value = false
   }
 }
 

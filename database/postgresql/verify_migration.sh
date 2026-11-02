@@ -4,8 +4,9 @@ set -euo pipefail
 # Read-only production check by default. To replay migrations, point
 # FRESH_DATABASE_URL at an empty database explicitly; never replay them on the
 # live application database.
-EXPECTED_SCHEMA_VERSION=${EXPECTED_SCHEMA_VERSION:-106}
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
+EXPECTED_SCHEMA_VERSION=${EXPECTED_SCHEMA_VERSION:-$("$REPOSITORY_ROOT/deploy/read-current-schema-version.sh")}
 DATABASE_CONTAINER=${DATABASE_CONTAINER:-}
 DATABASE_NAME=${DATABASE_NAME:-ScientificResearch_Model}
 DATABASE_USER=${DATABASE_USER:-postgres}
@@ -46,26 +47,25 @@ if (( latest_migration_version != EXPECTED_SCHEMA_VERSION )); then
   exit 1
 fi
 
-if command -v psql >/dev/null 2>&1; then
-  : "${DATABASE_URL:?请设置 DATABASE_URL，例如 postgresql://postgres:password@127.0.0.1:5432/ScientificResearch_Model}"
-  run_psql() { command psql "$DATABASE_URL" "$@"; }
-else
-  if [[ -z "$DATABASE_CONTAINER" ]]; then
-    echo '请安装 psql，或设置 DATABASE_CONTAINER 使用数据库容器内的 psql' >&2
-    exit 1
-  fi
+if [[ -n "$DATABASE_CONTAINER" ]]; then
   if ! command -v timeout >/dev/null 2>&1; then
     echo '容器内迁移校验需要 timeout 命令，以避免 Docker/psql 无限等待' >&2
     exit 1
   fi
   run_psql() {
     timeout --foreground --kill-after=5 "$DOCKER_COMMAND_TIMEOUT_SECONDS" docker exec -i "$DATABASE_CONTAINER" \
-      psql -U "$DATABASE_USER" -d "$DATABASE_NAME" "$@"
+      psql -X -U "$DATABASE_USER" -d "$DATABASE_NAME" "$@"
   }
   if [[ -n "${FRESH_DATABASE_URL:-}" ]]; then
-    echo 'FRESH_DATABASE_URL 需要宿主机 psql；当前仅支持容器内只读校验' >&2
+    echo '指定 DATABASE_CONTAINER 时禁止同时设置 FRESH_DATABASE_URL' >&2
     exit 1
   fi
+elif command -v psql >/dev/null 2>&1; then
+  : "${DATABASE_URL:?请设置 DATABASE_URL，或指定 DATABASE_CONTAINER 使用容器内校验}"
+  run_psql() { command psql -X "$DATABASE_URL" "$@"; }
+else
+  echo '请安装 psql，或设置 DATABASE_CONTAINER 使用数据库容器内的 psql' >&2
+  exit 1
 fi
 
 if [[ -n "${FRESH_DATABASE_URL:-}" ]]; then

@@ -6,18 +6,21 @@ set -euo pipefail
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 project_root="$(cd "$script_dir/.." && pwd)"
 
-python3 - "$project_root" <<'PY'
+publish_root="${PUBLISH_ROOT:-$project_root/publish/linux-x64}"
+python3 "$script_dir/release-source-manifest.py" check "$publish_root/release-source-manifest.json" --require-artifacts
+
+python3 - "$project_root" "$publish_root" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
 source_wwwroot = root / "ScientificResearch" / "ScientificResearch" / "wwwroot"
-publish_wwwroot = root / "publish" / "linux-x64" / "wwwroot"
+publish_root = Path(sys.argv[2])
+publish_wwwroot = publish_root / "wwwroot"
 frontend_dist = root / "frontend" / "dist"
 source_config_path = root / "ScientificResearch" / "ScientificResearch" / "appsettings.json"
-publish_config_path = root / "publish" / "linux-x64" / "appsettings.json"
-publish_root = root / "publish" / "linux-x64"
+publish_config_path = publish_root / "appsettings.json"
 
 for path in (source_wwwroot, publish_wwwroot, frontend_dist, source_config_path, publish_config_path):
     if not path.exists():

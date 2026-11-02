@@ -6,6 +6,7 @@ models="$root/ScientificResearch/ScientificResearch/Models/Custom/People.cs"
 settings="$root/ScientificResearch/ScientificResearch/appsettings.json"
 compose="$root/docker-compose.yml"
 env_example="$root/.env.docker.example"
+expected_schema_version="$("$root/deploy/read-current-schema-version.sh")"
 for marker in '查询专家可用时间' '保存专家可用时间' '查询外部专家邀请' '创建外部专家邀请' '回写外部专家邀请回执' '未配置' '真实回执' '外部发送、失败或接受/拒绝状态必须来自真实适配器回执' '尚未纳入评审专家角色' '流程模板编号.HasValue != model.项目编号.HasValue'; do
   grep -Fq "$marker" "$controller" || { echo "专家邀请契约失败: Controller 缺少 $marker" >&2; exit 1; }
 done
@@ -20,8 +21,8 @@ for marker in \
   'ExternalExpertInvitation__RequireHttps: ${EXTERNAL_EXPERT_INVITATION_REQUIRE_HTTPS:-true}'; do
   grep -Fq "$marker" "$compose" || { echo "专家邀请契约失败: Compose 缺少 $marker" >&2; exit 1; }
 done
-grep -Fq 'POSTGRES_EXPECTED_SCHEMA_VERSION=105' "$env_example" || {
-  echo '专家邀请契约失败: .env.docker.example 未对齐 Schema 105' >&2
+grep -Fq "POSTGRES_EXPECTED_SCHEMA_VERSION=${expected_schema_version}" "$env_example" || {
+  echo "专家邀请契约失败: .env.docker.example 未对齐当前 Schema ${expected_schema_version}" >&2
   exit 1
 }
 python3 - "$settings" <<'PY'

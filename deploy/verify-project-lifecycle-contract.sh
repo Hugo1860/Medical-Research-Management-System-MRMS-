@@ -134,6 +134,21 @@ require_all(migration, [
     "'缺失','已上传','已核验','不适用','作废'",
 ], '077 档案清单迁移')
 
+# 4.5) P0 acceptance summary: the endpoint is read-only and aggregates every
+# lifecycle evidence source without materializing missing checklist rows or
+# repairing participant bindings.  An unscoped participant remains an explicit
+# ORPHAN_PARTICIPANT item until a separate human review records a decision.
+summary_start = controller.index('获取纵向项目闭环验收摘要')
+summary_end = controller.index('        #endregion', summary_start)
+summary_region = controller[summary_start:summary_end]
+require_all(summary_region, [
+    '纵向项目生命周期申请', '纵向项目任务书', '未完成内部确认',
+    '纵向项目研究报告', '纵向项目电子档案清单', '项目参与人绑定复核',
+    'ORPHAN_PARTICIPANT', '阻断项', '验收通过', '不会自动删除或改写绑定',
+], '纵向项目闭环验收摘要')
+if re.search(r'\b(?:INSERT|UPDATE|DELETE)\s+', summary_region, re.I):
+    raise SystemExit('项目全生命周期契约失败: 闭环验收摘要接口必须保持只读')
+
 # 5) Provider boundary: default configuration is fail-closed.  Local signing
 # and archive retention must never be reported as a legal signature or formal
 # archive; provider submission remains a 503/501 gate until a real adapter is

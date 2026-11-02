@@ -247,7 +247,7 @@ namespace ScientificResearch
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "科研管理系统-API",
+                    Title = "医院科研管理系统 API / Hospital Research Management System (HRMS) API",
                     Version = "v1"
                 });
 

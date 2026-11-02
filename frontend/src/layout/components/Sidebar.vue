@@ -3,7 +3,7 @@
     <!-- 顶部 Logo 栏 -->
     <div class="logo">
       <el-icon :size="24" class="logo-icon"><Management /></el-icon>
-      <span v-show="!isCollapse" class="logo-title">科研管理系统</span>
+      <span v-show="!isCollapse" class="logo-title">医院科研管理系统</span>
       <el-tag
         v-if="!isCollapse && hospitalModeStore.isGrassroots"
         size="small"
@@ -512,8 +512,9 @@ const defaultCatalogLeafMenus: LeafMenuItem[] = [
   { id: 'dict', name: '科研基础字典规范', route: '/base-info/dictionary', categoryPath: '基础信息 / 标准字典', icon: Files },
   { id: 'cfg', name: '科研基础信息标准配置', route: '/base-info/system-configs', categoryPath: '基础信息 / 系统配置', icon: Setting },
   { id: 'research-platform', name: '网上科研服务', route: '/office/research-platform', categoryPath: '科研平台 / 网上科研服务', icon: Briefcase },
-  { id: 'edu-stat', name: '教育部科研统计', route: '/office/education-statistics', categoryPath: '统计决策 / 教育部统计', icon: Histogram },
+  { id: 'edu-stat', name: '教育部科研统计', route: '/office/education-statistics', categoryPath: '科研办公 / 教育部统计', icon: Histogram },
   { id: 'ach-ip', name: '成果与知识产权', route: '/fruit/achievement-ip-awards', categoryPath: '学术成果 / 知识产权', icon: Medal },
+  { id: 'dashboard-chase', name: '首页组件与业务催办', route: '/dashboard', categoryPath: '科研办公 / 首页催办', icon: House },
   { id: 'doc-share', name: '科研文档共享与消息中心', route: '/office/document-sharing', categoryPath: '科研办公 / 文档消息', icon: Files },
   { id: 'h-gov', name: '横向合同治理', route: '/project/horizontal-contract?tab=governance', categoryPath: '横向课题 / 合同治理', icon: Collection },
   { id: 'proj-cfg', name: '项目分类与预算模板', route: '/project/project-configuration', categoryPath: '基础信息 / 项目分类与预算模板', icon: Operation },

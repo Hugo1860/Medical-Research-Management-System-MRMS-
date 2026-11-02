@@ -12,10 +12,7 @@ UPDATE "纵向项目立项"
            WHEN "是否需要伦理批文" = true THEN '待核验'
            ELSE '无需伦理'
        END,
-       "伦理批文有效期至" = CASE
-           WHEN "是否需要伦理批文" = true THEN NULL
-           ELSE NULL
-       END
+       "伦理批文有效期至" = NULL::date
  WHERE "伦理审查状态" IS NULL OR "伦理审查状态" = '无需伦理';
 
 -- 2. 创建科研项目过程预警记录表 (文献核心：中检/结题提前半年定时巡检与预算预警)

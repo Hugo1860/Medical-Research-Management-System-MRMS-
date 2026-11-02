@@ -102,7 +102,9 @@ WHERE p.工号 = @工号;", new { model.工号, model.密码 });
             }
 
             user.DbKey = model.DbKey;
-            var permission = result.Read<权限>();
+            var permission = result.Read<权限>().ToList();
+            result.Dispose();
+            permission = await EnsureOfficeMenuParentAsync(dbWhenLogin, permission);
 
             //处理一下中文
             foreach (var item in permission)
@@ -140,6 +142,7 @@ JOIN 角色权限 b ON b.权限编号 = a.编号
 JOIN 人员角色 c ON c.角色编号 = b.角色编号
 WHERE c.人员编号 = @人员编号;", new { 人员编号 = CurrentUser.编号 });
 
+            permission = await EnsureOfficeMenuParentAsync(Db, permission);
             foreach (var item in permission)
             {
                 item.路径 = string.Join("?", (item.路径 ?? "").Split("?").Select(Uri.EscapeUriString));
@@ -211,6 +214,19 @@ LEFT JOIN ""人员"" p ON p.""编号"" = d.""被代理人编号""
 LEFT JOIN ""人员"" revoker ON revoker.""编号"" = d.""撤销人编号""
 WHERE d.""授权人编号"" = @人员编号 OR d.""被代理人编号"" = @人员编号
 ORDER BY d.""建立时间"" DESC;", new { 人员编号 = CurrentUser.编号 });
+        }
+
+        // Add only the pathless display parent of explicitly granted moved leaves.
+        // This neither writes 角色权限 nor adds any sibling/leaf authorization.
+        internal static async Task<List<权限>> EnsureOfficeMenuParentAsync(System.Data.IDbConnection db, IEnumerable<权限> granted)
+        {
+            var nodes = granted.ToList();
+            if (nodes.Any(x => x.编号 == 1) || !nodes.Any(x => x.上级编号 == 1 && (x.编号 == 207 || x.编号 == 209 || x.编号 == 210)))
+                return nodes;
+            var parent = await db.QuerySingleOrDefaultAsync<权限>(
+                "SELECT * FROM \"权限\" WHERE \"编号\"=1 AND \"上级编号\"=0 AND \"名称\"='科研办公' AND COALESCE(\"路径\",'')='';");
+            if (parent != null) nodes.Add(parent);
+            return nodes;
         }
 
         /// <summary>

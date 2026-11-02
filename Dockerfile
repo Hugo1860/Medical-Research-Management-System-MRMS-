@@ -55,7 +55,7 @@ COPY --from=build /out ./
 # offline/published image. Without this copy, recreating the container falls
 # back to the legacy /IMIS entrypoint and discards the current login/logout UI.
 COPY frontend/dist/ ./wwwroot/
-RUN mkdir -p /app/wwwroot/upload /home/app/.aspnet/DataProtection-Keys \
+RUN mkdir -p /app/wwwroot/upload /app/App_Data/ProposalImports /home/app/.aspnet/DataProtection-Keys \
     && chown -R $APP_UID:$APP_UID /app /home/app/.aspnet
 
 USER $APP_UID

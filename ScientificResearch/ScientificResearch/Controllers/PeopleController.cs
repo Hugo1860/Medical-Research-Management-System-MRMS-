@@ -1083,11 +1083,11 @@ ORDER BY ""完成日期"" DESC;", new { targetId, sinceDate })).ToList();
 
             // 4. 进修满 6 个月记录 (>= 180 天)
             var studyList = (await Db.QueryAsync<dynamic>(@"
-SELECT ""编号"", ""进修机构名称"", ""进修专业"", ""开始日期"", ""结束日期"",
-       (""结束日期"" - ""开始日期"")::integer AS ""进修天数""
+SELECT ""编号"", ""目标医院"" AS ""进修机构名称"", ""进修专业"", ""进修开始日期"" AS ""开始日期"", ""进修结束日期"" AS ""结束日期"",
+       ""进修天数""
 FROM ""进修申请""
-WHERE ""申请人编号"" = @targetId AND ""审批状态"" = '已通过' AND (""结束日期"" - ""开始日期"") >= 180
-ORDER BY ""开始日期"" DESC;", new { targetId })).ToList();
+WHERE ""申请人编号"" = @targetId AND ""状态"" IN ('已通过', '已完成') AND ""进修天数"" >= 180
+ORDER BY ""进修开始日期"" DESC;", new { targetId })).ToList();
 
             // 5. 近 5 年继续医学教育学分达标
             var curYear = DateTime.Today.Year;
@@ -1097,10 +1097,10 @@ ORDER BY ""开始日期"" DESC;", new { targetId })).ToList();
             {
                 var credit = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
 SELECT 
-    COALESCE(sum(CASE WHEN ""学分分类"" = 'I类' THEN ""学分数"" ELSE 0 END), 0)::numeric(5,1) AS ""I类分"",
-    COALESCE(sum(""学分数""), 0)::numeric(5,1) AS ""总分""
+    COALESCE(sum(CASE WHEN ""学分类别"" = 'I类' THEN ""学分"" ELSE 0 END), 0)::numeric(5,1) AS ""I类分"",
+    COALESCE(sum(""学分""), 0)::numeric(5,1) AS ""总分""
 FROM ""继教学分记录""
-WHERE ""人员编号"" = @targetId AND ""年度"" = @y AND ""状态"" = '已生效';", new { targetId, y });
+WHERE ""人员编号"" = @targetId AND ""年度"" = @y AND ""审核状态"" = '已认定';", new { targetId, y });
 
                 decimal total = credit != null ? Convert.ToDecimal(credit.总分) : 0m;
                 decimal class1 = credit != null ? Convert.ToDecimal(credit.I类分) : 0m;

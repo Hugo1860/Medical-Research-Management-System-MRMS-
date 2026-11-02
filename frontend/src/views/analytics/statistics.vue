@@ -142,8 +142,13 @@ import {
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import { Download, WarningFilled } from '@element-plus/icons-vue'
+import { useHospitalModeStore } from '@/stores/hospitalMode'
 
 const dimension = ref('全院总览')
+const hospitalMode = useHospitalModeStore()
+const metricPolicy = computed(() => hospitalMode.metricStrategy || {})
+const enabledMetricNames = computed(() => Array.isArray(metricPolicy.value.enabled) ? metricPolicy.value.enabled.map(String) : [])
+const metricLabels = computed(() => (metricPolicy.value.labels && typeof metricPolicy.value.labels === 'object' ? metricPolicy.value.labels : {}) as Record<string, string>)
 const deptChartRef = ref<HTMLDivElement | null>(null)
 const jcrChartRef = ref<HTMLDivElement | null>(null)
 const overviewMetrics = ref<any[]>([])
@@ -320,7 +325,7 @@ function initCharts() {
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: {
         type: 'category',
-        data: metrics.map((item) => item.指标)
+        data: metrics.map((item) => metricLabels.value[item.指标] || item.指标)
       },
       yAxis: { type: 'value', name: '经费金额 (万元)' },
       series: [
@@ -343,7 +348,7 @@ function initCharts() {
           itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
           label: { show: false, position: 'center' },
           emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
-          data: metrics.map((item, index) => ({ value: Number(item.数量 || 0), name: item.指标, itemStyle: { color: ['#3b82f6', '#10b981', '#f59e0b', '#94a3b8'][index % 4] } }))
+          data: metrics.map((item, index) => ({ value: Number(item.数量 || 0), name: metricLabels.value[item.指标] || item.指标, itemStyle: { color: ['#3b82f6', '#10b981', '#f59e0b', '#94a3b8'][index % 4] } }))
         }
       ]
     })
@@ -354,7 +359,10 @@ async function loadOverview() {
   loading.value = true
   try {
     const result = await getAnalyticsOverview(modeForDimension())
-    overviewMetrics.value = Array.isArray(result?.指标) ? result.指标 : []
+    const rawMetrics = Array.isArray(result?.指标) ? result.指标 : []
+    overviewMetrics.value = enabledMetricNames.value.length
+      ? rawMetrics.filter((item: any) => enabledMetricNames.value.includes(String(item?.指标)))
+      : rawMetrics
     overviewDefinitions.value = Array.isArray(result?.口径) ? result.口径 : []
     metricDetails.value = overviewMetrics.value.map((row) => {
       const definition = overviewDefinitions.value.find((item) => item.指标名称 === row.指标 || item.指标代码 === row.指标)
@@ -398,6 +406,7 @@ async function loadRiskSignals() {
 }
 
 onMounted(async () => {
+  await hospitalMode.loadConfig()
   await Promise.all([loadOverview(), loadRiskSignals()])
   await nextTick()
   initCharts()

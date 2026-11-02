@@ -49,6 +49,13 @@
         <el-table-column label="启用" width="70" align="center">
           <template #default="{ row }"><el-tag :type="row.已启用 ? 'success' : 'info'" size="small">{{ row.已启用 ? '是' : '否' }}</el-tag></template>
         </el-table-column>
+        <el-table-column label="接口状态" width="130" align="center">
+          <template #default="{ row }">
+            <el-tag :type="connectionStatusTag(row.状态)" size="small" :title="`审计代码：${row.状态 || 'unconfigured'}`">
+              {{ connectionStatusLabel(row.状态) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="结论" min-width="260">
           <template #default="{ row }"><el-tag :type="row.通过 ? 'success' : 'warning'" size="small">{{ row.通过 ? '可作为联调候选' : row.提示 }}</el-tag></template>
         </el-table-column>
@@ -194,14 +201,28 @@ function getStatusTag(status?: string): 'primary' | 'success' | 'warning' | 'inf
 
 function isSystemReady(system: ExternalSystemItem) {
   const check = configChecks.value.find((item) => item.系统类型 === system.系统类型)
-  return Boolean(system.是否启用 && check?.通过)
+  return Boolean(system.是否启用 && check?.状态 === 'connected')
 }
 
 function systemStatus(system: ExternalSystemItem) {
   const check = configChecks.value.find((item) => item.系统类型 === system.系统类型)
   if (!system.是否启用) return '已登记，未启用'
   if (!check) return '等待配置预检'
-  return check.通过 ? '配置通过，待真实联调' : '配置不完整'
+  return check.状态 === 'connected' ? '已连接' : check.状态 === 'manual_import' ? '人工导入' : check.状态 === 'failed' ? '连接失败' : '未配置'
+}
+
+function connectionStatusLabel(status?: string) {
+  if (status === 'connected') return '已连接'
+  if (status === 'failed') return '连接失败'
+  if (status === 'manual_import') return '人工导入'
+  return '未配置'
+}
+
+function connectionStatusTag(status?: string): 'success' | 'danger' | 'warning' | 'info' {
+  if (status === 'connected') return 'success'
+  if (status === 'failed') return 'danger'
+  if (status === 'manual_import') return 'warning'
+  return 'info'
 }
 
 async function fetchSystems() {

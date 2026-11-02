@@ -1,0 +1,10 @@
+{
+  "batch": "UAT-CLOUD-BATCH-fa443abb",
+  "approval": "UAT-CLOUD-fa443abb",
+  "title": "UAT Cloud Research fa443abb",
+  "owner": "验收负责人",
+  "owner_employee_number": "uat-owner-fa443abb",
+  "funding_yuan": 123450,
+  "year": 2026,
+  "sha256": "f86c046cb9e963f691511973d3699d1bdb01b94cb13764ae7096269e73d9224c"
+}

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTabsStore } from '@/stores/tabs'
+import { useHospitalModeStore } from '@/stores/hospitalMode'
 import Layout from '@/layout/index.vue'
 
 const routes: RouteRecordRaw[] = [
@@ -330,7 +331,7 @@ const router = createRouter({
 
 // 路由全局守卫
 router.beforeEach(async (to, _from, next) => {
-  document.title = `${to.meta.title ? to.meta.title + ' - ' : ''}科研信息管理系统`
+  document.title = `${to.meta.title ? to.meta.title + ' - ' : ''}医院科研管理系统`
 
   const userStore = useUserStore()
   const hasToken = !!userStore.token || !!sessionStorage.getItem('userInfo')
@@ -351,6 +352,14 @@ router.beforeEach(async (to, _from, next) => {
         } catch {
           // ignore error to let user access cached session
         }
+      }
+      const hospitalModeStore = useHospitalModeStore()
+      if (!hospitalModeStore.loaded) {
+        await hospitalModeStore.loadConfig()
+      }
+      if (hospitalModeStore.isRouteHidden(to.fullPath)) {
+        next('/dashboard?modeBlocked=1')
+        return
       }
       next()
     }

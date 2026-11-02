@@ -31,6 +31,8 @@ SELECT ""请求路径"", ""请求方法"", ""响应状态"", ""失败次数"", "
         [HttpGet]
         async public Task<object> 获取外部同步失败告警(int? 数量 = null)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权查看外部同步失败告警" });
             var limit = Math.Clamp(数量 ?? 100, 1, 500);
             return await Db.QueryAsync<object>(@"
@@ -133,9 +135,11 @@ UPDATE ""数据导出任务"" SET ""状态""=@状态,""文件路径""=@文件路
         [HttpGet]
         async public Task<object> 获取外部系统(string 系统类型 = null, bool? 仅启用 = null)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权查看外部系统配置" });
             return await Db.QueryAsync<object>(@"
-SELECT ""编号"",""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认证方式"",""认证引用"",""是否启用"",""超时秒数"",""最大重试次数"",""建立时间"",""更新时间""
+SELECT ""编号"",""系统代码"",""系统名称"",""系统类型"",""接入方式"",""基础地址"",""认证方式"",""认证引用"",""是否启用"",""状态代码"",""最近连接状态"",""最近连接时间"",""最近连接错误"",""超时秒数"",""最大重试次数"",""建立时间"",""更新时间""
   FROM ""外部系统""
  WHERE (@系统类型 IS NULL OR ""系统类型""=@系统类型)
    AND (@仅启用 IS NULL OR ""是否启用""=@仅启用)
@@ -146,9 +150,11 @@ SELECT ""编号"",""系统代码"",""系统名称"",""系统类型"",""基础地
         [HttpGet]
         async public Task<object> 获取外部系统配置检查()
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权查看外部系统配置检查" });
             var systems = (await Db.QueryAsync<外部系统配置行>(@"
-SELECT ""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认证方式"",""认证引用"",""是否启用"",""超时秒数"",""最大重试次数""
+SELECT ""系统代码"",""系统名称"",""系统类型"",""接入方式"",""基础地址"",""认证方式"",""认证引用"",""是否启用"",""状态代码"",""最近连接状态"",""最近连接时间"",""最近连接错误"",""超时秒数"",""最大重试次数""
   FROM ""外部系统"" ORDER BY ""系统类型"",""系统名称"";")).ToList();
             var requiredTypes = new[] { "HR", "财务", "采购", "伦理", "合同", "人才库", "生物样本库", "论文采集" };
             var checks = new List<object>();
@@ -156,11 +162,18 @@ SELECT ""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认
             {
                 var candidates = systems.Where(x => x.系统类型 == type).ToList();
                 var enabledCandidates = candidates.Where(x => x.是否启用).ToList();
+                var statusRow = enabledCandidates.FirstOrDefault();
+                var connectionStatus = statusRow == null ? "unconfigured" : 统一外部状态(statusRow.状态代码, statusRow.接入方式, statusRow.最近连接状态);
                 var enabledComplete = enabledCandidates.Where(x => 配置完整(x, requireSecret: true)).ToList();
                 var configured = enabledCandidates.Count == 1 && enabledComplete.Count == 1;
                 checks.Add(new
                 {
                     系统类型 = type,
+                    状态 = connectionStatus,
+                    状态代码 = connectionStatus,
+                    接入方式 = statusRow?.接入方式,
+                    最近连接时间 = statusRow?.最近连接时间,
+                    最近连接错误 = statusRow?.最近连接错误,
                     已登记 = candidates.Count > 0,
                     已配置地址 = candidates.Any(x => 地址有效(x.基础地址)),
                     已配置认证 = candidates.Any(x => 认证引用有效(x.认证方式, x.认证引用)),
@@ -169,21 +182,31 @@ SELECT ""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认
                     已启用 = enabledCandidates.Count > 0,
                     启用数量 = enabledCandidates.Count,
                     配置完整数量 = enabledComplete.Count,
-                    通过 = configured,
-                    提示 = configured ? "已具备唯一启用适配器、地址、认证引用、部署密钥和超时/重试参数" : $"请为 {type} 保留唯一启用适配器，并补齐基础地址、认证引用/部署密钥和超时/重试参数"
+                    通过 = configured && connectionStatus == "connected",
+                    提示 = connectionStatus switch
+                    {
+                        "connected" when configured => "已完成真实连接测试；仍需按供应商协议执行业务回放",
+                        "failed" => statusRow?.最近连接错误 ?? "最近一次连接测试失败",
+                        "manual_import" => "当前按人工导入维护，不代表外部系统已连接",
+                        _ => configured ? "配置完整但尚未完成真实连接测试" : $"请为 {type} 保留唯一启用适配器，并补齐地址、认证引用/部署密钥和超时/重试参数"
+                    }
                 });
             }
             var invalidEnabled = systems.Where(x => x.是否启用 && !配置完整(x, requireSecret: true)).ToList();
             var workerEnabled = config.GetValue("ExternalSync:Enabled", false);
-            var allRequiredConfigured = requiredTypes.All(type =>
+            var allRequiredConnected = requiredTypes.All(type =>
             {
                 var enabled = systems.Where(x => x.系统类型 == type && x.是否启用).ToList();
-                return enabled.Count == 1 && 配置完整(enabled[0], requireSecret: true);
+                return enabled.Count == 1
+                    && enabled[0].接入方式 == "接口"
+                    && 配置完整(enabled[0], requireSecret: true)
+                    && 统一外部状态(enabled[0].状态代码, enabled[0].接入方式, enabled[0].最近连接状态) == "connected";
             });
             return new
             {
                 worker已启用 = workerEnabled,
-                可启用worker = allRequiredConfigured && invalidEnabled.Count == 0,
+                可启用worker = allRequiredConnected && invalidEnabled.Count == 0,
+                所有必需接口已连接 = allRequiredConnected,
                 必需系统 = checks,
                 启用但配置不完整 = invalidEnabled.Select(x => new { x.系统代码, x.系统名称, x.系统类型, 问题 = 配置问题(x, requireSecret: true) }).ToList(),
                 已登记系统数 = systems.Count,
@@ -198,11 +221,13 @@ SELECT ""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认
         [HttpGet]
         async public Task<object> 获取经费适配器契约检查()
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权查看经费适配器契约检查" });
 
             var systems = (await Db.QueryAsync<外部系统配置行>(@"
-SELECT ""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认证方式"",""认证引用"",
-       ""是否启用"",""超时秒数"",""最大重试次数""
+SELECT ""系统代码"",""系统名称"",""系统类型"",""接入方式"",""基础地址"",""认证方式"",""认证引用"",
+       ""是否启用"",""状态代码"",""最近连接时间"",""最近连接错误"",""超时秒数"",""最大重试次数""
   FROM ""外部系统"" WHERE ""系统类型"" IN ('HR','财务','采购')
  ORDER BY ""系统类型"",""系统代码"";")).ToList();
             var requiredTypes = new[] { "HR", "财务", "采购" };
@@ -211,16 +236,25 @@ SELECT ""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认
                 var rows = systems.Where(x => x.系统类型 == type).ToList();
                 var enabled = rows.Where(x => x.是否启用).ToList();
                 var complete = enabled.Where(x => 配置完整(x, requireSecret: true)).ToList();
+                var statusCode = enabled.Count == 1
+                    ? 统一外部状态(enabled[0].状态代码, enabled[0].接入方式, enabled[0].最近连接状态)
+                    : "unconfigured";
+                var adapterReady = enabled.Count == 1 && complete.Count == 1
+                    && enabled[0].接入方式 == "接口" && statusCode == "connected";
                 return new
                 {
                     系统类型 = type,
+                    状态 = statusCode,
+                    状态代码 = statusCode,
+                    最近连接时间 = enabled.Count == 1 ? enabled[0].最近连接时间 : null,
+                    最近连接错误 = enabled.Count == 1 ? enabled[0].最近连接错误 : null,
                     已登记数量 = rows.Count,
                     启用数量 = enabled.Count,
                     启用且完整数量 = complete.Count,
-                    通过 = enabled.Count == 1 && complete.Count == 1,
-                    问题 = enabled.Count == 1 && complete.Count == 1
+                    通过 = adapterReady,
+                    问题 = adapterReady
                         ? Array.Empty<string>()
-                        : new[] { $"{type} 需要且仅需要一个启用且配置完整的适配器" }
+                        : new[] { statusCode == "failed" ? $"{type} 最近连接失败" : $"{type} 需要且仅需要一个启用且已连接的接口适配器" }
                 };
             }).ToList();
 
@@ -305,6 +339,8 @@ SELECT count(*) FROM ""hrp_sync_expense""
         [HttpPost]
         async public Task<object> 保存外部系统([FromBody]外部系统保存 model)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权维护外部系统配置" });
             if (model == null || string.IsNullOrWhiteSpace(model.系统代码) || string.IsNullOrWhiteSpace(model.系统名称))
                 throw new ArgumentException("系统代码和系统名称不能为空");
@@ -312,6 +348,8 @@ SELECT count(*) FROM ""hrp_sync_expense""
             if (code.Length > 50 || model.系统名称.Trim().Length > 100) throw new ArgumentException("系统代码或名称超出长度限制");
             if (model.系统类型 is not ("HR" or "财务" or "采购" or "伦理" or "合同" or "人才库" or "生物样本库" or "论文采集" or "其他"))
                 throw new ArgumentException("系统类型无效");
+            var accessMode = string.IsNullOrWhiteSpace(model.接入方式) ? "接口" : model.接入方式.Trim();
+            if (accessMode is not ("接口" or "人工导入")) throw new ArgumentException("接入方式仅支持接口或人工导入");
             var auth = string.IsNullOrWhiteSpace(model.认证方式) ? "无" : model.认证方式.Trim();
             if (auth is not ("无" or "Bearer" or "Basic" or "ApiKey" or "OIDC")) throw new ArgumentException("认证方式无效");
             var authRef = 空值(model.认证引用);
@@ -325,7 +363,7 @@ SELECT count(*) FROM ""hrp_sync_expense""
             // HTTPS/local-only rule used by the worker and read-only preflight
             // at the write boundary so the UI cannot persist an enabled public
             // HTTP endpoint that will later be rejected by the worker.
-            if (model.是否启用 && !地址有效(address))
+            if (model.是否启用 && accessMode == "接口" && !地址有效(address))
                 throw new ArgumentException("启用外部系统必须填写真实 HTTPS 地址；HTTP 仅允许 localhost/127.0.0.1 本机联调");
             if (model.超时秒数 is < 1 or > 120 || model.最大重试次数 is < 0 or > 10)
                 throw new ArgumentException("超时或重试次数超出范围");
@@ -342,6 +380,8 @@ SELECT EXISTS (
                 系统代码 = code,
                 系统名称 = model.系统名称.Trim(),
                 系统类型 = model.系统类型,
+                接入方式 = accessMode,
+                状态代码 = accessMode == "人工导入" ? "manual_import" : "unconfigured",
                 基础地址 = address,
                 认证方式 = auth,
                 认证引用 = authRef,
@@ -354,34 +394,56 @@ SELECT EXISTS (
             if (model.编号.HasValue)
             {
                 var changed = await Db.ExecuteAsync(@"
-UPDATE ""外部系统"" SET ""系统代码""=@系统代码,""系统名称""=@系统名称,""系统类型""=@系统类型,""基础地址""=@基础地址,""认证方式""=@认证方式,""认证引用""=@认证引用,""是否启用""=@是否启用,""超时秒数""=@超时秒数,""最大重试次数""=@最大重试次数,""更新时间""=CURRENT_TIMESTAMP WHERE ""编号""=@编号;", values);
+UPDATE ""外部系统"" SET ""系统代码""=@系统代码,""系统名称""=@系统名称,""系统类型""=@系统类型,""接入方式""=@接入方式,""状态代码""=@状态代码,""基础地址""=@基础地址,""认证方式""=@认证方式,""认证引用""=@认证引用,""是否启用""=@是否启用,""最近连接状态""='未测试',""最近连接时间""=NULL,""最近连接错误""=NULL,""超时秒数""=@超时秒数,""最大重试次数""=@最大重试次数,""更新时间""=GREATEST(clock_timestamp()::timestamp, ""更新时间"" + interval '1 microsecond') WHERE ""编号""=@编号;", values);
                 if (changed == 0) return NotFound(new { error = "外部系统不存在" });
                 id = model.编号.Value;
             }
             else
             {
                 id = await Db.QuerySingleAsync<long>(@"
-INSERT INTO ""外部系统"" (""系统代码"",""系统名称"",""系统类型"",""基础地址"",""认证方式"",""认证引用"",""是否启用"",""超时秒数"",""最大重试次数"",""建立人编号"")
-VALUES (@系统代码,@系统名称,@系统类型,@基础地址,@认证方式,@认证引用,@是否启用,@超时秒数,@最大重试次数,@建立人编号)
+INSERT INTO ""外部系统"" (""系统代码"",""系统名称"",""系统类型"",""接入方式"",""状态代码"",""基础地址"",""认证方式"",""认证引用"",""是否启用"",""超时秒数"",""最大重试次数"",""建立人编号"")
+VALUES (@系统代码,@系统名称,@系统类型,@接入方式,@状态代码,@基础地址,@认证方式,@认证引用,@是否启用,@超时秒数,@最大重试次数,@建立人编号)
 RETURNING ""编号"";", values);
             }
-            return new { 编号 = id, 系统代码 = code, 是否启用 = model.是否启用 };
+            var statusCode = accessMode == "人工导入" ? "manual_import" : "unconfigured";
+            return new { 编号 = id, 系统代码 = code, 接入方式 = accessMode, 是否启用 = model.是否启用, 状态 = statusCode, 状态代码 = statusCode };
         }
 
         /// <summary>使用登记的地址和部署环境密钥做一次轻量连接测试，不改变系统启用状态。</summary>
         [HttpPost]
         async public Task<object> 测试外部系统连接([FromBody]外部系统保存 model, [FromQuery] bool dryRun = false)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权测试外部系统连接" });
             if (model == null || !model.编号.HasValue || model.编号 <= 0) throw new ArgumentException("外部系统编号无效");
-            var system = await Db.QuerySingleOrDefaultAsync<dynamic>(@"
-SELECT ""编号"",""系统名称"",""基础地址"",""认证方式"",""认证引用"",""超时秒数""
-       ,""最大重试次数""
-  FROM ""外部系统"" WHERE ""编号""=@编号;", new { 编号 = model.编号.Value });
+            // Reserve a new verification generation before sending a real
+            // request. This atomically reads its configuration and closes the
+            // outbound gate; a save or a newer test invalidates this receipt.
+            // PostgreSQL timestamps round-trip at microsecond precision. Always
+            // advance by at least one microsecond, including within one tx.
+            var system = await Db.QuerySingleOrDefaultAsync<ExternalConnectionTestSnapshot>(dryRun ? @"
+SELECT ""编号"",""系统名称"",""接入方式"",""基础地址"",""认证方式"",""认证引用"",""超时秒数"",
+       ""最大重试次数"",""更新时间""
+  FROM ""外部系统"" WHERE ""编号""=@编号;" : @"
+UPDATE ""外部系统""
+   SET ""状态代码""=CASE WHEN ""接入方式""='人工导入' THEN 'manual_import' ELSE 'unconfigured' END,
+       ""最近连接状态""='未测试',""最近连接时间""=NULL,""最近连接错误""=NULL,
+       ""更新时间""=GREATEST(clock_timestamp()::timestamp, ""更新时间"" + interval '1 microsecond')
+ WHERE ""编号""=@编号
+RETURNING ""编号"",""系统名称"",""接入方式"",""基础地址"",""认证方式"",""认证引用"",""超时秒数"",
+          ""最大重试次数"",""更新时间"";", new { 编号 = model.编号.Value });
             if (system == null) return NotFound(new { error = "外部系统不存在" });
             var address = (string)system.基础地址;
             var authMode = (string)system.认证方式;
             var authRef = (string)system.认证引用;
+            var accessMode = (string)system.接入方式 ?? "接口";
+            if (accessMode == "人工导入")
+            {
+                if (!dryRun && !await 更新外部连接状态(system, "manual_import", null))
+                    return 过期连接测试();
+                return new { 编号 = model.编号.Value, 测试模式 = dryRun ? "dry-run" : "连接测试", 网络请求 = false, 测试结果 = "人工导入", 状态 = "manual_import", 状态代码 = "manual_import", 说明 = "该系统按人工导入维护，不发起外部网络请求" };
+            }
             var timeout = (int?)system.超时秒数 ?? 15;
             var preflightProblems = new List<string>();
             if (!地址有效(address)) preflightProblems.Add("基础地址不是有效的 HTTP/HTTPS 地址");
@@ -405,7 +467,11 @@ SELECT ""编号"",""系统名称"",""基础地址"",""认证方式"",""认证引
                 };
             }
             if (preflightProblems.Count > 0)
+            {
+                if (!await 更新外部连接状态(system, "failed", string.Join("；", preflightProblems)))
+                    return 过期连接测试();
                 return new { 编号 = model.编号.Value, 测试模式 = "连接测试", 测试结果 = "未执行", 网络请求 = false, 问题 = preflightProblems, 说明 = "配置预检未通过，未发起外部请求" };
+            }
             var endpoint = new Uri(address.Trim(), UriKind.Absolute);
             var clientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
             var client = clientFactory.CreateClient();
@@ -418,11 +484,15 @@ SELECT ""编号"",""系统名称"",""基础地址"",""认证方式"",""认证引
                 var watch = Stopwatch.StartNew();
                 using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, HttpContext.RequestAborted);
                 watch.Stop();
+                if (!await 更新外部连接状态(system, response.IsSuccessStatusCode ? "connected" : "failed", response.IsSuccessStatusCode ? null : $"目标系统返回 HTTP {(int)response.StatusCode}"))
+                    return 过期连接测试();
                 return new { 编号 = model.编号.Value, 测试模式 = "连接测试", 网络请求 = true, 测试结果 = response.IsSuccessStatusCode ? "通过" : "失败", 状态码 = (int)response.StatusCode, 耗时毫秒 = watch.ElapsedMilliseconds, 说明 = response.IsSuccessStatusCode ? "目标系统已响应，认证响应正常" : "目标系统已响应，但返回非 2xx" };
             }
             catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
+                if (!await 更新外部连接状态(system, "failed", ex.Message.Length > 2000 ? ex.Message.Substring(0, 2000) : ex.Message))
+                    return 过期连接测试();
                 return new { 编号 = model.编号.Value, 测试模式 = "连接测试", 网络请求 = true, 测试结果 = "失败", 状态码 = 0, 耗时毫秒 = 0L, 说明 = ex.Message.Length > 500 ? ex.Message.Substring(0, 500) : ex.Message };
             }
         }
@@ -431,6 +501,8 @@ SELECT ""编号"",""系统名称"",""基础地址"",""认证方式"",""认证引
         [HttpGet]
         async public Task<object> 查询外部同步任务(long? 外部系统编号 = null, string 状态 = null, int? 数量 = null)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权查看外部同步任务" });
             var limit = Math.Clamp(数量 ?? 100, 1, 500);
             return await Db.QueryAsync<object>(@"
@@ -445,6 +517,8 @@ SELECT q.""编号"",q.""外部系统编号"",s.""系统代码"",s.""系统名称
         [HttpPost]
         async public Task<object> 创建外部同步任务([FromBody]外部同步任务创建 model)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权创建外部同步任务" });
             if (model == null || model.外部系统编号 <= 0 || string.IsNullOrWhiteSpace(model.业务类型) || string.IsNullOrWhiteSpace(model.幂等键))
                 throw new ArgumentException("外部系统、业务类型和幂等键不能为空");
@@ -476,6 +550,8 @@ ON CONFLICT (""幂等键"") DO NOTHING RETURNING ""编号"";", new
         [HttpPost]
         async public Task<object> 重试外部同步任务([FromBody]外部同步任务操作 model)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权重试外部同步任务" });
             if (model == null || model.编号 <= 0) throw new ArgumentException("同步任务编号无效");
             var changed = await Db.ExecuteAsync(@"
@@ -489,6 +565,8 @@ UPDATE ""外部同步任务"" SET ""状态""='待处理',""下次重试时间""=
         [HttpPost]
         async public Task<object> 取消外部同步任务([FromBody]外部同步任务操作 model)
         {
+            var denied = await HospitalCapabilityDeniedAsync("externalIntegration", "外部系统集成");
+            if (denied != null) return denied;
             if (!await 是运行管理角色()) return StatusCode(403, new { error = "无权取消外部同步任务" });
             if (model == null || model.编号 <= 0) throw new ArgumentException("同步任务编号无效");
             var changed = await Db.ExecuteAsync(@"
@@ -499,6 +577,54 @@ UPDATE ""外部同步任务"" SET ""状态""='已取消',""完成时间""=CURREN
         }
 
         private async Task<bool> 是运行管理角色() => await HasAnyRoleAsync("系统管理员", "科研管理员");
+        private static string 统一外部状态(string statusCode, string accessMode, string legacyStatus)
+        {
+            if (accessMode == "人工导入") return "manual_import";
+            return statusCode switch
+            {
+                "connected" => "connected",
+                "failed" => "failed",
+                "manual_import" => "manual_import",
+                _ => legacyStatus switch
+                {
+                    "已连接" => "connected",
+                    "失败" => "failed",
+                    _ => "unconfigured"
+                }
+            };
+        }
+        private ConflictObjectResult 过期连接测试() => Conflict(new { error = "外部系统配置或连接测试已更新，本次测试结果已作废，请重新测试" });
+
+        private async Task<bool> 更新外部连接状态(ExternalConnectionTestSnapshot system, string statusCode, string error)
+        {
+            var legacyStatus = statusCode switch
+            {
+                "connected" => "已连接",
+                "failed" => "失败",
+                _ => "未测试"
+            };
+            return await Db.ExecuteAsync(@"
+UPDATE ""外部系统""
+   SET ""状态代码""=@状态代码,
+       ""最近连接状态""=@最近连接状态,
+       ""最近连接时间""=CURRENT_TIMESTAMP,
+       ""最近连接错误""=@错误,
+       ""更新时间""=GREATEST(clock_timestamp()::timestamp, ""更新时间"" + interval '1 microsecond')
+ WHERE ""编号""=@编号 AND ""更新时间""=@更新时间;", new { system.编号, system.更新时间, 状态代码 = statusCode, 最近连接状态 = legacyStatus, 错误 = string.IsNullOrWhiteSpace(error) ? null : error }) > 0;
+        }
+        private sealed class ExternalConnectionTestSnapshot
+        {
+            public long 编号 { get; set; }
+            public string 系统名称 { get; set; }
+            public string 接入方式 { get; set; }
+            public string 基础地址 { get; set; }
+            public string 认证方式 { get; set; }
+            public string 认证引用 { get; set; }
+            public int? 超时秒数 { get; set; }
+            public int? 最大重试次数 { get; set; }
+            public DateTime 更新时间 { get; set; }
+        }
+
         private static string 空值(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         private static bool 地址有效(string value) => Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var endpoint)
             && (endpoint.Scheme is "http" or "https") && !string.IsNullOrWhiteSpace(endpoint.Host)
@@ -518,13 +644,20 @@ UPDATE ""外部同步任务"" SET ""状态""='已取消',""完成时间""=CURREN
             || (认证引用格式有效(reference) && !string.IsNullOrWhiteSpace(config[$"ExternalSystems:Secrets:{reference}"]));
         private static bool 参数有效(int timeout, int retries) => timeout is >= 1 and <= 120 && retries is >= 0 and <= 10;
         private bool 配置完整(外部系统配置行 row, bool requireSecret)
-            => 地址有效(row.基础地址)
+            => row.接入方式 == "人工导入"
+            ? 参数有效(row.超时秒数, row.最大重试次数)
+            : 地址有效(row.基础地址)
             && 认证引用有效(row.认证方式, row.认证引用)
             && (!requireSecret || 认证密钥已注入(row.认证方式, row.认证引用))
             && 参数有效(row.超时秒数, row.最大重试次数);
         private List<string> 配置问题(外部系统配置行 row, bool requireSecret)
         {
             var problems = new List<string>();
+            if (row.接入方式 == "人工导入")
+            {
+                if (!参数有效(row.超时秒数, row.最大重试次数)) problems.Add("超时/重试参数无效");
+                return problems;
+            }
             if (!地址有效(row.基础地址)) problems.Add("基础地址无效");
             if (!认证引用有效(row.认证方式, row.认证引用)) problems.Add("认证引用无效");
             if (requireSecret && !认证密钥已注入(row.认证方式, row.认证引用)) problems.Add("部署环境未注入认证密钥");
@@ -539,10 +672,15 @@ UPDATE ""外部同步任务"" SET ""状态""='已取消',""完成时间""=CURREN
             public string 系统代码 { get; set; }
             public string 系统名称 { get; set; }
             public string 系统类型 { get; set; }
+            public string 接入方式 { get; set; }
+            public string 状态代码 { get; set; }
             public string 基础地址 { get; set; }
             public string 认证方式 { get; set; }
             public string 认证引用 { get; set; }
             public bool 是否启用 { get; set; }
+            public string 最近连接状态 { get; set; }
+            public DateTime? 最近连接时间 { get; set; }
+            public string 最近连接错误 { get; set; }
             public int 超时秒数 { get; set; }
             public int 最大重试次数 { get; set; }
         }

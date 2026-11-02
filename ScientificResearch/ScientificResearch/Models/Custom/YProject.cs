@@ -220,6 +220,7 @@ namespace ScientificResearch.Models
         public int? 分类 { get; set; }
         public string Like项目中文名称 { get; set; }
         public string Like项目英文名称 { get; set; }
+        public string Like负责人姓名 { get; set; }
         public int? 发起人编号 { get; set; }
     }
 
@@ -245,6 +246,11 @@ namespace ScientificResearch.Models
         public string Like项目中文名称 { get; set; }
         public string Like项目英文名称 { get; set; }
         public int? 发起人编号 { get; set; }
+        public string Like项目名称
+        {
+            get => null;
+            set { if (string.IsNullOrWhiteSpace(Like项目中文名称)) Like项目中文名称 = value; }
+        }
     }
 
     public class 纵向项目变更增改
@@ -268,6 +274,11 @@ namespace ScientificResearch.Models
 
         public string Like变更事由 { get; set; }
         public int? 发起人编号 { get; set; }
+        public string Like项目名称
+        {
+            get => null;
+            set { if (string.IsNullOrWhiteSpace(Like项目中文名称)) Like项目中文名称 = value; }
+        }
 
     }
 
@@ -293,6 +304,11 @@ namespace ScientificResearch.Models
         public string Like项目中文名称 { get; set; }
         public string Like项目英文名称 { get; set; }
         public int? 发起人编号 { get; set; }
+        public string Like项目名称
+        {
+            get => null;
+            set { if (string.IsNullOrWhiteSpace(Like项目中文名称)) Like项目中文名称 = value; }
+        }
 
     }
 

@@ -4,6 +4,7 @@ set -euo pipefail
 # Read-only preflight for local Docker/Compose acceptance.
 # It deliberately does not restart containers, prune images, or modify data.
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+expected_schema_version="${POSTGRES_EXPECTED_SCHEMA_VERSION:-$("$script_dir/read-current-schema-version.sh")}"
 min_free_gb="${MIN_FREE_GB:-10}"
 app_base_url="${APP_BASE_URL:-http://127.0.0.1:${APP_HOST_PORT:-16379}}"
 # A local acceptance run must prove that the application advertises the same
@@ -60,7 +61,7 @@ if [[ "${CHECK_BACKUP_ARTIFACTS:-false}" == 'true' ]]; then
     if [[ ! -f "$metadata_file" || -L "$metadata_file" ]]; then
       fail "备份元数据缺失或为符号链接: $metadata_file"
     else
-      if ! python3 - "$metadata_file" "$backup_checksum" "${POSTGRES_EXPECTED_SCHEMA_VERSION:-106}" <<'PY'
+      if ! python3 - "$metadata_file" "$backup_checksum" "$expected_schema_version" <<'PY'
 import json, sys
 path, checksum, expected_version = sys.argv[1:]
 try:

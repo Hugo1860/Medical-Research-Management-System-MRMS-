@@ -1,14 +1,22 @@
 import { get, post } from '@/utils/request'
 
+export type ExternalIntegrationStatus = 'connected' | 'unconfigured' | 'failed' | 'manual_import'
+
 export interface ExternalSystemItem {
   编号: number
   系统代码: string
   系统名称: string
   系统类型: string
+  接入方式?: '接口' | '人工导入'
+  状态?: ExternalIntegrationStatus
+  状态代码?: ExternalIntegrationStatus
   基础地址?: string
   认证方式?: string
   认证引用?: string
   是否启用: boolean
+  最近连接状态?: '未测试' | '已连接' | '失败'
+  最近连接时间?: string
+  最近连接错误?: string
   超时秒数: number
   最大重试次数: number
 }

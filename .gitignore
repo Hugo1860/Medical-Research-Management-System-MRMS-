@@ -20,6 +20,8 @@ deploy/*.env
 publish/
 dist/
 *.log
+deploy/nuget-local/*.nupkg
+**/__pycache__/
 
 # Frontend dependencies & caches
 **/node_modules/
@@ -35,3 +37,6 @@ yarn-error.log*
 *.suo
 *.userosscache
 *.sln.docstates
+
+# Local test run evidence
+reports/local-regression-*

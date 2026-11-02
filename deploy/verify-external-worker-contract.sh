@@ -24,6 +24,12 @@ required = {
     'retry on 5xx': 'statusCode >= 500',
     'retry limit handling': 'work.尝试次数 >= work.最大重试次数',
     'stale lease recovery': 'RequeueStaleAsync',
+    'connected interface gate': 's.""接入方式""=\'接口\' AND s.""状态代码""=\'connected\'',
+    'canonical status column': 's.""状态代码""',
+    'connection status writeback': 'UpdateConnectionStatusAsync',
+    'transient errors retain verified gate': 'if (changed > 0 && terminal)',
+    'late response request lease fence': 'AND ""请求ID""=@请求ID',
+    'operator edits are not overwritten': 'AND ""认证引用"" IS NOT DISTINCT FROM @认证引用',
 }
 missing = [label for label, marker in required.items() if marker not in source]
 if missing:
@@ -39,5 +45,5 @@ if 'FOR UPDATE SKIP LOCKED LIMIT 1' in source:
 external_sync = settings.get('ExternalSync', {})
 if external_sync.get('Enabled', True) is not False:
     raise SystemExit('外部 worker 契约失败: appsettings 默认必须关闭 ExternalSync.Enabled')
-print('外部 worker 契约静态校验通过: 幂等键、请求追踪、租约回收、重试分类和 PostgreSQL 锁顺序齐全，默认关闭')
+print('外部 worker 契约静态校验通过: 幂等键、请求追踪、租约回收、瞬时重试与连接门禁、旧请求隔离和 PostgreSQL 锁顺序齐全，默认关闭')
 PY

@@ -1,0 +1,16 @@
+{
+  "scope": "isolated UAT, synthetic users and data",
+  "run_id": "fa443abb",
+  "schema": 120,
+  "health_ready": 200,
+  "verified_candidate_files": 1559,
+  "excluded_historical_upload_files": 232,
+  "candidate_dll_sha256": "57da08bf20c1630c99c893c2057b7164feae18b71b85fef47e00194406ec0323",
+  "candidate_manifest_sha256": "cf82ca358e4259e3fc1b6af0c0ca4d4ebbe413cee62a482927439a0441904b6c",
+  "candidate_archive_sha256": "3f3376f38b71dc2e48a55c27171bfc8659526fe0a8fd582c6db717550233f622",
+  "synthetic_pdf_sha256": "f86c046cb9e963f691511973d3699d1bdb01b94cb13764ae7096269e73d9224c",
+  "restored_synthetic_pdf_count": 2,
+  "keycloak_test_accounts": 3,
+  "real_hospital_data_used": false,
+  "browser_owner_original_hash_match": true
+}

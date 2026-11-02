@@ -4,6 +4,8 @@
 
 ## 1. 本地发布基线
 
+在使用真实账号之前，可先执行 `./deploy/run-isolated-regressions.sh`，该脚本会在无宿主端口、无持久卷的临时数据库中重放当前迁移并运行行为回归。报告明确标记合成身份和外部响应替身，不替代本手册的六角色与供应商验收。`./deploy/build-local-release.sh` 生成后端、前端和源码指纹一致的离线产物，不启动或更新应用。
+
 ```bash
 ./deploy/check-runtime.sh
 # 如需把最近一次备份纳入运行时只读门禁：
@@ -15,7 +17,7 @@ APP_BASE_URL=http://127.0.0.1:16379 CHECK_HTTP=true ./deploy/verify-menu-paths.s
 DATABASE_CONTAINER=2018-7-24-db-1 ./database/postgresql/verify_migration.sh
 ```
 
-预期结果：应用和 Keycloak 就绪、153 个菜单路径 HTTP 200、Schema 100、外部 worker 关闭或配置检查通过；移动通道未取得真实网关回执时不得显示“已发送”。任务书内部确认和项目本地档案核验也必须保持其边界：未完成供应商合同、协议版本、HTTPS 端点和真实适配器多角色验收时，电子签章/正式电子档案门禁返回 `503 DOCUMENT_PROVIDER_NOT_READY`，不产生“已签章”或“已托管”记录。
+预期结果：应用和 Keycloak 就绪、菜单路径全量 HTTP 200、运行库版本与 `deploy/read-current-schema-version.sh` 一致、外部 worker 关闭或配置检查通过；移动通道未取得真实网关回执时不得显示“已发送”。任务书内部确认和项目本地档案核验也必须保持其边界：未完成供应商合同、协议版本、HTTPS 端点和真实适配器多角色验收时，电子签章/正式电子档案门禁返回 `503 DOCUMENT_PROVIDER_NOT_READY`，不产生“已签章”或“已托管”记录。
 
 ## 2. Keycloak 与权限验收
 
@@ -173,7 +175,7 @@ DATABASE_CONTAINER=2018-7-24-db-1 ./deploy/verify-finance-adapter-contract.sh --
 
 保存逐表、逐项目和预算核对报告；当前报告中的孤立参与人记录需由业务负责人确认后才能清理。上线前完成一次隔离备份恢复：
 
-已有数据卷执行 068–090 前，先完成备份，再执行 `DRY_RUN=true DATABASE_CONTAINER=2018-7-24-db-1 ./deploy/apply-postgres-migrations.sh` 复核待执行序列；确认目标版本和备份可恢复后，再去掉 `DRY_RUN=true` 应用迁移。脚本逐个核对登记版本，任一步失败即停止，不会跳过中间版本。
+已有数据卷执行尚未应用的迁移前，先完成备份，再执行 `DRY_RUN=true DATABASE_CONTAINER=2018-7-24-db-1 ./deploy/apply-postgres-migrations.sh` 复核待执行序列；确认目标版本和备份可恢复后，再去掉 `DRY_RUN=true` 应用迁移。脚本逐个核对登记版本，任一步失败即停止，不会跳过中间版本。
 
 运行库恢复并完成基础健康检查后，可在验收环境执行只读并发烟测：`LOAD_REQUESTS=200 LOAD_CONCURRENCY=20 LOAD_MAX_P95_MS=1000 LOAD_MAX_ERROR_RATE=0 APP_BASE_URL=https://research.example.org ./deploy/verify-performance-load.sh`。该结果只作为有界压力信号，正式容量测试仍需按医院并发模型、数据规模和监控方案单独执行。
 
@@ -187,7 +189,7 @@ STRICT_MIGRATION_DIFF=true DATABASE_CONTAINER=2018-7-24-db-1 ./deploy/verify-mig
 ```bash
 backup_file=/secure/backup/scientificresearch-$(date +%Y%m%d-%H%M%S).dump
 EXPORT_FILE="$backup_file" ./deploy/export-postgres-data.sh
-EXPECTED_SCHEMA_VERSION=106 BACKUP_FILE="$backup_file" ./deploy/verify-postgres-backup.sh
+EXPECTED_SCHEMA_VERSION=121 BACKUP_FILE="$backup_file" ./deploy/verify-postgres-backup.sh
 ```
 
 导出脚本默认不覆盖已有文件，并以原子方式提交 dump、`.sha256` 和 `.json` 元数据；验收脚本只读取已有 dump，先核对校验和/元数据，再在唯一命名的 PostgreSQL 18 隔离容器中恢复。它不会操作正式数据库卷；如果 `RESTORE_CONTAINER` 或 `RESTORE_VOLUME` 已存在会直接失败，避免误删。成功后会生成 `${backup_file}.restore-report.json`，作为本次恢复演练报告，记录 schema 版本、备份 SHA-256、临时恢复资源和对象检查结果。验收记录应包含账号角色、数据集版本、接口请求 ID、供应商响应摘要、报告文件校验值和最终放行人。报告与 dump 应分别归档，恢复临时资源由脚本在退出时清理。

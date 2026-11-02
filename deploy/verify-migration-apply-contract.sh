@@ -8,10 +8,11 @@ apply="$root/deploy/apply-postgres-migrations.sh"
 verify="$root/database/postgresql/verify_migration.sh"
 runbook="$root/docs/production-uat-runbook.md"
 release="$root/deploy/verify-local-release.sh"
+schema_reader="$root/deploy/read-current-schema-version.sh"
 failures=0
 fail() { echo "迁移应用契约失败: $*" >&2; failures=$((failures + 1)); }
 
-for path in "$apply" "$verify" "$runbook" "$release"; do
+for path in "$apply" "$verify" "$runbook" "$release" "$schema_reader"; do
   [[ -f "$path" ]] || fail "缺少 $path"
 done
 
@@ -30,7 +31,8 @@ for marker in \
 done
 
 for marker in \
-  'EXPECTED_SCHEMA_VERSION=${EXPECTED_SCHEMA_VERSION:-106}' \
+  'EXPECTED_SCHEMA_VERSION=${EXPECTED_SCHEMA_VERSION:-$("$REPOSITORY_ROOT/deploy/read-current-schema-version.sh")}' \
+  'REPOSITORY_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)' \
   'latest_migration_version != EXPECTED_SCHEMA_VERSION' \
   'schema_version_ok' \
   '横向项目生命周期申请' \

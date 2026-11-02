@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Data;
 using Npgsql;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace ScientificResearch.Infrastucture
@@ -223,6 +224,49 @@ SELECT EXISTS (
     SELECT 1 FROM ""人员角色"" pr JOIN ""角色"" r ON r.""编号"" = pr.""角色编号""
     WHERE pr.""人员编号"" = @人员编号 AND r.""名称"" = ANY(@角色名称)
 );", new { 人员编号 = CurrentUser.编号, 角色名称 = roleNames });
+        }
+
+        /// <summary>
+        /// Reads the server-side hospital capability switch. Navigation hiding is
+        /// deliberately not used as an authorization boundary.
+        /// </summary>
+        protected async Task<bool> HospitalCapabilityEnabledAsync(string capability)
+        {
+            if (string.IsNullOrWhiteSpace(capability)) return true;
+            var row = await Db.QueryFirstOrDefaultAsync<dynamic>(
+                @"SELECT ""运营模式"", ""启用功能"" FROM ""医院运营配置"" WHERE ""编号""=1;");
+            if (row == null) return true;
+            var mode = Convert.ToString(row.运营模式) ?? "三级综合";
+            try
+            {
+                var raw = row.启用功能 is JsonDocument document
+                    ? document.RootElement.GetRawText()
+                    : Convert.ToString(row.启用功能);
+                if (string.IsNullOrWhiteSpace(raw))
+                    return mode == "二级精简"
+                        ? capability is "projectLifecycle" or "financeCore" or "ethics" or "achievements" or "notifications" or "basicStatistics"
+                        : true;
+                using var json = JsonDocument.Parse(raw);
+                JsonElement value;
+                return !json.RootElement.TryGetProperty(capability, out value) || value.ValueKind != JsonValueKind.False;
+            }
+            catch (JsonException)
+            {
+                return mode == "二级精简"
+                    ? capability is "projectLifecycle" or "financeCore" or "ethics" or "achievements" or "notifications" or "basicStatistics"
+                    : true;
+            }
+        }
+
+        protected async Task<IActionResult> HospitalCapabilityDeniedAsync(string capability, string displayName)
+        {
+            if (await HospitalCapabilityEnabledAsync(capability)) return null;
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                error = $"当前医院运营模式未启用{displayName}能力",
+                code = "HOSPITAL_MODE_FEATURE_DISABLED",
+                capability
+            });
         }
 
         /// <summary>按角色和字段检查读取/写入授权；系统管理员和科研管理员拥有默认管理权限。</summary>

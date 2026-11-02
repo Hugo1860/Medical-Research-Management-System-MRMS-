@@ -44,7 +44,7 @@ namespace ScientificResearch.Infrastucture
 
             if (!await HasCompleteOutboundConfigurationAsync(stoppingToken))
             {
-                logger.LogError("External sync worker stopped: eight required hospital systems are not fully configured");
+                logger.LogError("External sync worker stopped: eight required hospital interfaces are not fully configured and connected");
                 return;
             }
 
@@ -83,21 +83,25 @@ namespace ScientificResearch.Infrastucture
                 await connection.OpenAsync(cancellationToken);
                 var command = new CommandDefinition(@"
 SELECT ""系统类型"",""系统代码"",""基础地址"",""认证方式"",""认证引用"",""超时秒数"",""最大重试次数""
+       ,""接入方式"",""状态代码""
   FROM ""外部系统"" WHERE ""是否启用""=TRUE;", cancellationToken: cancellationToken);
                 var systems = (await connection.QueryAsync<OutboundSystemConfig>(command)).ToList();
                 var missingTypes = RequiredSystemTypes
-                    .Where(type => !systems.Any(system => system.系统类型 == type && IsCompleteOutboundConfig(system)))
+                    .Where(type => !systems.Any(system => system.系统类型 == type
+                        && system.接入方式 == "接口"
+                        && system.状态代码 == "connected"
+                        && IsCompleteOutboundConfig(system)))
                     .ToList();
                 var duplicateTypes = RequiredSystemTypes
                     .Where(type => systems.Count(system => system.系统类型 == type) > 1)
                     .ToList();
                 if (duplicateTypes.Count > 0)
                 {
-                    logger.LogError("External sync worker requires one enabled adapter per system type; duplicates: {DuplicateTypes}", string.Join(",", duplicateTypes));
+                    logger.LogError("External sync worker requires one enabled connected interface per system type; duplicates: {DuplicateTypes}", string.Join(",", duplicateTypes));
                     return false;
                 }
                 if (missingTypes.Count > 0)
-                    logger.LogError("External sync worker configuration missing: {MissingTypes}", string.Join(",", missingTypes));
+                    logger.LogError("External sync worker configuration or connection state missing: {MissingTypes}", string.Join(",", missingTypes));
                 return missingTypes.Count == 0;
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
@@ -135,10 +139,12 @@ UPDATE ""外部同步任务""
             await connection.OpenAsync(cancellationToken);
             return await connection.QuerySingleOrDefaultAsync<SyncWorkItem>(@"
 WITH candidate AS (
-    SELECT q.""编号""
+    SELECT q.""编号"", s.""基础地址"", s.""认证方式"", s.""认证引用"", s.""超时秒数"",
+           s.""更新时间"" AS ""连接版本""
       FROM ""外部同步任务"" q
       JOIN ""外部系统"" s ON s.""编号""=q.""外部系统编号""
      WHERE q.""状态""='待处理' AND s.""是否启用""=TRUE
+       AND s.""接入方式""='接口' AND s.""状态代码""='connected'
        AND NULLIF(btrim(s.""基础地址""), '') IS NOT NULL
        AND (s.""认证方式""='无' OR NULLIF(btrim(s.""认证引用""), '') IS NOT NULL)
        AND s.""超时秒数"" BETWEEN 1 AND 120
@@ -155,10 +161,9 @@ UPDATE ""外部同步任务"" q
    SET ""状态""='处理中', ""尝试次数""=q.""尝试次数""+1,
        ""请求ID""=@请求ID, ""更新时间""=CURRENT_TIMESTAMP
   FROM candidate c
-  JOIN ""外部系统"" s ON s.""编号""=q.""外部系统编号""
  WHERE q.""编号""=c.""编号""
-RETURNING q.""编号"", q.""业务类型"", q.""方向"", q.""业务主键"", q.""幂等键"", q.""请求负载""::text AS ""请求负载"",
-          q.""尝试次数"", q.""最大重试次数"", q.""请求ID"", s.""基础地址"", s.""认证方式"", s.""认证引用"", s.""超时秒数"";",
+RETURNING q.""编号"", q.""外部系统编号"", q.""业务类型"", q.""方向"", q.""业务主键"", q.""幂等键"", q.""请求负载""::text AS ""请求负载"",
+          q.""尝试次数"", q.""最大重试次数"", q.""请求ID"", c.""基础地址"", c.""认证方式"", c.""认证引用"", c.""超时秒数"", c.""连接版本"";",
                 new { 请求ID = Guid.NewGuid().ToString("N") });
         }
 
@@ -244,7 +249,16 @@ RETURNING q.""编号"", q.""业务类型"", q.""方向"", q.""业务主键"", q.
         {
             await using var connection = new NpgsqlConnection(GetConnectionString());
             await connection.OpenAsync(cancellationToken);
-            await connection.ExecuteAsync(@"UPDATE ""外部同步任务"" SET ""状态""='成功',""外部响应摘要""=@响应,""最后错误""=NULL,""完成时间""=CURRENT_TIMESTAMP,""更新时间""=CURRENT_TIMESTAMP WHERE ""编号""=@编号 AND ""状态""='处理中';", new { 编号 = work.编号, 响应 = response });
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            await connection.ExecuteAsync(new CommandDefinition(@"
+UPDATE ""外部同步任务""
+   SET ""状态""='成功',""外部响应摘要""=@响应,""最后错误""=NULL,""完成时间""=CURRENT_TIMESTAMP,""更新时间""=CURRENT_TIMESTAMP
+ WHERE ""编号""=@编号 AND ""状态""='处理中' AND ""请求ID""=@请求ID;",
+                new { work.编号, work.请求ID, 响应 = response }, transaction, cancellationToken: cancellationToken));
+            // Successful deliveries belong to the task, not to the operator's
+            // connection verification generation. Advancing it here would let
+            // one successful concurrent task hide another task's terminal error.
+            await transaction.CommitAsync(cancellationToken);
         }
 
         private async Task MarkFailureAsync(SyncWorkItem work, string error, bool retryable, CancellationToken cancellationToken, TimeSpan? retryAfter = null)
@@ -256,7 +270,44 @@ RETURNING q.""编号"", q.""业务类型"", q.""方向"", q.""业务主键"", q.
             var next = DateTime.Now.AddSeconds(backoffSeconds);
             await using var connection = new NpgsqlConnection(GetConnectionString());
             await connection.OpenAsync(cancellationToken);
-            await connection.ExecuteAsync(@"UPDATE ""外部同步任务"" SET ""状态""=@状态,""最后错误""=@错误,""下次重试时间""=CASE WHEN @状态='失败' THEN NULL ELSE @下次重试时间 END,""更新时间""=CURRENT_TIMESTAMP WHERE ""编号""=@编号 AND ""状态""='处理中';", new { 编号 = work.编号, 状态 = terminal ? "失败" : "待处理", 错误 = SanitizeResponseSummary(error, 2000), 下次重试时间 = next });
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            var changed = await connection.ExecuteAsync(new CommandDefinition(@"
+UPDATE ""外部同步任务""
+   SET ""状态""=@状态,""最后错误""=@错误,
+       ""下次重试时间""=CASE WHEN @状态='失败' THEN NULL ELSE @下次重试时间 END,
+       ""完成时间""=CASE WHEN @状态='失败' THEN CURRENT_TIMESTAMP ELSE NULL END,
+       ""更新时间""=CURRENT_TIMESTAMP
+ WHERE ""编号""=@编号 AND ""状态""='处理中' AND ""请求ID""=@请求ID;",
+                new { work.编号, work.请求ID, 状态 = terminal ? "失败" : "待处理", 错误 = SanitizeResponseSummary(error, 2000), 下次重试时间 = next }, transaction, cancellationToken: cancellationToken));
+            // A transient request failure does not revoke the operator's prior
+            // successful connection verification. Keep that gate intact so the
+            // queued retry (including after a restart) remains eligible. The
+            // failed attempt and its diagnostic are retained on the task. Only
+            // terminal failures require a new explicit connection test.
+            if (changed > 0 && terminal)
+                await UpdateConnectionStatusAsync(connection, transaction, work, "failed", SanitizeResponseSummary(error, 2000), cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        private static async Task UpdateConnectionStatusAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, SyncWorkItem work, string status, string error, CancellationToken cancellationToken)
+        {
+            // Fence against the exact database timestamp captured at claim.
+            // Saving or starting another connection test advances it even when
+            // the URL and secret reference stay the same. Task successes never
+            // advance this generation, so concurrent terminal failures still
+            // close their original verification gate.
+            await connection.ExecuteAsync(new CommandDefinition(@"
+UPDATE ""外部系统""
+   SET ""状态代码""=@状态代码,
+       ""最近连接状态""=CASE @状态代码 WHEN 'connected' THEN '已连接' WHEN 'failed' THEN '失败' ELSE '未测试' END,
+       ""最近连接时间""=CURRENT_TIMESTAMP,
+       ""最近连接错误""=@错误,
+       ""更新时间""=GREATEST(clock_timestamp()::timestamp, ""更新时间"" + interval '1 microsecond')
+ WHERE ""编号""=@编号 AND ""更新时间""=@连接版本 AND ""是否启用""=TRUE
+   AND ""接入方式""='接口' AND ""状态代码""='connected'
+   AND ""基础地址""=@基础地址 AND ""认证方式""=@认证方式
+   AND ""认证引用"" IS NOT DISTINCT FROM @认证引用;",
+                new { 编号 = work.外部系统编号, work.连接版本, work.基础地址, work.认证方式, work.认证引用, 状态代码 = status, 错误 = string.IsNullOrWhiteSpace(error) ? null : error }, transaction, cancellationToken: cancellationToken));
         }
 
         private sealed class ExternalSyncResponseException : Exception
@@ -326,13 +377,17 @@ RETURNING q.""编号"", q.""业务类型"", q.""方向"", q.""业务主键"", q.
             public string 基础地址 { get; set; }
             public string 认证方式 { get; set; }
             public string 认证引用 { get; set; }
+            public string 接入方式 { get; set; }
+            public string 状态代码 { get; set; }
             public int 超时秒数 { get; set; }
             public int 最大重试次数 { get; set; }
         }
 
         private sealed class SyncWorkItem
         {
+            public DateTime 连接版本 { get; set; }
             public long 编号 { get; set; }
+            public long 外部系统编号 { get; set; }
             public string 业务类型 { get; set; }
             public string 方向 { get; set; }
             public string 业务主键 { get; set; }

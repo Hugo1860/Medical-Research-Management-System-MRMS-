@@ -20,7 +20,7 @@ RUN test -s /app/ScientificResearch.dll \
     && test -s /app/ScientificResearch.deps.json \
     && test -s /app/ScientificResearch.runtimeconfig.json \
     && test -s /app/wwwroot/index.html
-RUN mkdir -p /app/wwwroot/upload /home/app/.aspnet/DataProtection-Keys \
+RUN mkdir -p /app/wwwroot/upload /app/App_Data/ProposalImports /home/app/.aspnet/DataProtection-Keys \
     && chown -R $APP_UID:$APP_UID /app /home/app/.aspnet
 USER $APP_UID
 EXPOSE 63739

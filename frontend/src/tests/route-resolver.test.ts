@@ -59,6 +59,14 @@ describe('Route Resolver (科研办公与全业务路由接管解析器)', () =>
     expect(resolveModernRoute('基础信息维护/字典.html')).toBe('/base-info/dictionary')
   })
 
+  it('应接管迁移 114/116 登记的单层菜单路径及仪器入口', () => {
+    expect(resolveModernRoute('基础信息维护/医院运营模式.html')).toBe('/base-info/system-configs?tab=hospitalMode')
+    expect(resolveModernRoute('科研办公/医疗新技术与适宜技术.html')).toBe('/office/new-technology')
+    expect(resolveModernRoute('/IMIS/views/成果管理/科普与案例成果库.html')).toBe('/fruit/popular-science')
+    expect(resolveModernRoute(encodeURIComponent('科研办公/医共体科教协同.html'))).toBe('/office/community-healthcare')
+    expect(resolveModernRoute('科研办公/科研办公/仪器设备与开放预约.html')).toBe('/office/research-platform?tab=instruments')
+  })
+
   it('对未提供或未知外链应返回 null 以供 fallback', () => {
     expect(resolveModernRoute('')).toBeNull()
     expect(resolveModernRoute(null)).toBeNull()
