@@ -28,6 +28,9 @@ export interface HorizontalProjectItem {
   合同名称: string
   项目负责人编号: number
   项目负责人姓名?: string
+  项目负责人工号?: string
+  项目负责人部门名称?: string
+  项目归属部门名称?: string
   合作方单位名称: string
   合同金额: number
   签订时间: string
@@ -190,4 +193,22 @@ export function archiveHorizontalProjectMaterial(data: {
   是否必需?: boolean
 }) {
   return request.post('/XProject/归档横向项目材料', data)
+}
+
+/**
+ * 新增横向项目变更申请
+ */
+export function createHorizontalProjectChange(data: {
+  基本资料: {
+    横向项目编号: number
+    变更事由: string
+    变更内容简介?: string
+    变更备注?: string
+    变更时间?: string
+    合同编号?: string
+    [key: string]: any
+  }
+  isHold?: boolean
+}) {
+  return request.post('/XProject/新增横向项目变更', data)
 }
